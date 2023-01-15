@@ -1,0 +1,12 @@
+Done with iteration 1 in 0.38961 minutes
+Done with iteration 2 in 0.68441 minutes
+Done with iteration 3 in 0.97555 minutes
+Done with iteration 4 in 1.265 minutes
+Done with iteration 5 in 1.5661 minutes
+Done with iteration 6 in 1.8513 minutes
+Done with iteration 7 in 2.1384 minutes
+Done with iteration 8 in 2.4259 minutes
+Done with iteration 9 in 2.7146 minutes
+Done with iteration 10 in 3.0043 minutes
+Done with iteration 11 in 3.3003 minutes
+Done with iteration 12 in 3.5869 minutes

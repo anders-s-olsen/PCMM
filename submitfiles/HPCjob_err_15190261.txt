@@ -1,0 +1,12 @@
+Loaded module: matlab/R2020a
+{Error using h5readc
+The filename specified was either not found on the MATLAB path or it contains
+unsupported characters.
+
+Error in h5read (line 66)
+[data,var_class] = h5readc(Filename,Dataset,start,count,stride);
+
+Error in run_WMM_EM_BigMem (line 4)
+eigenvectors =
+h5read([src,'data/processed/fMRI_atlas_RL1.h5'],'/Dataset',[1,1],[inf,inf]);
+} 
