@@ -9,7 +9,7 @@ clear
 % h5create('/dtu-compute/HCP_dFC/data/eigs_RL1_pca1000_big_half_svdXV_test.h5','/Dataset',size(X_test));
 % h5write('/dtu-compute/HCP_dFC/data/eigs_RL1_pca1000_big_half_svdXV_test.h5','/Dataset',X_test,[1,1],size(X_test));
 
-X_test = h5read('/dtu-compute/HCP_dFC/data/eigs_RL1_pca1000_big_half_svdXV_nomean_test.h5','/Dataset',[1,1],[inf,inf]);
+X_test = h5read('/dtu-compute/HCP_dFC/2023/hcp_dfc/data/processed/fMRI_atlas_RL2.h5','/Dataset',[1,1],[inf,inf]);
 % X_test = X_test - X_test;
 
 maxNumCompThreads('automatic');
@@ -17,36 +17,36 @@ maxNumCompThreads('automatic');
 ll_train = nan(30,5);
 ll_test = nan(30,5);
 
-addpath('/dtu-compute/HCP_dFC/toolboxes/cifti-matlab')
-template_cifti = cifti_read('/dtu-compute/HCP_dFC/data/alldata/100206_rfMRI_REST1_LR.nii');
+%addpath('/dtu-compute/HCP_dFC/toolboxes/cifti-matlab')
+%template_cifti = cifti_read('/dtu-compute/HCP_dFC/data/alldata/100206_rfMRI_REST1_LR.nii');
 
 for k = 2:30
     disp(['Working on k=',num2str(k)])
-    dirk = dir(['/dtu-compute/HCP_dFC/fulldatatest/interm_saves_rsvd4_nomean/test_k',num2str(k),'_*']);
+    dirk = dir(['/dtu-compute/HCP_dFC/2023/hcp_dfc/models/atlas/k',num2str(k),'_*.mat']);
     
     for repl = 1:numel(dirk)
         load(fullfile(dirk(repl).folder,dirk(repl).name));
-        ll_train(k,repl) = results_interm.ll;
+        ll_train(k,repl) = results_interim.ll(repl);
         
 %         for kk = 1:k
-%             prior(kk,1) = sum(results_interm.posterior(:,kk,repl))./size(X_test,1);
-% %             prior(kk,1) = sum(results_interm.idx==kk)./size(X_test,1);
+%             prior(kk,1) = sum(results_interim.posterior(:,kk,repl))./size(X_test,1);
+% %             prior(kk,1) = sum(results_interim.idx==kk)./size(X_test,1);
 %             
 %             b = template_cifti;
-%             b.cdata = (results_interm.mu(:,kk,repl)'*V')';
+%             b.cdata = (results_interim.mu(:,kk,repl)'*V')';
 %             b.diminfo{2} = cifti_diminfo_make_scalars(1);
 %             cifti_write(b,['/dtu-compute/HCP_dFC/fulldatatest/centroids_dec/cen',num2str(k),'_',num2str(kk),'_repl',num2str(repl),'.dscalar.nii']);
 %             
 %         end
         
-        
+        addpath('/dtu-compute/HCP_dFC/2023/hcp_dfc/src/models')
         c = size(X_test,2)/2;
-        M2 = kummer_log(1/2,c,results_interm.kappa',50000);
+        M2 = kummer_log(1/2,c,results_interim.kappa(:,repl)',50000);
         Cp = gammaln(c)-log(2)-c*log(pi)-M2';
-        logpdf = Cp + results_interm.kappa.*((results_interm.mu'*X_test').^2);
+        logpdf = Cp + results_interim.kappa(:,repl).*((results_interim.mu(:,:,repl)'*X_test').^2);
         
         % Then the density for every observation and component
-        density = log(results_interm.pri) + logpdf;
+        density = log(results_interim.pri(:,repl)) + logpdf;
         logsum_density = log(sum(exp(density-max(density))))+max(density);
         
         % then the log-likelihood for all observations and components
@@ -70,7 +70,7 @@ for k = 2:30
     
 end
 
-save(['/dtu-compute/HCP_dFC/fulldatatest/lltesttrain_',date],'ll_train','ll_train')
+%save(['/dtu-compute/HCP_dFC/fulldatatest/lltesttrain_',date],'ll_train','ll_train')
 
 lltrainmean = nanmean(ll_train,2);
 lltestmean = nanmean(ll_test,2);
@@ -84,15 +84,15 @@ legend('train','test','Location','NorthWest')
 ylabel('Log likelihood'),xlabel('Model order k')
 % xlim([1.5, 10.5]),%ylim([1.975*10^10, 1.987*10^10])
 set(gca,'FontSize',20)
-print(gcf,['/dtu-compute/HCP_dFC/fulldatatest/llfig_train_test_',date],'-dpng','-r300')
+print(gcf,['/dtu-compute/HCP_dFC/2023/hcp_dfc/docs/llfig_train_test_',date],'-dpng','-r300')
 figure,
 errorbar(1:30,lltrainmean,lltrainstd,'k-o','LineWidth',1.5)
 legend('train')
-print(gcf,['/dtu-compute/HCP_dFC/fulldatatest/llfig_train__',date],'-dpng','-r300')
+print(gcf,['/dtu-compute/HCP_dFC/2023/hcp_dfc/docs/llfig_train__',date],'-dpng','-r300')
 figure,
 errorbar(1:30,lltestmean,llteststd,'k--o','LineWidth',1.5)
 legend('test')
-print(gcf,['/dtu-compute/HCP_dFC/fulldatatest/llfig_test_',date],'-dpng','-r300')
+print(gcf,['/dtu-compute/HCP_dFC/2023/hcp_dfc/docs/llfig_test_',date],'-dpng','-r300')
 
 %% make nifti
 
