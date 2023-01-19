@@ -192,7 +192,7 @@ for repl = 1:nRepl
             Q = sqrt(Beta(:,k)).*X;
             
             if kappa>0
-                [~,~,mu(:,k)]=svds(X,1,'largest','RightStartVector',mu_old(:,k));
+                [~,~,mu(:,k)]=svds(Q,1,'largest','RightStartVector',mu_old(:,k));
                 %                 tic,svds(Q,1);toc
                 %                 tic
 %                 if ismember(it,[1:50:maxIter,maxIter])

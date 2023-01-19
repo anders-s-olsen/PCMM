@@ -7,7 +7,7 @@
 #BSUB -o HPCjob_out_%J.txt
 #BSUB -e HPCjob_err_%J.txt
 #BSUB -W 168:00 
-#BSUB -n 16
+#BSUB -n 8
 #BSUB -R "span[hosts=1]"
 
 # -- commands you want to execute -- 
