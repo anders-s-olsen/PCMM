@@ -91,3 +91,4 @@ target/
 
 # Other
 submitfiles/*.txt
+models/atlas/*.mat

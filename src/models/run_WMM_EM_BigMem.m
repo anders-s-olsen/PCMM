@@ -5,7 +5,7 @@ eigenvectors = h5read([src,'data/processed/fMRI_atlas_RL1.h5'],'/Dataset',[1,1],
 savefolder = [src,'models/atlas/'];
 
 maxIter = 500;
-nRepl = 5;
+nRepl = 1;
 init = '++';
 neg = 0;
 for k = 2:30
