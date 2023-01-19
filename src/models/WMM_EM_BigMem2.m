@@ -56,7 +56,6 @@ pri_final = zeros(K,nRepl);
 ll_iter_final = cell(1,nRepl);
 it_final = zeros(1,nRepl);
 
-rng(0);
 %% perform clustering
 
 for repl = 1:nRepl
