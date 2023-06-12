@@ -26,7 +26,7 @@ for k = 2:30
     
     for repl = 1:numel(dirk)
         load(fullfile(dirk(repl).folder,dirk(repl).name));
-        ll_train(k,repl) = results_interim.ll(repl);
+        ll_train(k,repl) = results_interim.ll;
         
 %         for kk = 1:k
 %             prior(kk,1) = sum(results_interim.posterior(:,kk,repl))./size(X_test,1);
@@ -41,12 +41,12 @@ for k = 2:30
         
         addpath('/dtu-compute/HCP_dFC/2023/hcp_dfc/src/models')
         c = size(X_test,2)/2;
-        M2 = kummer_log(1/2,c,results_interim.kappa(:,repl)',50000);
+        M2 = kummer_log(1/2,c,results_interim.kappa',50000);
         Cp = gammaln(c)-log(2)-c*log(pi)-M2';
-        logpdf = Cp + results_interim.kappa(:,repl).*((results_interim.mu(:,:,repl)'*X_test').^2);
+        logpdf = Cp + results_interim.kappa.*((results_interim.mu'*X_test').^2);
         
         % Then the density for every observation and component
-        density = log(results_interim.pri(:,repl)) + logpdf;
+        density = log(results_interim.pri) + logpdf;
         logsum_density = log(sum(exp(density-max(density))))+max(density);
         
         % then the log-likelihood for all observations and components

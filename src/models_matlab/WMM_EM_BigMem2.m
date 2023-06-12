@@ -10,6 +10,7 @@ function results = WMM_EM_BigMem2(X,K,maxIter,nRepl,init,neg,savefolder)
 % Output: [idx_out,mu_out,lambda_out,ll_out].
 % Distance measure is the squared sample-to-sample angle.
 
+rng shuffle
 
 X_range = [min(min(X)),max(max(X))];
 
@@ -170,7 +171,7 @@ for repl = 1:nRepl
                 results_interim.input_data_size = size(X);
                 
                 num_saves = dir([savefolder,'k',num2str(K),'_Repl*']);
-                save([savefolder,'k',num2str(K),'_Repl',num2str(numel(num_saves)+1),'_',date],'results_interim')
+                % save([savefolder,'k',num2str(K),'_Repl',num2str(numel(num_saves)+1),'_',date],'results_interim')
                 break
             end
         end
@@ -233,9 +234,11 @@ for repl = 1:nRepl
             % Optimize kappa within bounds (always convex within bounds)
 %             f = @(kappa)-(kappa*rk-log(KummerSimple(a,c,kappa)));
             f = @(kappa)-(kappa*rk-kummer_log(a,c,kappa,50000));
+            f2 = @(kappa)abs((a/c)*(kummer_log(a+1,c+1,kappa,50000)/kummer_log(a,c,kappa,50000))-rk);
             
             if rk<1&&rk>a/c
                 kappa(k) = fmincon(f,mean([LB,B]),[],[],[],[],LB,B,[],options);
+                kappa(k) = fmincon(f2,mean([LB,B]),[],[],[],[],LB,B,[],options);
             elseif rk<a/c&&rk>0
                 kappa(k) = fmincon(f,mean([B,UB]),[],[],[],[],B,UB,[],options);
             elseif rk==a/c
