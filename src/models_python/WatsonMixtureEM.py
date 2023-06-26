@@ -9,7 +9,7 @@ class Watson():
     """
     Mixture model class
     """
-    def __init__(self, K: int, p: int):
+    def __init__(self, K: int, p: int,params=None):
         super().__init__()
         self.K = K
         self.p = p
@@ -18,6 +18,11 @@ class Watson():
         self.log_a_div_c = np.log(self.a/self.c)
         self.logSA = loggamma(self.c) - np.log(2) -self.c* np.log(np.pi)
         self.loglik = []
+
+        if params is not None: # for evaluating likelihood with already-learned parameters
+            self.mu = params['mu']
+            self.kappa = params['kappa']
+            self.pi = params['pi']
 
     def get_parameters(self):
         return {'mu': self.mu,'kappa':self.kappa,'pi':self.pi}
@@ -98,9 +103,9 @@ class Watson():
                 return ((self.a/self.c)*(np.exp(self.kummer_log(self.a+1,self.c+1,kappa)-self.kummer_log(self.a,self.c,kappa)))-rk)**2
 
             if rk>self.a/self.c:
-                self.kappa[k] = scipy.optimize.minimize(f, x0=np.mean([LB,B]), bounds=[(LB, B)])['x']
+                self.kappa[k] = scipy.optimize.minimize(f, x0=np.mean([LB,B]), bounds=[(LB, B)],tol=1e-10)['x']
             elif rk<self.a/self.c:
-                self.kappa[k] = scipy.optimize.minimize(f, x0=np.mean([B,UB]), bounds=[(B, UB)])['x']
+                self.kappa[k] = scipy.optimize.minimize(f, x0=np.mean([B,UB]), bounds=[(B, UB)],tol=1e-10)['x']
             elif rk==self.a/self.c:
                 self.kappa[k] = 0
             else:
