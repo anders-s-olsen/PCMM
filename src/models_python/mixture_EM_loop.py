@@ -1,11 +1,11 @@
 import numpy as np
-from WatsonMixtureEM import Watson
+import tqdm
 
-def mixture_EM_loop(dist,data,tol=1e-8,max_iter=1000,num_repl=1,init=None):
+def mixture_EM_loop(dist,data,tol=1e-8,max_iter=10000,num_repl=1,init=None):
 
     best_loglik = -1000000
 
-    for repl in range(num_repl):
+    for _ in range(num_repl):
         if init is None or init == 'dc' or init == 'diametrical_clustering':
             dist.initialize(X=data,init='dc')
         elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
@@ -37,15 +37,31 @@ def mixture_EM_loop(dist,data,tol=1e-8,max_iter=1000,num_repl=1,init=None):
     return params_final,beta_final,loglik_final,num_iter_final
 
 if __name__=='__main__':
+    from WatsonMixtureEM import Watson
+    from ACGMixtureEM import ACG
+    from MACGMixtureEM import MACG
     import matplotlib.pyplot as plt
     K = np.array(2)
     
     p = np.array(3)
     W = Watson(K=K,p=p)
+    ACG = ACG(K=K,p=p)
+    MACG = MACG(K=K,p=p,q=2)
 
-    data = np.loadtxt('synth_data_2.csv',delimiter=',')
-    data = data[np.arange(2000,step=2),:]
+    # data = np.loadtxt('data/synthetic/synth_data_4.csv',delimiter=',')
+    # data1 = data[np.arange(2000,step=2),:]
+    # data2 = np.zeros((1000,p,2))
+    # data2[:,:,0] = data[np.arange(2000,step=2),:]
+    # data2[:,:,1] = data[np.arange(2000,step=2)+1,:]
 
-    params,beta,loglik,_ = mixture_EM_loop(dist=W,data=data,num_repl=1)
+    # params_W,beta_W,loglik_W,_ = mixture_EM_loop(dist=W,data=data1,num_repl=3,init='unif')
+    # params_ACG,beta_ACG,loglik_ACG,_ = mixture_EM_loop(dist=ACG,data=data1,num_repl=3,init='unif')
+    # params_MACG,beta_MACG,loglik_MACG,_ = mixture_EM_loop(dist=MACG,data=data2,num_repl=3,init='unif')
+
+    data = np.loadtxt('data/synthetic/synth_data_3.csv',delimiter=',')
+
+    params_W,beta_W,loglik_W,_ = mixture_EM_loop(dist=W,data=data,num_repl=3,init='unif')
+    params_ACG,beta_ACG,loglik_ACG,_ = mixture_EM_loop(dist=ACG,data=data,num_repl=3,init='unif')
+    # params_MACG,beta_MACG,loglik_MACG,_ = mixture_EM_loop(dist=MACG,data=data2,num_repl=3,init='unif')    
     
     stop=7
