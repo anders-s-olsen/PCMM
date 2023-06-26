@@ -1,11 +1,10 @@
 import numpy as np
-from scipy.special import loggamma,hyp1f1
-import scipy
-import time
+from scipy.special import loggamma
 from diametrical_clustering import diametrical_clustering, diametrical_clustering_plusplus
 from WatsonMixtureEM import Watson
+from mixture_EM_loop import mixture_EM_loop
 
-class Watson():
+class ACG():
     """
     Mixture model class
     """
@@ -14,15 +13,16 @@ class Watson():
         self.K = K
         self.p = p
         self.c = self.p/2
-        self.a = 0.5
-        self.log_a_div_c = np.log(self.a/self.c)
         self.logSA = loggamma(self.c) - np.log(2) -self.c* np.log(np.pi)
         self.loglik = []
+        self.Lambda = np.zeros((self.K,self.p,self.p))
+        # self.Lambda_chol = np.zeros((self.K,self.p,self.p))
 
     def get_parameters(self):
-        return {'mu': self.mu,'kappa':self.kappa,'pi':self.pi}
+        return {'Lambda': self.Lambda,'pi':self.pi}
     
     def initialize(self,X=None,init=None):
+        self.pi = np.repeat(1/self.K,repeats=self.K)
         if init is None or init=='uniform' or init=='unif':
             self.mu = np.random.uniform(size=(self.p,self.K))
             self.mu = self.mu/np.linalg.norm(self.mu,axis=0)
@@ -33,25 +33,28 @@ class Watson():
             self.mu = diametrical_clustering_plusplus(X=X,K=self.K)
         elif init == 'dc' or init == 'diametrical_clustering':
             self.mu,_,_ = diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++')
+        elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
+            W = Watson(K=self.K,p=self.p)
+            params,_,_,_ = mixture_EM_loop(W,X,init='dc')
+            self.mu = params['mu']
+            self.pi = params['pi']
             
-        self.pi = np.repeat(1/self.K,repeats=self.K)
-        self.Lambda = self.mu.T@self.mu
+        for k in range(self.K):
+            self.Lambda[k] = np.outer(self.mu[:,k],self.mu[:,k])+np.eye(self.p)
+            # self.Lambda_chol[k] = np.linalg.cholesky(np.outer(self.mu[:,k],self.mu[:,k])+np.eye(self.p))
     
 
 ################ E-step ###################
     
-    
     def log_norm_constant(self):
-        # Be sure to check with task code
-        L = np.linalg.cholesky(self.Lambda)
-        logdet = 2*np.trace(np.log(L))
-        return self.logSA - logdet
-    
+        return self.logSA - 0.5*np.log(np.linalg.det(self.Lambda))
+
     def log_pdf(self,X):
-        pdf = np.zeros((self.K,X.size[0]))
+        pdf = np.zeros((self.K,X.shape[0]))
         for k in range(self.K):
-            pdf[k] = np.diag(X@self.Lambda[k]@X.T)
-        return self.log_norm_constant() -self.c*np.log(pdf)
+            # pdf[k] = np.diag(X@np.linalg.inv(self.Lambda[k])@X.T)
+            pdf[k] = np.sum(X@np.linalg.inv(self.Lambda[k])*X,axis=1)
+        return self.log_norm_constant()[:,np.newaxis] -self.c*np.log(pdf)
 
     def log_density(self,X):
         return self.log_pdf(X)+np.log(self.pi)[:,np.newaxis]
@@ -59,15 +62,37 @@ class Watson():
     def log_likelihood(self,X):
         self.density = self.log_density(X)
         self.logsum_density = np.logaddexp.reduce(self.density)
-        # log(sum(exp(density-max(density))))+max(density);
         loglik = np.sum(self.logsum_density)
         self.loglik.append(loglik)
         return loglik
 
-    def Lambda_update(self,X,tol=1e-10):
-        self.Lambda[k] = np.eye()
-        self.p*np.sum()
+    def Lambda_MLE(self,X,weights = None,tol=1e-10,max_iter=10000):
+        n,p = X.shape
+        if n<p*(p-1):
+            print("Too high dimensionality compared to number of observations. Lambda cannot be calculated")
+            return
+        if weights is None:
+            weights = np.ones(n)
+        Lambda_old = np.eye(self.p)
+        Q = np.sqrt(weights)[:,np.newaxis]*X
 
+        # iteration 0 (Lambda initialized as eye(p)):
+        Lambda = p*Q.T@Q/np.sum(weights)
+        
+        j = 1
+        while np.linalg.norm(Lambda_old-Lambda) > tol and (j < max_iter):
+            Lambda_old = Lambda
+            
+            # The following has been tested against a for-loop implementing Tyler1987 (3)
+            # and also an implementation of Tyler1987 (2) where (2) has been evaluated and
+            # Lambda=p/trace(Lambda)*Lambda for each iteration. All give the same result, 
+            # at least before implementing weights
+
+            XtLX = np.sum(X@np.linalg.inv(Lambda)*X,axis=1) #x_i^T*L^(-1)*x_i for batch
+            Lambda = p*(Q/XtLX[:,np.newaxis]).T@Q/np.sum(weights/XtLX)
+            j +=1
+        return Lambda
+    
 
 ############# M-step #################
     def M_step(self,X):
@@ -76,55 +101,87 @@ class Watson():
         self.pi = np.sum(Beta,axis=0)/n
 
         for k in range(self.K):
-            Q = np.sqrt(Beta[:,k])[:,np.newaxis]*X
-
-            if self.kappa[k]>0:
-                _,_,self.mu[:,k] = scipy.sparse.linalg.svds(Q,k=1,which='LM',v0=self.mu[:,k],return_singular_vectors='vh')
-                # [~,~,mu(:,k)]=svds(Q,1,'largest','RightStartVector',mu_old(:,k));
-                # self.mu[:,k] = V[:,0]
-            elif self.kappa[k]<0:
-                _,_,self.mu[:,k] = scipy.sparse.linalg.svds(Q,k=1,which='SM',v0=self.mu[:,k],return_singular_vectors='vh')
-                # self.mu[:,k] = V[:,-1]
-
-            rk = 1/np.sum(Beta[:,k])*np.sum((self.mu[:,k].T@Q.T)**2)
-            LB = (rk*self.c-self.a)/(rk*(1-rk))*(1+(1-rk)/(self.c-self.a))
-            B  = (rk*self.c-self.a)/(2*rk*(1-rk))*(1+np.sqrt(1+4*(self.c+1)*rk*(1-rk)/(self.a*(self.c-self.a))))
-            UB = (rk*self.c-self.a)/(rk*(1-rk))*(1+rk/self.a)
-
-            # def f(kappa):
-            #     return -(kappa * rk - hyp1f1(self.a, self.c, kappa))
-            def f(kappa):
-                return ((self.a/self.c)*(np.exp(self.kummer_log(self.a+1,self.c+1,kappa)-self.kummer_log(self.a,self.c,kappa)))-rk)**2
-
-            if rk>self.a/self.c:
-                self.kappa[k] = scipy.optimize.minimize(f, x0=np.mean([LB,B]), bounds=[(LB, B)])['x']
-            elif rk<self.a/self.c:
-                self.kappa[k] = scipy.optimize.minimize(f, x0=np.mean([B,UB]), bounds=[(B, UB)])['x']
-            elif rk==self.a/self.c:
-                self.kappa[k] = 0
-            else:
-                print("kappa could not be optimized")
-                return
+            self.Lambda[k] = self.Lambda_MLE(X,weights=Beta[:,k])
 
 
 if __name__=='__main__':
     import matplotlib.pyplot as plt
+    from tqdm import tqdm
     K = np.array(2)
     
     p = np.array(3)
-    W = Watson(K=K,p=p)
-    data = np.loadtxt('data/synthetic/synth_data_2.csv',delimiter=',')
-    data = data[np.arange(2000,step=2),:]
-    W.initialize(X=data,init='test')
+    ACG = ACG(K=K,p=p)
+    data = np.loadtxt('data/synthetic/synth_data_4.csv',delimiter=',')
+    # data = np.random.normal(loc=0,scale=0.1,size=(10000,100))
+    data = data[np.arange(1000,step=2),:]
+    ACG.initialize(X=data,init='uniform')
+    # ACG.Lambda_MLE(X=data)
 
-    # data1 = np.random.normal(loc=np.array((1,1,1)),scale=0.02,size=(1000,p))
-    # data2 = np.random.normal(loc=np.array((1,-1,-1)),scale=0.02,size=(1000,p))
-    # data = np.vstack((data1,data2))
-    # data = data/np.linalg.norm(data,axis=1)[:,np.newaxis]
+    # start = time.time()
+    # ACG.log_norm_constant()
+    # stop1 = time.time()-start
+    # start = time.time()
+    # ACG.log_norm_constant2()
+    # stop2 = time.time()-start
+    # print(str(stop1)+"_"+str(stop2))
 
-    for iter in range(1000):
+
+    for iter in tqdm(range(1000)):
         # E-step
-        W.log_likelihood(X=data)
+        ACG.log_likelihood(X=data)
+        # print(ACG.Lambda_chol)
         # M-step
-        W.M_step(X=data)
+        ACG.M_step(X=data)
     stop=7
+
+    # def Lambda_MLE_naive(self,X,weights = None,tol=1e-10,max_iter=10000):
+    #     n,p = X.shape
+    #     if weights is None:
+    #         weights = np.ones(n)
+    #     Lambda = np.eye(self.p)
+    #     Lambda_old = Lambda + 10000
+    #     # Q = np.sqrt(weights)[:,np.newaxis]*X
+        
+    #     j = 0
+    #     while np.linalg.norm(Lambda_old-Lambda) > tol and (j < max_iter):
+    #         Lambda_old = Lambda
+    #         tmp = np.zeros((p,p))
+    #         tmp2 = np.zeros((p,p))
+    #         tmp3 = 0
+    #         for i in range(n):
+    #             tmp += p/n*np.outer(X[i],X[i])/(X[i]@np.linalg.inv(Lambda)@X[i])
+    #             tmp2 += np.outer(X[i],X[i])/(X[i]@np.linalg.inv(Lambda)@X[i])
+    #             tmp3 += 1/(X[i]@np.linalg.inv(Lambda)@X[i])
+    #         Lambda_iter = p*tmp2/tmp3
+    #         Lambda = p/np.trace(tmp)*tmp
+    #         j +=1
+    #     return Lambda
+    
+    # def Lambda_MLE_chol(self,X,weights=None,tol=1e-10,max_iter=10000):
+    #     n,p = X.shape
+    #     if weights is None:
+    #         weights = np.ones(n)
+    #     Lambda = np.eye(self.p)
+    #     Lambda_old = Lambda + np.eye(self.p)*10000
+    #     Q = np.sqrt(weights)[:,np.newaxis]*X
+        
+    #     j = 0
+    #     while np.linalg.norm(Lambda_old-Lambda) > tol and (j < max_iter):
+    #         Lambda_old = Lambda
+            
+    #         B = X @ Lambda
+    #         XLXt = np.sum(B * B, axis=1)
+    #         Lambda = np.linalg.cholesky(p*(Q/XLXt[:,np.newaxis]).T@Q/np.sum(weights/XLXt))
+    #         j +=1
+    #     return Lambda
+
+
+    
+    
+    # def log_norm_constant_chol(self):
+    #     # Be sure to check with task code
+    #     logdet = 2*np.log(np.linalg.det(self.Lambda_chol))
+    #     logdet = np.zeros(self.K)
+    #     for k in range(self.K):
+    #         logdet[k] = 2*np.sum(np.log(np.abs(np.diag(self.Lambda_chol[k]))))
+    #     return self.logSA - 0.5*logdet
