@@ -1,24 +1,23 @@
 clear,close all
 
 %% original data for methods figure
-
+p=3;
 sig2 = eye(3)+0.99*(ones(3)-eye(3)); %noise is one minus the off diagonal element, log space
+sig2 = p*sig2/trace(sig2);
 sig3 = diag([1e-02,1,1])+0.9*[0,0,0;0,0,1;0,1,0]; %noise is the first diagonal element, log space
+sig3 = p*sig3/trace(sig3);
 SIGMAs = cat(3,sig2,sig3);
 [X,cluster_id] = syntheticACGMixture([zeros(1,500),ones(1,500);ones(1,500),zeros(1,500)]',SIGMAs,1000,0);
 pointsspherefig(X,cluster_id);
+writetable(array2table(X),'data/synthetic/synth_data_ACG.csv','WriteVariableNames',false)
 
-sig2 = eye(3)+0.99*(ones(3)-eye(3)); %noise is one minus the off diagonal element, log space
-sig3 = diag([1e-02,1,1])+0.9*[0,0,0;0,0,1;0,1,0]; %noise is the first diagonal element, log space
-sig3 = 3/trace(sig3)*sig3;
-SIGMAs = cat(3,sig2,sig3);
 [X,cluster_id] = syntheticMACGMixture([zeros(1,500),ones(1,500);ones(1,500),zeros(1,500)]',SIGMAs,1000,2,0);
 pointsspherefig(X(:,:,1),cluster_id);
 pointsspherefig(X(:,:,2),cluster_id);
 X2 = zeros(2*size(X,1),3);
 X2(1:2:2000,:) = X(:,:,1);
 X2(2:2:2000,:) = X(:,:,2);
-% writetable(array2table(X2),'data/synthetic/synth_data_4.csv','WriteVariableNames',false)
+writetable(array2table(X2),'data/synthetic/synth_data_MACG.csv','WriteVariableNames',false)
 return
 %% generate data according to noise levels
 
