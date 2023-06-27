@@ -5,7 +5,7 @@ import torch.nn as nn
 #from scipy.special import gamma
 
 #device = 'cpu'
-class AngularCentralGaussian(nn.Module):
+class ACG(nn.Module):
     """
     Angular-Central-Gaussian spherical distribution:
 
@@ -23,34 +23,37 @@ class AngularCentralGaussian(nn.Module):
         # log sphere surface area
         self.logSA = torch.lgamma(self.half_p) - torch.log(torch.tensor(2)) -self.half_p* torch.log(torch.tensor(np.pi))
         if init is None:
-            self.L = nn.Parameter(torch.randn(self.p,self.D,dtype=torch.double).to(self.device))
+            self.M = nn.Parameter(torch.randn(self.p,self.D,dtype=torch.double).to(self.device))
         else:
-            self.L = init
+            self.M = init
             num_missing = self.D-init.shape[1]
-            L_extra = torch.randn(self.p,num_missing,dtype=torch.double)
-            self.L = nn.Parameter(torch.cat([init,L_extra],dim=1))
+            M_extra = torch.randn(self.p,num_missing,dtype=torch.double)
+            self.M = nn.Parameter(torch.cat([init,M_extra],dim=1))
         assert self.p != 1, 'Not matmul not stable for this dimension'
 
     def get_params(self):
-        return self.lowrank_compose_A(read_A_param=True)
+        return self.M
 
-    def lowrank_compose_A(self,read_A_param=False):
+    def log_determinant_L(self):
+        import time
+        start = time.time()
+        log_det_L = 2 * torch.sum(torch.log(torch.abs(torch.diag(torch.linalg.cholesky(torch.eye(self.p)+self.M@self.M.T)))))
+        start2 = time.time()
+        log_det_L = torch.log(torch.det(torch.eye(self.p)+self.M@self.M.T))
+        stop=time.time()
+        print(start2-start)
+        print(stop-start2)
         
-        if read_A_param:
-            return self.L
-
-        log_det_A = 2 * torch.sum(torch.log(torch.abs(torch.diag(torch.linalg.cholesky(torch.eye(self.D)+self.L.T@self.L)))))
-        
-        return log_det_A
+        return log_det_L
     
     def lowrank_log_pdf(self,X):
-        log_det_A = self.lowrank_compose_A()
+        log_det_L = self.log_determinant_L()
 
-        B = X@self.L
-        matmul2 = 1-torch.sum(B@torch.linalg.inv(torch.eye(self.D)+self.L.T@self.L)*B,dim=1)
+        B = X@self.M
+        matmul2 = 1-torch.sum(B@torch.linalg.inv(torch.eye(self.p)+self.M@self.M.T)*B,dim=1)
 
-        # minus log_det_A instead of + log_det_A_inv
-        log_acg_pdf = self.logSA - 0.5 * log_det_A - self.half_p * torch.log(matmul2)
+        # minus log_det_L instead of + log_det_A_inv
+        log_acg_pdf = self.logSA - 0.5 * log_det_L - self.half_p * torch.log(matmul2)
         return log_acg_pdf
 
     def forward(self, X):
@@ -66,9 +69,9 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import scipy
 
-    mpl.use('Qt5Agg')
+    # mpl.use('Qt5Agg')
     dim = 3
-    ACG = AngularCentralGaussian(p=dim)
+    ACG = ACG(p=dim,D=2)
     
     #ACG_pdf = lambda phi: float(torch.exp(ACG(torch.tensor([[np.cos(phi), np.sin(phi)]], dtype=torch.float))))
     #acg_result = scipy.integrate.quad(ACG_pdf, 0., 2*np.pi)
