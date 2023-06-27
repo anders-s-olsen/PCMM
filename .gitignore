@@ -93,5 +93,5 @@ target/
 .mypy_cache/
 
 # Other
-submitfiles/*.txt
+submitfiles/**/*.txt
 models/atlas/*.mat

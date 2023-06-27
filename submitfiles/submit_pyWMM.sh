@@ -2,11 +2,11 @@
 #BSUB -J HCPjob
 #BSUB -q computebigbigmem
 #BSUB -R "rusage[mem=20GB]"
-#BSUB -B
-#BSUB -N
-#BSUB -o HCPjob_out_%J.txt
-#BSUB -e HCPjob_err_%J.txt
-#BSUB -W 168:00 
+# #BSUB -B
+# #BSUB -N
+#BSUB -o submitfiles/output/HCPjob_out_%J.txt
+#BSUB -e submitfiles/output/HCPjob_err_%J.txt
+#BSUB -W 24:00 
 #BSUB -n 16
 #BSUB -R "span[hosts=1]"
 
@@ -15,7 +15,4 @@
 source /dtu-compute/macaroni/miniconda3/bin/activate
 conda activate hcp
 
-cd ..
-cd experiments
-
-python3 run_WMM.py
+python3 experiments/run_WMM.py

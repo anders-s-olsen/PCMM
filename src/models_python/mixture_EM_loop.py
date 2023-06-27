@@ -5,7 +5,8 @@ def mixture_EM_loop(dist,data,tol=1e-8,max_iter=10000,num_repl=1,init=None):
 
     best_loglik = -1000000
 
-    for _ in range(num_repl):
+    for repl in range(num_repl):
+        print(['Initializing repl '+str(repl)])
         if init is None or init == 'dc' or init == 'diametrical_clustering':
             dist.initialize(X=data,init='dc')
         elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
@@ -13,6 +14,7 @@ def mixture_EM_loop(dist,data,tol=1e-8,max_iter=10000,num_repl=1,init=None):
         elif init == 'uniform' or init == 'unif':
             dist.initialize(init='uniform')
         loglik = []
+        print('Beginning EM loop')
         iter = 0
         while True:
         

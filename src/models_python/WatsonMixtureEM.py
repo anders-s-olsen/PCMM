@@ -2,7 +2,7 @@ import numpy as np
 from scipy.special import loggamma,hyp1f1
 import scipy
 import time
-from diametrical_clustering import diametrical_clustering, diametrical_clustering_plusplus
+from src.models_python import diametrical_clustering
 # import torch
 
 class Watson():
@@ -35,9 +35,9 @@ class Watson():
             self.mu = np.vstack((np.array([1,1,1]),np.array([1,1,-1]))).T
             self.mu = self.mu/np.linalg.norm(self.mu,axis=0)
         elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
-            self.mu = diametrical_clustering_plusplus(X=X,K=self.K)
+            self.mu = diametrical_clustering.diametrical_clustering_plusplus(X=X,K=self.K)
         elif init == 'dc' or init == 'diametrical_clustering':
-            self.mu,_,_ = diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++')
+            self.mu,_,_ = diametrical_clustering.diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++')
             
         self.pi = np.repeat(1/self.K,repeats=self.K)
         self.kappa = np.ones((self.K,1))
@@ -77,13 +77,14 @@ class Watson():
 
 ############# M-step #################
     def M_step(self,X):
-        n,_ = X.shape
+        n,p = X.shape
         Beta = np.exp(self.density-self.logsum_density).T
         self.pi = np.sum(Beta,axis=0)/n
 
         for k in range(self.K):
             Q = np.sqrt(Beta[:,k])[:,np.newaxis]*X
 
+            # the folllowing options are optimized for n>p but should work otherwise
             if self.kappa[k]>0:
                 _,_,self.mu[:,k] = scipy.sparse.linalg.svds(Q,k=1,which='LM',v0=self.mu[:,k],return_singular_vectors='vh')
                 # [~,~,mu(:,k)]=svds(Q,1,'largest','RightStartVector',mu_old(:,k));
@@ -110,6 +111,9 @@ class Watson():
                 self.kappa[k] = 0
             else:
                 print("kappa could not be optimized")
+                return
+            if np.linalg.norm(self.kappa[k]-LB)<1e-10 or np.linalg.norm(self.kappa[k]-B)<1e-10 or np.linalg.norm(self.kappa[k]-UB)<1e-10:
+                print('Probably a convergence problem for kappa')
                 return
 
 
