@@ -60,10 +60,10 @@ if __name__=='__main__':
     # params_ACG,beta_ACG,loglik_ACG,_ = mixture_EM_loop(dist=ACG,data=data1,num_repl=3,init='unif')
     # params_MACG,beta_MACG,loglik_MACG,_ = mixture_EM_loop(dist=MACG,data=data2,num_repl=3,init='unif')
 
-    data = np.loadtxt('data/synthetic/synth_data_3.csv',delimiter=',')
+    data = np.loadtxt('data/synthetic/synth_data_ACG.csv',delimiter=',')
 
-    params_W,beta_W,loglik_W,_ = mixture_EM_loop(dist=W,data=data,num_repl=3,init='unif')
-    params_ACG,beta_ACG,loglik_ACG,_ = mixture_EM_loop(dist=ACG,data=data,num_repl=3,init='unif')
+    # params_W,beta_W,loglik_W,_ = mixture_EM_loop(dist=W,data=data,num_repl=3,init='unif')
+    params_ACG,beta_ACG,loglik_ACG,_ = mixture_EM_loop(dist=ACG,data=data,num_repl=1,init='unif')
     # params_MACG,beta_MACG,loglik_MACG,_ = mixture_EM_loop(dist=MACG,data=data2,num_repl=3,init='unif')    
     
     stop=7

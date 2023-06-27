@@ -1,7 +1,7 @@
 #!/bin/sh
 #BSUB -J HCPjob
-#BSUB -q computebigbigmem
-#BSUB -R "rusage[mem=20GB]"
+#BSUB -q hpc
+#BSUB -R "rusage[mem=5GB]"
 # #BSUB -B
 # #BSUB -N
 #BSUB -o submitfiles/output/HCPjob_out_%J.txt
@@ -15,4 +15,4 @@
 source /dtu-compute/macaroni/miniconda3/bin/activate
 conda activate hcp
 
-python3 experiments/run_WMM.py
+python3 experiments/run_models_454.py 3

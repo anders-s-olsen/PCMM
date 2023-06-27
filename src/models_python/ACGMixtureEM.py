@@ -1,22 +1,24 @@
 import numpy as np
 from scipy.special import loggamma
-from diametrical_clustering import diametrical_clustering, diametrical_clustering_plusplus
-from WatsonMixtureEM import Watson
-from mixture_EM_loop import mixture_EM_loop
+from src.models_python.diametrical_clustering import diametrical_clustering, diametrical_clustering_plusplus
+from src.models_python.WatsonMixtureEM import Watson
+from src.models_python.mixture_EM_loop import mixture_EM_loop
 
 class ACG():
     """
     Mixture model class
     """
-    def __init__(self, K: int, p: int):
+    def __init__(self, K: int, p: int,params=None):
         super().__init__()
         self.K = K
         self.p = p
         self.c = self.p/2
         self.logSA = loggamma(self.c) - np.log(2) -self.c* np.log(np.pi)
         self.loglik = []
-        self.Lambda = np.zeros((self.K,self.p,self.p))
-        # self.Lambda_chol = np.zeros((self.K,self.p,self.p))
+
+        if params is not None: # for evaluating likelihood with already-learned parameters
+            self.Lambda = params['Lambda']
+            self.pi = params['pi']
 
     def get_parameters(self):
         return {'Lambda': self.Lambda,'pi':self.pi}
@@ -38,7 +40,8 @@ class ACG():
             params,_,_,_ = mixture_EM_loop(W,X,init='dc')
             self.mu = params['mu']
             self.pi = params['pi']
-            
+        
+        self.Lambda = np.zeros((self.K,self.p,self.p))    
         for k in range(self.K):
             self.Lambda[k] = np.outer(self.mu[:,k],self.mu[:,k])+np.eye(self.p)
             # self.Lambda_chol[k] = np.linalg.cholesky(np.outer(self.mu[:,k],self.mu[:,k])+np.eye(self.p))
@@ -111,9 +114,9 @@ if __name__=='__main__':
     
     p = np.array(3)
     ACG = ACG(K=K,p=p)
-    data = np.loadtxt('data/synthetic/synth_data_4.csv',delimiter=',')
+    data = np.loadtxt('data/synthetic/synth_data_ACG.csv',delimiter=',')
     # data = np.random.normal(loc=0,scale=0.1,size=(10000,100))
-    data = data[np.arange(1000,step=2),:]
+    # data = data[np.arange(1000,step=2),:]
     ACG.initialize(X=data,init='uniform')
     # ACG.Lambda_MLE(X=data)
 

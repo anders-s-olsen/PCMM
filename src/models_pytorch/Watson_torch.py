@@ -13,33 +13,45 @@ class Watson(nn.Module):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.p = torch.tensor(p,device=self.device)
-        self.half_p = torch.tensor(self.p/2,device=self.device)
-        self.mu = nn.Parameter(nn.functional.normalize(torch.rand(self.p,device=self.device), dim=0))
-        self.kappa = nn.Parameter(torch.randint(1,10,(1,),dtype=torch.float32,device=self.device))
+        self.c = torch.tensor(self.p/2,device=self.device)
+        self.mu = nn.Parameter(torch.rand(self.p,device=self.device,dtype=torch.double))
+        self.kappa = nn.Parameter(torch.randint(1,10,(1,),dtype=torch.double,device=self.device))
         self.SoftPlus = nn.Softplus(beta=20, threshold=1)
-        self.const_a = torch.tensor(0.5,device=self.device)  # a = 1/2,  !constant
-        self.logSA = torch.lgamma(self.half_p) - torch.log(torch.tensor(2,device=self.device)) -self.half_p* torch.log(torch.tensor(np.pi,device=self.device))
+        self.a = torch.tensor(0.5,device=self.device)  # a = 1/2,  !constant
+        self.logSA = torch.lgamma(self.c) - torch.log(torch.tensor(2,device=self.device)) -self.c* torch.log(torch.tensor(np.pi,device=self.device))
         assert self.p != 1, 'Not properly implemented'
 
     def get_params(self):
-        mu_param = nn.functional.normalize(self.mu.data, dim=0)
-        kappa_param = self.kappa.data
+        mu_param = self.mu.data #should be normalized dim0
+        kappa_param = self.kappa.data #should be softplussed
         return {'mu': mu_param,
                 'kappa': kappa_param}
 
-    def log_kummer(self, a, b, kappa,num_eval=10000):
+    # def log_kummer(self, a, b, kappa,num_eval=10000):
 
-        n = torch.arange(num_eval,device=self.device)
+    #     n = torch.arange(num_eval,device=self.device)
     
-        inner = torch.lgamma(a + n) + torch.lgamma(b) - torch.lgamma(a) - torch.lgamma(b + n) \
-                + n * torch.log(kappa) - torch.lgamma(n + torch.tensor(1.,device=self.device))
+    #     inner = torch.lgamma(a + n) + torch.lgamma(b) - torch.lgamma(a) - torch.lgamma(b + n) \
+    #             + n * torch.log(kappa) - torch.lgamma(n + torch.tensor(1.,device=self.device))
     
-        logkum = torch.logsumexp(inner, dim=0)
+    #     logkum = torch.logsumexp(inner, dim=0)
     
-        return logkum
+    #     return logkum
+
+    def kummer_log(self,a, c, k, n=10000,tol=1e-10):
+        logkum = torch.zeros((k.size(dim=0),1))
+        logkum_old = torch.ones((k.size(dim=0),1))
+        foo = torch.zeros((k.size(dim=0),1))
+        j = 1
+        while torch.any(torch.abs(logkum - logkum_old) > tol) and (j < n):
+            logkum_old = logkum
+            foo += torch.log((a + j - 1) / (j * (c + j - 1)) * k)
+            logkum = torch.logsumexp(torch.stack((logkum,foo)),dim=0)
+            j += 1
+        return logkum    
 
     def log_norm_constant(self, kappa_pos):
-        logC = self.logSA - self.log_kummer(self.const_a, self.half_p, kappa_pos)
+        logC = self.logSA - self.kummer_log(self.a, self.c, kappa_pos)
         return logC
 
     def log_pdf(self, X):

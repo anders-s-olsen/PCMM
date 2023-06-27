@@ -12,45 +12,64 @@ class ACG(nn.Module):
     "Tyler 1987 - Statistical analysis for the angular central Gaussian distribution on the sphere"
     """
 
-    def __init__(self, p,D,init=None):
+    def __init__(self, p: int,rank: int,init=None):
         super().__init__()
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        self.p = p
-        self.D = D
+        self.p = p #dimensionality
+        self.D = rank 
+        if self.D == self.p:
+            self.fullrank = True
+        else:
+            self.fullrank = False
         self.half_p = torch.tensor(p / 2)
 
         # log sphere surface area
         self.logSA = torch.lgamma(self.half_p) - torch.log(torch.tensor(2)) -self.half_p* torch.log(torch.tensor(np.pi))
-        if init is None:
-            self.M = nn.Parameter(torch.randn(self.p,self.D,dtype=torch.double).to(self.device))
+        
+        if self.fullrank is True: #cholesky
+            self.L_vec = nn.Parameter(torch.randn(int(self.p*(self.p-1)/2+self.p),dtype=torch.double).to(self.device))
+            
+            self.tril_indices = torch.tril_indices(self.p,self.p)
+
+            self.diag_indices = torch.zeros(self.p).type(torch.LongTensor)
+            for i in range(1,self.p+1):   
+                self.diag_indices[i-1] = ((i**2+i)/2)-1
         else:
-            self.M = init
-            num_missing = self.D-init.shape[1]
-            M_extra = torch.randn(self.p,num_missing,dtype=torch.double)
-            self.M = nn.Parameter(torch.cat([init,M_extra],dim=1))
-        assert self.p != 1, 'Not matmul not stable for this dimension'
+            if init is None:
+                self.M = nn.Parameter(torch.randn((self.p,self.D),dtype=torch.double).to(self.device))
+            else:
+                self.M = init
+                num_missing = self.D-init.shape[1]
+                M_extra = torch.randn(self.p,num_missing,dtype=torch.double)
+                self.M = nn.Parameter(torch.cat([init,M_extra],dim=1))
 
     def get_params(self):
-        return self.M
+        if self.fullrank is True:
+            L_tri_inv = torch.zeros(self.p,self.p,device=self.device,dtype=torch.double)
+            L_tri_inv[self.tril_indices[0],self.tril_indices[1]] = self.L_vec
+            return {'L_tri_inv':L_tri_inv}
+        else:
+            return {'M':self.M} #should be normalized: L=MM^T+I and then L = p*L/trace(L)
 
-    def log_determinant_L(self):
-        import time
-        start = time.time()
-        log_det_L = 2 * torch.sum(torch.log(torch.abs(torch.diag(torch.linalg.cholesky(torch.eye(self.p)+self.M@self.M.T)))))
-        start2 = time.time()
-        log_det_L = torch.log(torch.det(torch.eye(self.p)+self.M@self.M.T))
-        stop=time.time()
-        print(start2-start)
-        print(stop-start2)
+    def log_determinant_L(self,L):
+        log_det_L = torch.log(torch.det(L))
         
         return log_det_L
     
     def lowrank_log_pdf(self,X):
-        log_det_L = self.log_determinant_L()
 
-        B = X@self.M
-        matmul2 = 1-torch.sum(B@torch.linalg.inv(torch.eye(self.p)+self.M@self.M.T)*B,dim=1)
+        if self.fullrank is True:
+            L_tri_inv = torch.zeros(self.p,self.p,device=self.device,dtype=torch.double)
+            L_tri_inv[self.tril_indices[0],self.tril_indices[1]] = self.L_vec
+            log_det_L = -2 * torch.sum(torch.log(torch.abs(self.L_vec[self.diag_indices]))) #added minus
+            B = X @ L_tri_inv
+            matmul2 = torch.sum(B * B, dim=1)
+        else:
+            L = torch.eye(self.D)+self.M.T@self.M #note DxD not pxp since invariant
+            log_det_L = self.log_determinant_L(L)
+            B = X@self.M
+            matmul2 = 1-torch.sum(B@torch.linalg.inv(L)*B,dim=1)
 
         # minus log_det_L instead of + log_det_A_inv
         log_acg_pdf = self.logSA - 0.5 * log_det_L - self.half_p * torch.log(matmul2)
@@ -65,11 +84,8 @@ class ACG(nn.Module):
 
 if __name__ == "__main__":
     # test that the code works
-    import matplotlib as mpl
     import matplotlib.pyplot as plt
-    import scipy
 
-    # mpl.use('Qt5Agg')
     dim = 3
     ACG = ACG(p=dim,D=2)
     
