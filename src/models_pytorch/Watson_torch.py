@@ -13,7 +13,7 @@ class Watson(nn.Module):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.p = torch.tensor(p,device=self.device)
-        self.c = torch.tensor(self.p/2,device=self.device)
+        self.c = torch.tensor(p/2,device=self.device)
         self.mu = nn.Parameter(torch.rand(self.p,device=self.device,dtype=torch.double))
         self.kappa = nn.Parameter(torch.randint(1,10,(1,),dtype=torch.double,device=self.device))
         self.SoftPlus = nn.Softplus(beta=20, threshold=1)

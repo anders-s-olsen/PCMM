@@ -7,11 +7,11 @@ torch.set_num_threads(16)
 import sys
 
 def run_experiment(exp):
-    ### load data, only the first 100 subjects (each with 1200 data points) (not the same subjects in train/test)
-    data_train = np.array(h5py.File('data/processed/fMRI_atlas_RL2.h5', 'r')['Dataset'][:,:120000]).T
+    ### load data, only the first 200 subjects (each with 1200 data points) (not the same subjects in train/test)
+    data_train = np.array(h5py.File('data/processed/fMRI_atlas_RL2.h5', 'r')['Dataset'][:,:240000]).T
     n,p = data_train.shape
     print('Loaded training data')
-    data_test = np.array(h5py.File('data/processed/fMRI_atlas_RL1.h5', 'r')['Dataset'][:,:120000]).T
+    data_test = np.array(h5py.File('data/processed/fMRI_atlas_RL1.h5', 'r')['Dataset'][:,:240000]).T
     print('Loaded test data, beginning fit')
 
     if exp==0:
