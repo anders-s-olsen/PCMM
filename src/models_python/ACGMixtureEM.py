@@ -14,13 +14,12 @@ class ACG():
         self.p = p
         self.c = self.p/2
         self.logSA = loggamma(self.c) - np.log(2) -self.c* np.log(np.pi)
-        self.loglik = []
 
         if params is not None: # for evaluating likelihood with already-learned parameters
-            self.Lambda = params['Lambda']
-            self.pi = params['pi']
+            self.Lambda = np.array(params['Lambda'])
+            self.pi = np.array(params['pi'])
 
-    def get_parameters(self):
+    def get_params(self):
         return {'Lambda': self.Lambda,'pi':self.pi}
     
     def initialize(self,X=None,init=None):
@@ -44,18 +43,19 @@ class ACG():
         self.Lambda = np.zeros((self.K,self.p,self.p))    
         for k in range(self.K):
             self.Lambda[k] = np.outer(self.mu[:,k],self.mu[:,k])+np.eye(self.p)
-            # self.Lambda_chol[k] = np.linalg.cholesky(np.outer(self.mu[:,k],self.mu[:,k])+np.eye(self.p))
     
 
 ################ E-step ###################
     
     def log_norm_constant(self):
-        return self.logSA - 0.5*np.log(np.linalg.det(self.Lambda))
+        norm_const = self.logSA - 0.5*np.log(np.linalg.det(self.Lambda))
+        if np.any(np.isnan(norm_const)) or np.any(np.isinf(norm_const)):
+            stop=True
+        return norm_const
 
     def log_pdf(self,X):
         pdf = np.zeros((self.K,X.shape[0]))
         for k in range(self.K):
-            # pdf[k] = np.diag(X@np.linalg.inv(self.Lambda[k])@X.T)
             pdf[k] = np.sum(X@np.linalg.inv(self.Lambda[k])*X,axis=1)
         return self.log_norm_constant()[:,np.newaxis] -self.c*np.log(pdf)
 
@@ -66,8 +66,12 @@ class ACG():
         self.density = self.log_density(X)
         self.logsum_density = np.logaddexp.reduce(self.density)
         loglik = np.sum(self.logsum_density)
-        self.loglik.append(loglik)
         return loglik
+    
+    def posterior(self,X):
+        density = self.log_density(X)
+        logsum_density = np.logaddexp.reduce(density)
+        return np.exp(density-logsum_density)
 
     def Lambda_MLE(self,X,weights = None,tol=1e-10,max_iter=10000):
         n,p = X.shape
@@ -97,14 +101,16 @@ class ACG():
         return Lambda
     
 
+    
+
 ############# M-step #################
-    def M_step(self,X):
+    def M_step(self,X,tol=1e-10):
         n,_ = X.shape
         Beta = np.exp(self.density-self.logsum_density).T
         self.pi = np.sum(Beta,axis=0)/n
 
         for k in range(self.K):
-            self.Lambda[k] = self.Lambda_MLE(X,weights=Beta[:,k])
+            self.Lambda[k] = self.Lambda_MLE(X,weights=Beta[:,k],tol=tol)
 
 
 if __name__=='__main__':
@@ -137,28 +143,30 @@ if __name__=='__main__':
         ACG.M_step(X=data)
     stop=7
 
-    # def Lambda_MLE_naive(self,X,weights = None,tol=1e-10,max_iter=10000):
-    #     n,p = X.shape
-    #     if weights is None:
-    #         weights = np.ones(n)
-    #     Lambda = np.eye(self.p)
-    #     Lambda_old = Lambda + 10000
-    #     # Q = np.sqrt(weights)[:,np.newaxis]*X
+    def Lambda_MLE_naive(self,X,weights = None,tol=1e-10,max_iter=10000):
+        n,p = X.shape
+        if weights is None:
+            weights = np.ones(n)
+        Lambda = np.eye(self.p)
+        Lambda_old = Lambda + 10000
+        # Q = np.sqrt(weights)[:,np.newaxis]*X
         
-    #     j = 0
-    #     while np.linalg.norm(Lambda_old-Lambda) > tol and (j < max_iter):
-    #         Lambda_old = Lambda
-    #         tmp = np.zeros((p,p))
-    #         tmp2 = np.zeros((p,p))
-    #         tmp3 = 0
-    #         for i in range(n):
-    #             tmp += p/n*np.outer(X[i],X[i])/(X[i]@np.linalg.inv(Lambda)@X[i])
-    #             tmp2 += np.outer(X[i],X[i])/(X[i]@np.linalg.inv(Lambda)@X[i])
-    #             tmp3 += 1/(X[i]@np.linalg.inv(Lambda)@X[i])
-    #         Lambda_iter = p*tmp2/tmp3
-    #         Lambda = p/np.trace(tmp)*tmp
-    #         j +=1
-    #     return Lambda
+        j = 0
+        while np.linalg.norm(Lambda_old-Lambda) > tol and (j < max_iter):
+            Lambda_old = Lambda
+            tmp = np.zeros((p,p))
+            # tmp2 = np.zeros((p,p))
+            # tmp3 = 0
+            Lambda_inv = np.linalg.inv(Lambda)
+            for i in range(n):
+                tmp += p/n*np.outer(X[i],X[i])/(X[i]@Lambda_inv@X[i])
+                # tmp2 += np.outer(X[i],X[i])/(X[i]@np.linalg.inv(Lambda)@X[i])
+                # tmp3 += 1/(X[i]@np.linalg.inv(Lambda)@X[i])
+            # Lambda_iter = p*tmp2/tmp3
+            Lambda = p/np.trace(tmp)*tmp
+            j +=1
+            print(j)
+        return Lambda
     
     # def Lambda_MLE_chol(self,X,weights=None,tol=1e-10,max_iter=10000):
     #     n,p = X.shape

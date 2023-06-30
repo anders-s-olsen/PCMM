@@ -5,29 +5,33 @@ from src.models_python.WatsonMixtureEM import Watson
 from src.models_python.mixture_EM_loop import mixture_EM_loop
 from src.models_python.diametrical_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch
 
-#from scipy.special import gamma
+from scipy.special import gamma
 
 #device = 'cpu'
-class ACG(nn.Module):
+class MACG(nn.Module):
     """
     Angular-Central-Gaussian spherical distribution:
 
     "Tyler 1987 - Statistical analysis for the angular central Gaussian distribution on the sphere"
     """
 
-    def __init__(self, K: int,p: int,rank=None,params=None):
+    def __init__(self, K: int,p: int,q:int,rank=None,params=None):
         super().__init__()
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.K = K
         self.p = torch.tensor(p) #dimensionality
         self.D = torch.tensor(rank) 
+        self.q = q
         if rank is None or self.D == self.p:
             self.fullrank = True
         else:
             self.fullrank = False
         self.c = torch.tensor(p / 2)
-        self.logSA = torch.lgamma(self.c) - torch.log(torch.tensor(2)) -self.c* torch.log(torch.tensor(np.pi))
+        self.gamma_k = torch.tensor(np.pi)**(self.q*(self.q-1)/4)
+        for i in range(self.q):
+            self.gamma_k *= torch.tensor(gamma(self.c-i/2)) # should be (i-1)/2 but python is zero-indexed :(
+        self.logSA_Stiefel = torch.log(self.gamma_k)-q*torch.log(torch.tensor(2))-self.q*self.p/2*torch.log(torch.tensor(np.pi))
 
         self.LogSoftmax = nn.LogSoftmax(dim=0)
 
@@ -40,9 +44,9 @@ class ACG(nn.Module):
         if params is not None: # for evaluating likelihood with already-learned parameters
             self.pi = params['pi']
             if self.fullrank: #check if this works!!
-                self.L_vec = torch.zeros(self.K,self.num_params,device=self.device,dtype=torch.double)
+                self.S_vec = torch.zeros(self.K,self.num_params,device=self.device,dtype=torch.double)
                 for k in range(self.K):
-                    self.L_vec[k] = torch.linalg.cholesky(torch.linalg.inv(params['Lambda'][k]))[self.tril_indices[0],self.tril_indices[1]]
+                    self.S_vec[k] = torch.linalg.cholesky(torch.linalg.inv(params['Sigma'][k]))[self.tril_indices[0],self.tril_indices[1]]
             else:
                 M_init = params['M']
                 if M_init.dim()!=3 or M_init.shape[2]!=self.D: # add extra columns
@@ -57,10 +61,10 @@ class ACG(nn.Module):
 
     def get_params(self):
         if self.fullrank is True:
-            L_tri_inv = torch.zeros(self.K,self.p,self.p,device=self.device,dtype=torch.double)
+            S_tri_inv = torch.zeros(self.K,self.p,self.p,device=self.device,dtype=torch.double)
             for k in range(self.K):
-                L_tri_inv[k,self.tril_indices[0],self.tril_indices[1]] = self.L_vec[k].data
-            return {'L_tri_inv':L_tri_inv,'pi':self.pi.data} # should be L = inv(L_tri_inv@L_tri_inv.T)
+                S_tri_inv[k,self.tril_indices[0],self.tril_indices[1]] = self.S_vec[k].data
+            return {'S_tri_inv':S_tri_inv,'pi':self.pi.data} # should be L = inv(S_tri_inv@S_tri_inv.T)
         else:
             return {'M':self.M.data,'pi':self.pi.data} #should be normalized: L=MM^T+I and then L = p*L/trace(L)
 
@@ -69,7 +73,7 @@ class ACG(nn.Module):
         self.pi = nn.Parameter(torch.ones(self.K,device=self.device)/self.K)
         if self.fullrank is True:
             # only initialize the cholesky formulation as random, since this one is susceptible to singularity by rank-one methods
-            self.L_vec = nn.Parameter(torch.randn((self.K,self.num_params),dtype=torch.double).to(self.device))
+            self.S_vec = nn.Parameter(torch.randn((self.K,self.num_params),dtype=torch.double).to(self.device))
         else:
             if init is None or init=='uniform' or init=='unif':
                 self.M = nn.Parameter(torch.rand((self.K,self.p,self.D),dtype=torch.double).to(self.device))
@@ -96,24 +100,22 @@ class ACG(nn.Module):
     def log_pdf(self,X):
 
         if self.fullrank is True:
-            L_tri_inv = torch.zeros(self.K,self.p,self.p,device=self.device,dtype=torch.double)
+            S_tri_inv = torch.zeros(self.K,self.p,self.p,device=self.device,dtype=torch.double)
+            pdf = torch.zeros((self.K,X.shape[0]))
             for k in range(self.K):
-                L_tri_inv[k,self.tril_indices[0],self.tril_indices[1]] = self.L_vec[k]
-            B = X[None,:,:] @ L_tri_inv
-            matmul2 = torch.sum(B * B, dim=2)
-            log_det_L = -2 * torch.sum(torch.log(torch.abs(self.L_vec[:,self.diag_indices])),dim=1)
+                S_tri_inv[k,self.tril_indices[0],self.tril_indices[1]] = self.S_vec[k]
+                pdf[k] = torch.linalg.det(torch.swapaxes(X,-2,-1)@S_tri_inv[k]@S_tri_inv[k].T@X) ### revisit
+            log_det_L = -2 * torch.sum(torch.log(torch.abs(self.S_vec[:,self.diag_indices])),dim=1)
             
         else:
-            Lambda = torch.zeros(self.K,self.D,self.D)
+            Sigma = torch.zeros(self.K,self.D,self.D)
             for k in range(self.K):
-                Lambda[k] = torch.eye(self.D)+self.M.T@self.M #note DxD not pxp since invariant
-                Lambda[k] = self.p*Lambda[k]/torch.trace(Lambda[k]) #trace-normalize, check if this is also invariant
-            log_det_L = self.log_determinant_L(Lambda)
-            B = X[None,:,:]@self.M
-            matmul2 = 1-torch.sum(B@torch.linalg.inv(Lambda)*B,dim=2) #check
+                self.Sigma[k] = self.p*Sigma[k]/torch.trace(Sigma[k]) #trace-normalize, check if this is also invariant
+                pdf[k] = np.linalg.det(np.swapaxes(X,-2,-1)@np.linalg.inv(self.Sigma[k])@X)
+            log_det_L = self.log_determinant_L(self.Sigma)
 
         # minus log_det_L instead of + log_det_A_inv
-        log_acg_pdf = self.logSA - 0.5 * log_det_L[:,None] - self.c * torch.log(matmul2)
+        log_acg_pdf = self.logSA_Stiefel - self.q/2 * log_det_L[:,None] - self.c * torch.log(pdf)
         return log_acg_pdf
     
     def log_density(self,X):
@@ -138,33 +140,35 @@ class ACG(nn.Module):
 
 
 if __name__ == "__main__":
-    # test that the code works
     import matplotlib.pyplot as plt
-
-    dim = 3
-    ACG = ACG(p=dim,D=2)
+    from tqdm import tqdm
+    K = np.array(2)
     
-    #ACG_pdf = lambda phi: float(torch.exp(ACG(torch.tensor([[np.cos(phi), np.sin(phi)]], dtype=torch.float))))
-    #acg_result = scipy.integrate.quad(ACG_pdf, 0., 2*np.pi)
+    p = np.array(3)
+    MACG = MACG(K=K,p=3,q=2,rank=p)
+    data = np.loadtxt('data/synthetic/synth_data_MACG.csv',delimiter=',')
+    data2 = np.zeros((1000,p,2))
+    data2[:,:,0] = data[np.arange(2000,step=2),:]
+    data2[:,:,1] = data[np.arange(2000,step=2)+1,:]
+    data2 = torch.tensor(data2)
+    # data = np.random.normal(loc=0,scale=0.1,size=(10000,100))
+    # data = data[np.arange(2000,step=2),:]
+    MACG.initialize(X=data2,init='uniform')
+    # ACG.Lambda_MLE(X=data)
 
-    X = torch.randn(6, dim)
+    # start = time.time()
+    # ACG.log_norm_constant()
+    # stop1 = time.time()-start
+    # start = time.time()
+    # ACG.log_norm_constant2()
+    # stop2 = time.time()-start
+    # print(str(stop1)+"_"+str(stop2))
 
-    out = ACG(X)
-    print(out)
-    # # ACG.L_under_diag = nn.Parameter(torch.ones(2,2))
-    # # ACG.L_diag = nn.Parameter(torch.tensor([21.,2.5]))
-    # phi = torch.arange(0, 2*np.pi, 0.001)
-    # phi_arr = np.array(phi)
-    # x = torch.column_stack((torch.cos(phi),torch.sin(phi)))
-    #
-    # points = torch.exp(ACG(x))
-    # props = np.array(points.squeeze().detach())
-    #
-    # ax = plt.axes(projection='3d')
-    # ax.plot(np.cos(phi_arr), np.sin(phi_arr), 0, 'gray') # ground line reference
-    # ax.scatter(np.cos(phi_arr), np.sin(phi_arr), props, c=props, cmap='viridis', linewidth=0.5)
-    #
-    # ax.view_init(30, 135)
-    # plt.show()
-    # plt.scatter(phi,props, s=3)
-    # plt.show()
+
+    for iter in tqdm(range(1000)):
+        # E-step
+        MACG.log_likelihood(X=data2)
+        # print(ACG.Lambda_chol)
+        # M-step
+        MACG.M_step(X=data2)
+    stop=7

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+from src.models_python.diametrical_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch
 #from scipy.special import gamma, factorial
 
 class Watson(nn.Module):
@@ -8,24 +9,41 @@ class Watson(nn.Module):
     Logarithmic Multivariate Watson distribution class
     """
 
-    def __init__(self, p,D=None):
+    def __init__(self, K,p,params=None):
         super().__init__()
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.p = torch.tensor(p,device=self.device)
         self.c = torch.tensor(p/2,device=self.device)
-        self.mu = nn.Parameter(torch.rand(self.p,device=self.device,dtype=torch.double))
-        self.kappa = nn.Parameter(torch.randint(1,10,(1,),dtype=torch.double,device=self.device))
-        self.SoftPlus = nn.Softplus(beta=20, threshold=1)
+        self.K = torch.tensor(K,device=self.device)
         self.a = torch.tensor(0.5,device=self.device)  # a = 1/2,  !constant
         self.logSA = torch.lgamma(self.c) - torch.log(torch.tensor(2,device=self.device)) -self.c* torch.log(torch.tensor(np.pi,device=self.device))
+
+        if params is not None:
+            self.mu = nn.Parameter(params['mu'])
+            self.kappa = nn.Parameter(params['kappa']) # should be (K,1)
+            if self.kappa.dim()==1:
+                self.kappa = self.kappa[:,None]
+            self.pi = nn.Parameter(params['pi'])
+
+        self.LogSoftmax = nn.LogSoftmax(dim=0)
+        self.Softplus = nn.Softplus()
+
         assert self.p != 1, 'Not properly implemented'
 
     def get_params(self):
-        mu_param = self.mu.data #should be normalized dim0
-        kappa_param = self.kappa.data #should be softplussed
-        return {'mu': mu_param,
-                'kappa': kappa_param}
+        return {'mu': self.mu.data,'kappa':self.kappa.data,'pi':self.pi.data}
+    
+    def initialize(self,X=None,init=None):
+        if init is None or init=='uniform' or init=='unif':
+            self.mu = nn.Parameter(torch.nn.functional.normalize(torch.rand(size=(self.p,self.K)),dim=0))
+        elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
+            self.mu = nn.Parameter(diametrical_clustering_plusplus_torch(X=X,K=self.K))
+        elif init == 'dc' or init == 'diametrical_clustering':
+            self.mu = nn.Parameter(diametrical_clustering_torch(X=X,K=self.K,max_iter=100000,num_repl=5,init='++'))
+            
+        self.pi = nn.Parameter(torch.ones(self.K,device=self.device)/self.K)
+        self.kappa = nn.Parameter(torch.ones((self.K,1)))
 
     # def log_kummer(self, a, b, kappa,num_eval=10000):
 
@@ -56,28 +74,36 @@ class Watson(nn.Module):
 
     def log_pdf(self, X):
         # Constraints
-        kappa_positive = torch.clamp(self.SoftPlus(self.kappa), min=1e-25)  # Log softplus?
-
+        kappa_positive = self.Softplus(self.kappa)  # Log softplus?
         mu_unit = nn.functional.normalize(self.mu, dim=0)  ##### Sufficent for backprop?
 
-        if torch.isnan(torch.log(kappa_positive)):
+        if torch.any(torch.isnan(torch.log(kappa_positive))):
             raise ValueError('Too low kappa')
 
         norm_constant = self.log_norm_constant(kappa_positive)
-        logpdf = norm_constant + kappa_positive * ((mu_unit @ X.T) ** 2)
+        logpdf = norm_constant + kappa_positive * ((mu_unit.T @ X.T) ** 2)
 
-        if torch.isnan(logpdf.sum()):
-            print(kappa_positive)
-            print(torch.log(kappa_positive))
-
-            raise ValueError('NNAAANANANA')
         return logpdf
+    
+    def log_density(self,X):
+        return self.log_pdf(X)+self.LogSoftmax(self.pi)[:,None]
+
+    def log_likelihood(self, X):
+        density = self.log_density(X)
+        logsum_density = torch.logsumexp(density, dim=0)
+        loglik = torch.sum(logsum_density)
+        return loglik
 
     def forward(self, X):
-        return self.log_pdf(X)
+        return self.log_likelihood(X)
 
     def __repr__(self):
         return 'Watson'
+    
+    def posterior(self,X):
+        density = self.log_density(X)
+        logsum_density = torch.logsumexp(density, dim=0)
+        return torch.exp(density-logsum_density)
 
 
 if __name__ == "__main__":

@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.special import loggamma, gamma
-from diametrical_clustering import diametrical_clustering, diametrical_clustering_plusplus
-from WatsonMixtureEM import Watson
-from mixture_EM_loop import mixture_EM_loop
+from src.models_python.diametrical_clustering import diametrical_clustering, diametrical_clustering_plusplus
+from src.models_python.WatsonMixtureEM import Watson
+from src.models_python.mixture_EM_loop import mixture_EM_loop
 
 import time
 
@@ -10,21 +10,22 @@ class MACG():
     """
     Mixture model class
     """
-    def __init__(self, K: int, p: int, q: int):
+    def __init__(self, K: int, p: int, q: int,params=None):
         super().__init__()
         self.K = K
         self.q = q
         self.p = p
         self.c = self.p/2
-        # self.logSA = loggamma(self.c) - np.log(2) -self.c* np.log(np.pi)
         self.gamma_k = np.pi**(self.q*(self.q-1)/4)
         for i in range(self.q):
             self.gamma_k *= gamma(self.c-i/2) # should be (i-1)/2 but python is zero-indexed :(
         self.logSA_Stiefel = np.log(self.gamma_k)-q*np.log(2)-self.q*self.p/2*np.log(np.pi)
-        self.loglik = []
-        self.Sigma = np.zeros((self.K,self.p,self.p))
-        # self.Lambda_chol = np.zeros((self.K,self.p,self.p))
 
+        if params is not None: # for evaluating likelihood with already-learned parameters
+            self.Sigma = np.array(params['Sigma'])
+            self.pi = np.array(params['pi'])
+
+        
     def get_parameters(self):
         return {'Sigma': self.Sigma,'pi':self.pi}
     
@@ -46,9 +47,9 @@ class MACG():
             self.mu = params['mu']
             self.pi = params['pi']
             
+        self.Sigma = np.zeros((self.K,self.p,self.p))
         for k in range(self.K):
             self.Sigma[k] = np.outer(self.mu[:,k],self.mu[:,k])+np.eye(self.p)
-            # self.Sigma_chol[k] = np.linalg.cholesky(np.outer(self.mu[:,k],self.mu[:,k])+np.eye(self.p))
     
 
 ################ E-step ###################
@@ -59,7 +60,6 @@ class MACG():
     def log_pdf(self,X):
         pdf = np.zeros((self.K,X.shape[0]))
         for k in range(self.K):
-            # pdf[k] = np.sum(X@np.linalg.inv(self.Sigma[k])*X,axis=1)
             pdf[k] = np.linalg.det(np.swapaxes(X,-2,-1)@np.linalg.inv(self.Sigma[k])@X)
         return self.log_norm_constant()[:,np.newaxis] -self.c*np.log(pdf)
 
@@ -70,7 +70,6 @@ class MACG():
         self.density = self.log_density(X)
         self.logsum_density = np.logaddexp.reduce(self.density)
         loglik = np.sum(self.logsum_density)
-        self.loglik.append(loglik)
         return loglik
 
     def Sigma_MLE(self,X,weights = None,tol=1e-10,max_iter=10000):

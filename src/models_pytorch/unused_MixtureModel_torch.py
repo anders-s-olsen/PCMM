@@ -14,13 +14,13 @@ class TorchMixtureModel(nn.Module):
         self.D = D #for lowrank ACG
         self.dist = dist
         if init is None:
-            self.pi = nn.Parameter(torch.rand(self.K,device=self.device))
+            self.pi = nn.Parameter(torch.tensor(1/self.K,device=self.device).repeat(self.K))
             self.mix_components = nn.ModuleList([self.dist(self.p,self.D) for _ in range(self.K)])
         else:
             self.pi = nn.Parameter(init['pi'])
             self.mix_components = nn.ModuleList([self.dist(self.p,self.D,init['comp'][k]) for k in range(self.K)])
-        self.LogSoftMax = nn.LogSoftmax(dim=0)
-        self.softplus = nn.Softplus()
+        self.LogSoftmax = nn.LogSoftmax(dim=0)
+        self.Softplus = nn.Softplus()
         
 
     @torch.no_grad()
@@ -32,7 +32,8 @@ class TorchMixtureModel(nn.Module):
         return mixture_param_dict
 
     def log_likelihood_mixture(self, X):
-        inner_pi = self.LogSoftMax(self.softplus(self.pi))[:, None]
+        # inner_pi = self.LogSoftmax(self.Softplus(self.pi))[:, None]
+        inner_pi = self.LogSoftmax(self.pi)[:,None]
         inner_pdf = torch.stack([K_comp_pdf(X) for K_comp_pdf in self.mix_components]) #one component at a time but all X is input
 
         inner = inner_pi + inner_pdf

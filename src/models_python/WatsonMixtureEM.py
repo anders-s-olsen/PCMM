@@ -2,7 +2,7 @@ import numpy as np
 from scipy.special import loggamma,hyp1f1
 import scipy
 import time
-from src.models_python import diametrical_clustering
+from src.models_python.diametrical_clustering import diametrical_clustering,diametrical_clustering_plusplus
 # import torch
 
 class Watson():
@@ -15,29 +15,25 @@ class Watson():
         self.p = p
         self.c = self.p/2
         self.a = 0.5
-        self.log_a_div_c = np.log(self.a/self.c)
         self.logSA = loggamma(self.c) - np.log(2) -self.c* np.log(np.pi)
         self.loglik = []
 
         if params is not None: # for evaluating likelihood with already-learned parameters
-            self.mu = params['mu']
-            self.kappa = params['kappa']
-            self.pi = params['pi']
+            self.mu = np.array(params['mu'])
+            self.kappa = np.array(params['kappa'])
+            self.pi = np.array(params['pi'])
 
-    def get_parameters(self):
+    def get_params(self):
         return {'mu': self.mu,'kappa':self.kappa,'pi':self.pi}
     
     def initialize(self,X=None,init=None):
         if init is None or init=='uniform' or init=='unif':
             self.mu = np.random.uniform(size=(self.p,self.K))
             self.mu = self.mu/np.linalg.norm(self.mu,axis=0)
-        elif init == "test":
-            self.mu = np.vstack((np.array([1,1,1]),np.array([1,1,-1]))).T
-            self.mu = self.mu/np.linalg.norm(self.mu,axis=0)
         elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
-            self.mu = diametrical_clustering.diametrical_clustering_plusplus(X=X,K=self.K)
+            self.mu = diametrical_clustering_plusplus(X=X,K=self.K)
         elif init == 'dc' or init == 'diametrical_clustering':
-            self.mu,_,_ = diametrical_clustering.diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++')
+            self.mu,_,_ = diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++')
             
         self.pi = np.repeat(1/self.K,repeats=self.K)
         self.kappa = np.ones((self.K,1))
@@ -70,13 +66,17 @@ class Watson():
     def log_likelihood(self,X):
         self.density = self.log_density(X)
         self.logsum_density = np.logaddexp.reduce(self.density)
-        # log(sum(exp(density-max(density))))+max(density);
+
         loglik = np.sum(self.logsum_density)
-        self.loglik.append(loglik)
         return loglik
+    
+    def posterior(self,X):
+        density = self.log_density(X)
+        logsum_density = np.logaddexp.reduce(density)
+        return np.exp(density-logsum_density)
 
 ############# M-step #################
-    def M_step(self,X):
+    def M_step(self,X,tol=1e-10):
         n,p = X.shape
         Beta = np.exp(self.density-self.logsum_density).T
         self.pi = np.sum(Beta,axis=0)/n
@@ -104,9 +104,9 @@ class Watson():
                 return ((self.a/self.c)*(np.exp(self.kummer_log(self.a+1,self.c+1,kappa)-self.kummer_log(self.a,self.c,kappa)))-rk)**2
 
             if rk>self.a/self.c:
-                self.kappa[k] = scipy.optimize.minimize(f, x0=np.mean([LB,B]), bounds=[(LB, B)],tol=1e-10)['x']
+                self.kappa[k] = scipy.optimize.minimize(f, x0=np.mean([LB,B]), bounds=[(LB-50, B)],tol=None)['x']
             elif rk<self.a/self.c:
-                self.kappa[k] = scipy.optimize.minimize(f, x0=np.mean([B,UB]), bounds=[(B, UB)],tol=1e-10)['x']
+                self.kappa[k] = scipy.optimize.minimize(f, x0=np.mean([B,UB]), bounds=[(B, UB)],tol=None)['x']
             elif rk==self.a/self.c:
                 self.kappa[k] = 0
             else:
