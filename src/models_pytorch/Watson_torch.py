@@ -47,35 +47,36 @@ class Watson(nn.Module):
         self.kappa = nn.Parameter(torch.ones(self.K))
 
     def kummer_log(self,a, c, kappa, n=1000000,tol=1e-10):
-        if torch.any(kappa<0):
-            logkum = []
-            for k in kappa:
-                if k<0:
-                    logkum.append(self.kummer_log_neg(a,c,k,n,tol))
-                else:
-                    logkum.append(self.kummer_log(a,c,k,n,tol))
         logkum = torch.zeros((kappa.size(dim=0)))
-        logkum_old = torch.ones((kappa.size(dim=0)))
-        foo = torch.zeros((kappa.size(dim=0)))
-        j = 1
-        while torch.any(torch.abs(logkum - logkum_old) > tol) and (j < n):
-            logkum_old = logkum
-            foo += torch.log((a + j - 1) / (j * (c + j - 1)) * kappa)
-            logkum = torch.logsumexp(torch.stack((logkum,foo),dim=0),dim=0)
-            j += 1
+        if torch.any(kappa<0):
+            for idx,k in enumerate(kappa):
+                if k<0:
+                    logkum[idx]=(self.kummer_log_neg(a,c,k,n,tol))
+                else:
+                    logkum[idx]=(self.kummer_log(a,c,k,n,tol))
+            return logkum
+        for idx,k in kappa:
+            logkum_old = 1
+            foo = 0
+            j = 1
+            while torch.any(torch.abs(logkum[idx] - logkum_old) > tol) and (j < n):
+                logkum_old = logkum[idx]
+                foo += torch.log((a + j - 1) / (j * (c + j - 1)) * kappa)
+                logkum[idx] = torch.logsumexp(torch.stack((logkum[idx],foo),dim=0),dim=0)
+                j += 1
         return logkum      
     def kummer_log_neg(self,a, c, kappa, n=1000000,tol=1e-10):
         a = c-a
-        logkum = torch.zeros((kappa.size(dim=0)))
-        logkum_old = torch.ones((kappa.size(dim=0)))
-        foo = torch.zeros((kappa.size(dim=0)))
+        logkum = torch.zeros(1)
+        logkum_old = torch.ones(1)
+        foo = torch.zeros(1)
         j = 1
         while torch.any(torch.abs(logkum - logkum_old) > tol) and (j < n):
             logkum_old = logkum
             foo += torch.log((a + j - 1) / (j * (c + j - 1)) * torch.abs(kappa))
             logkum = torch.logsumexp(torch.stack((logkum,foo),dim=0),dim=0)
             j += 1
-        return logkum+kappa      
+        return logkum+kappa
 
     def log_norm_constant(self, kappa_pos):
         logC = self.logSA - self.kummer_log(self.a, self.c, kappa_pos)[:,None]
