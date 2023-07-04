@@ -83,8 +83,8 @@ class Watson(nn.Module):
 
     def log_pdf(self, X):
         # Constraints
-        kappa_positive = self.Softplus(self.kappa)  # Log softplus?
-        # kappa_positive = self.kappa
+        # kappa_positive = self.Softplus(self.kappa)  # Log softplus?
+        kappa_positive = self.kappa
         mu_unit = nn.functional.normalize(self.mu, dim=0)  ##### Sufficent for backprop?
 
         if torch.any(torch.isinf(torch.log(kappa_positive))):
