@@ -24,12 +24,13 @@ def run_experiment(mod,LR,init):
     # data_test = np.array(h5py.File('data/processed/fMRI_atlas_RL1.h5', 'r')['Dataset'][:,:240000]).T
     # print('Loaded test data, beginning fit')
 
-    expname = '3d_noscheduler_'+init+'_'+str(LR)
+    expname = '3d_noscheduler_bettertol_'+init+'_'+str(LR)
     os.makedirs('experiments/outputs'+expname,exist_ok=True)
 
     data_train = np.loadtxt('data/synthetic/synth_data_ACG.csv',delimiter=',')
     data_test = np.loadtxt('data/synthetic/synth_data_ACG2.csv',delimiter=',')
     p=3
+    tol = 1e-8
 
     num_repl_outer = 10
     num_repl_inner = 1
@@ -52,7 +53,7 @@ def run_experiment(mod,LR,init):
             name='ACG'
 
         if LR==0: #EM
-            params,_,loglik,num_iter = mixture_EM_loop(model,data_train,tol=1e-6,max_iter=100000,
+            params,_,loglik,num_iter = mixture_EM_loop(model,data_train,tol=tol,max_iter=100000,
                                                        num_repl=num_repl_inner,init=init)
             pi = params['pi']
             if mod == 0:    
@@ -61,7 +62,7 @@ def run_experiment(mod,LR,init):
             elif mod == 1:
                 Lambda = params['Lambda']
         else:
-            params,_,loglik,num_iter = mixture_torch_loop(model,torch.tensor(data_train),tol=1e-6,max_iter=100000,
+            params,_,loglik,num_iter = mixture_torch_loop(model,torch.tensor(data_train),tol=tol,max_iter=100000,
                                                           num_repl=num_repl_inner,init=init,LR=LR)
             Softmax = torch.nn.Softmax(dim=0)
             Softplus = torch.nn.Softplus(beta=20, threshold=1)

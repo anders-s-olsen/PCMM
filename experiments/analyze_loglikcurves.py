@@ -1,4 +1,5 @@
 import seaborn as sns
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -20,7 +21,7 @@ for m in range(2):
                 LRname = str(LR)+'.0'
             else:
                 LRname = str(LR)
-            expname = '3d_'+init+'_'+LRname
+            expname = '3d_noscheduler_'+init+'_'+LRname
             
             testlike = []
             modelname = []
@@ -28,7 +29,9 @@ for m in range(2):
             initval = []
             for rep in range(num_repl_outer):
                 file_path = 'experiments/outputs'+expname+'/'+name+'_'+expname+'_traintestlikelihood'+str(K)+'_r'+str(rep)+'.csv'
-                testlike.append(np.loadtxt(file_path)[1])
+                try:
+                    testlike.append(np.loadtxt(file_path)[1])
+                except: continue
                 modelname.append(name)
                 if LR==0:
                     LRval.append('EM')
@@ -43,7 +46,9 @@ for m in range(2):
             dftmp = pd.DataFrame({'Log likelihood': testlike, 'model': modelname, 'Optimizer': LRval, 'Initialization': initval})
             df = pd.concat([df,dftmp])
 
+plt.figure()
 sns.violinplot(data=df[df.model=='Watson'],x='Initialization',y='Log likelihood',hue='Optimizer',inner='point',scale='count')
+plt.figure()
 sns.violinplot(data=df[df.model=='ACG'],x='Initialization',y='Log likelihood',hue='Optimizer',inner='point',scale='count')
 
 stop=7
