@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 from src.models_pytorch.diametrical_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch
 torch.set_default_dtype(torch.float64)
+torch.autograd.set_detect_anomaly(False)
 
 class Watson(nn.Module):
     """
@@ -25,7 +26,7 @@ class Watson(nn.Module):
             self.pi = nn.Parameter(torch.tensor(params['pi']))
 
         self.LogSoftmax = nn.LogSoftmax(dim=0)
-        # self.Softplus = nn.Softplus()
+        self.Softplus = nn.Softplus(beta=20, threshold=1)
 
         assert self.p != 1, 'Not properly implemented'
 
@@ -82,6 +83,8 @@ class Watson(nn.Module):
         density = self.log_density(X)
         logsum_density = torch.logsumexp(density, dim=0)
         loglik = torch.sum(logsum_density)
+        if torch.isnan(loglik):
+            raise ValueError('nan reached')
         return loglik
     
     def test_log_likelihood(self, X): #without constraints (assumed mu normalized and kappa positive and pi sum to one)

@@ -7,6 +7,7 @@ from src.models_pytorch.diametrical_clustering_torch import diametrical_clusteri
 
 from scipy.special import gamma
 torch.set_default_dtype(torch.float64)
+torch.autograd.set_detect_anomaly(False)
 
 #device = 'cpu'
 class MACG(nn.Module):

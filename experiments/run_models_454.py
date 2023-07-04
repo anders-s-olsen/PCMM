@@ -34,7 +34,7 @@ def run_experiment(mod,LR,init):
     tol = 1e-6
 
     num_repl_outer = 10
-    num_repl_inner = 1
+    num_repl_inner = 5
     K = 2
 
     ### EM algorithms
@@ -112,7 +112,7 @@ def run_experiment(mod,LR,init):
 
 
 if __name__=="__main__":
-    # run_experiment(mod=int(0),LR=float(0.1),init='++')
+    run_experiment(mod=int(0),LR=float(0.1),init='++')
     # inits = ['unif','++','dc']
     # LRs = [0.01,0.1,1]
     # for init in inits:
