@@ -49,19 +49,20 @@ class Watson(nn.Module):
     def kummer_log(self,a, c, kappa, n=1000000,tol=1e-10):
         logkum = torch.zeros((kappa.size(dim=0)))
         if torch.any(kappa<0):
-            for idx,k in enumerate(kappa):
+            for idx,k in enumerate(kappa.tolist()):
                 if k<0:
-                    logkum[idx]=(self.kummer_log_neg(a,c,k,n,tol))
+                    logkum[idx]=(self.kummer_log_neg(a,c,torch.tensor(k),n,tol))
                 else:
-                    logkum[idx]=(self.kummer_log(a,c,k,n,tol))
+                    logkum[idx]=(self.kummer_log(a,c,torch.tensor(k),n,tol))
             return logkum
-        for idx,k in kappa:
+        for idx,k in kappa.tolist():
+            k = torch.tensor(k)
             logkum_old = 1
             foo = 0
             j = 1
             while torch.any(torch.abs(logkum[idx] - logkum_old) > tol) and (j < n):
                 logkum_old = logkum[idx]
-                foo += torch.log((a + j - 1) / (j * (c + j - 1)) * kappa)
+                foo += torch.log((a + j - 1) / (j * (c + j - 1)) * k)
                 logkum[idx] = torch.logsumexp(torch.stack((logkum[idx],foo),dim=0),dim=0)
                 j += 1
         return logkum      
