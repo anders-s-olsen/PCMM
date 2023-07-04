@@ -15,4 +15,4 @@
 source /dtu-compute/macaroni/miniconda3/bin/activate
 conda activate hcp
 
-python3 experiments/run_models_454.py 1 0.1 dc
+python3 experiments/run_models_454.py 1 1 dc
