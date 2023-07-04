@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from src.models_pytorch.diametrical_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch
-#from scipy.special import gamma, factorial
+torch.set_default_dtype(torch.float64)
 
 class Watson(nn.Module):
     """
@@ -45,7 +45,7 @@ class Watson(nn.Module):
         self.pi = nn.Parameter(torch.ones(self.K,device=self.device,dtype=torch.double)/self.K)
         self.kappa = nn.Parameter(torch.ones((self.K,1),dtype=torch.double))
 
-    def kummer_log(self,a, c, k, n=10000,tol=1e-10):
+    def kummer_log(self,a, c, k, n=1000000,tol=1e-10):
         logkum = torch.zeros((k.size(dim=0),1))
         logkum_old = torch.ones((k.size(dim=0),1))
         foo = torch.zeros((k.size(dim=0),1))
@@ -55,7 +55,18 @@ class Watson(nn.Module):
             foo += torch.log((a + j - 1) / (j * (c + j - 1)) * k)
             logkum = torch.logsumexp(torch.stack((logkum,foo),dim=0),dim=0)
             j += 1
-        return logkum    
+        return logkum
+    def kummer_log2(self,a, c, k, n=1000000,tol=1e-10):
+        logkum = torch.zeros((k.size(dim=0)))
+        logkum_old = torch.ones((k.size(dim=0)))
+        foo = torch.zeros((k.size(dim=0)))
+        j = 1
+        while torch.any(torch.abs(logkum - logkum_old) > tol) and (j < n):
+            logkum_old = logkum
+            foo += torch.log((a + j - 1) / (j * (c + j - 1)) * k)
+            logkum = torch.logsumexp(torch.stack((logkum,foo),dim=0),dim=0)
+            j += 1
+        return logkum      
 
     def log_norm_constant(self, kappa_pos):
         logC = self.logSA - self.kummer_log(self.a, self.c, kappa_pos)

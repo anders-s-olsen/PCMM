@@ -4,10 +4,8 @@ import torch.nn as nn
 from src.models_python.WatsonMixtureEM import Watson
 from src.models_python.mixture_EM_loop import mixture_EM_loop
 from src.models_pytorch.diametrical_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch
+torch.set_default_dtype(torch.float64)
 
-#from scipy.special import gamma
-
-#device = 'cpu'
 class ACG(nn.Module):
     """
     Angular-Central-Gaussian spherical distribution:

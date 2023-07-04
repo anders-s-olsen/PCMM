@@ -1,4 +1,5 @@
 import torch
+torch.set_default_dtype(torch.float64)
 
 def diametrical_clustering_torch(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-16):
     n,p = X.shape

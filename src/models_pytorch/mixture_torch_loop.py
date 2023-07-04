@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import tqdm
+torch.set_default_dtype(torch.float64)
 
 def mixture_torch_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init='no',LR=0.1):
 

@@ -21,7 +21,7 @@ for m in range(2):
                 LRname = str(LR)+'.0'
             else:
                 LRname = str(LR)
-            expname = '3d_noscheduler_'+init+'_'+LRname
+            expname = '3d_noscheduler_bettertol_'+init+'_'+LRname
             
             testlike = []
             modelname = []
@@ -50,5 +50,5 @@ plt.figure()
 sns.violinplot(data=df[df.model=='Watson'],x='Initialization',y='Log likelihood',hue='Optimizer',inner='point',scale='count')
 plt.figure()
 sns.violinplot(data=df[df.model=='ACG'],x='Initialization',y='Log likelihood',hue='Optimizer',inner='point',scale='count')
-
+plt.show()
 stop=7

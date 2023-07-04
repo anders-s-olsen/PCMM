@@ -40,7 +40,7 @@ class Watson():
     
 
 ################ E-step ###################
-    def kummer_log(self,a, c, k, n=10000,tol=1e-10):
+    def kummer_log(self,a, c, k, n=1000000,tol=1e-10):
         logkum = np.zeros((k.size,1))
         logkum_old = np.ones((k.size,1))
         foo = np.zeros((k.size,1))
@@ -51,6 +51,17 @@ class Watson():
             logkum = np.logaddexp(logkum,foo)
             j += 1
         return logkum
+    def kummer_log2(self,a, c, k, n=1000000,tol=1e-10):
+        logkum = np.zeros((k.size))
+        logkum_old = np.ones((k.size))
+        foo = np.zeros((k.size))
+        j = 1
+        while np.any(np.abs(logkum - logkum_old) > tol) and (j < n):
+            logkum_old = logkum
+            foo += np.log((a + j - 1) / (j * (c + j - 1)) * k)
+            logkum = np.logaddexp(logkum,foo)
+            j += 1
+        return logkum    
     
     def log_norm_constant(self):
         # return self.logSA - np.log(hyp1f1(self.a,self.c,self.kappa)) 

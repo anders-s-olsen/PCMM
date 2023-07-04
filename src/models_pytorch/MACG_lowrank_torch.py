@@ -6,6 +6,7 @@ from src.models_python.mixture_EM_loop import mixture_EM_loop
 from src.models_pytorch.diametrical_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch
 
 from scipy.special import gamma
+torch.set_default_dtype(torch.float64)
 
 #device = 'cpu'
 class MACG(nn.Module):
