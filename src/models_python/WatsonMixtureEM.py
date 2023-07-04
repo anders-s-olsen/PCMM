@@ -26,14 +26,14 @@ class Watson():
     def get_params(self):
         return {'mu': self.mu,'kappa':self.kappa,'pi':self.pi}
     
-    def initialize(self,X=None,init=None):
+    def initialize(self,X=None,init=None,tol=None):
         if init is None or init=='uniform' or init=='unif':
             self.mu = np.random.uniform(size=(self.p,self.K))
             self.mu = self.mu/np.linalg.norm(self.mu,axis=0)
         elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
             self.mu = diametrical_clustering_plusplus(X=X,K=self.K)
         elif init == 'dc' or init == 'diametrical_clustering':
-            self.mu,_,_ = diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++')
+            self.mu,_,_ = diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
             
         self.pi = np.repeat(1/self.K,repeats=self.K)
         self.kappa = np.ones((self.K,1))
@@ -104,7 +104,7 @@ class Watson():
                 return ((self.a/self.c)*(np.exp(self.kummer_log(self.a+1,self.c+1,kappa)-self.kummer_log(self.a,self.c,kappa)))-rk)**2
 
             if rk>self.a/self.c:
-                self.kappa[k] = scipy.optimize.minimize(f, x0=np.mean([LB,B]), bounds=[(LB-50, B)],tol=None)['x']
+                self.kappa[k] = scipy.optimize.minimize(f, x0=np.mean([LB,B]), bounds=[(1e-10, B)],tol=None)['x']
             elif rk<self.a/self.c:
                 self.kappa[k] = scipy.optimize.minimize(f, x0=np.mean([B,UB]), bounds=[(B, UB)],tol=None)['x']
             elif rk==self.a/self.c:

@@ -1,6 +1,6 @@
 import numpy as np
 
-def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,call=0):
+def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,call=0,tol=1e-16):
     n,p = X.shape
 
     obj_final = []
@@ -28,7 +28,7 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,call=0):
                 partsum[iter,k] = np.sum(X_part==k)
             
             if iter>0:
-                if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter:
+                if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or obj[-2]-obj[-1]<tol:
                     C_final.append(C)
                     obj_final.append(obj[-1])
                     part_final.append(X_part)             

@@ -7,12 +7,7 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None):
 
     for repl in range(num_repl):
         print(['Initializing repl '+str(repl)])
-        if init is None or init == 'dc' or init == 'diametrical_clustering':
-            model.initialize(X=data,init='dc')
-        elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
-            model.initialize(X=data,init='++')
-        elif init == 'uniform' or init == 'unif':
-            model.initialize(init='uniform')
+        model.initialize(X=data,init=init,tol=tol)
         loglik = []
         print('Beginning EM loop')
         iter = 0

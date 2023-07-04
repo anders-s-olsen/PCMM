@@ -57,7 +57,7 @@ def diametrical_clustering_plusplus_torch(X,K):
 
     # choose first centroid at random from X
     idx = torch.multinomial(torch.ones(1000),num_samples=1).item()
-    C = X[idx][:,None]
+    C = X[idx].clone()[:,None]
  
     # for all other centroids, compute the distance from all X to the current set of centroids. 
     # Construct a weighted probability distribution and sample using this. 
@@ -65,12 +65,16 @@ def diametrical_clustering_plusplus_torch(X,K):
     for k in range(K-1):
         if idx!=0 and idx !=n-1:
             X = torch.vstack([X[:idx],X[idx+1:]])
+        elif idx==0:
+            X = X[1:]
+        elif idx==n-1:
+            X = X[:-1]
         dist = 1-(X@C)**2 #large means far away
         min_dist = torch.min(dist,dim=1)[0] #choose the distance to the closest centroid for each point
         prob_dist = min_dist/torch.sum(min_dist) # construct the prob. distribution
         # idx = np.random.choice(n-k-1,p=prob_dist)
         idx = torch.multinomial(prob_dist,num_samples=1).item()
-        C = torch.hstack((C,X[idx][:,None]))
+        C = torch.hstack((C,X[idx].clone()[:,None]))
     
     return C
 

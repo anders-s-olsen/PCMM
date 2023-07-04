@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from src.models_python.WatsonMixtureEM import Watson
 from src.models_python.mixture_EM_loop import mixture_EM_loop
-from src.models_python.diametrical_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch
+from src.models_pytorch.diametrical_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch
 
 #from scipy.special import gamma
 
@@ -38,7 +38,7 @@ class ACG(nn.Module):
             self.diag_indices[i-1] = ((i**2+i)/2)-1
         
         if params is not None: # for evaluating likelihood with already-learned parameters
-            self.pi = params['pi']
+            self.pi = torch.tensor(params['pi'])
             if self.fullrank: #check if this works!!
                 self.L_vec = torch.zeros(self.K,self.num_params,device=self.device,dtype=torch.double)
                 for k in range(self.K):
@@ -64,7 +64,7 @@ class ACG(nn.Module):
         else:
             return {'M':self.M.data,'pi':self.pi.data} #should be normalized: L=MM^T+I and then L = p*L/trace(L)
 
-    def initialize(self,X=None,init=None):
+    def initialize(self,X=None,init=None,tol=None):
 
         self.pi = nn.Parameter(torch.ones(self.K,device=self.device)/self.K)
         if self.fullrank is True:
@@ -77,7 +77,7 @@ class ACG(nn.Module):
                 if init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
                     mu = diametrical_clustering_plusplus_torch(X=X,K=self.K)
                 elif init == 'dc' or init == 'diametrical_clustering':
-                    mu,_,_ = diametrical_clustering_torch(X=X,K=self.K,max_iter=100000,num_repl=5,init='++')
+                    mu,_,_ = diametrical_clustering_torch(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
                 elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
                     W = Watson(K=self.K,p=self.p)
                     params,_,_,_ = mixture_EM_loop(W,X,init='dc')
@@ -124,6 +124,12 @@ class ACG(nn.Module):
         logsum_density = torch.logsumexp(density, dim=0)
         loglik = torch.sum(logsum_density)
         return loglik
+    
+    def test_log_likelihood(self, X): #without constraints (assume pi sum to one)
+        density = self.log_pdf(X)+torch.log(self.pi)[:,None]
+        logsum_density = torch.logsumexp(density, dim=0)
+        loglik = torch.sum(logsum_density)
+        return loglik    
 
     def forward(self, X):
         return self.log_likelihood(X)

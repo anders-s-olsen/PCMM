@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from src.models_python.WatsonMixtureEM import Watson
 from src.models_python.mixture_EM_loop import mixture_EM_loop
-from src.models_python.diametrical_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch
+from src.models_pytorch.diametrical_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch
 
 from scipy.special import gamma
 
@@ -68,7 +68,7 @@ class MACG(nn.Module):
         else:
             return {'M':self.M.data,'pi':self.pi.data} #should be normalized: L=MM^T+I and then L = p*L/trace(L)
 
-    def initialize(self,X=None,init=None):
+    def initialize(self,X=None,init=None,tol=None):
 
         self.pi = nn.Parameter(torch.ones(self.K,device=self.device)/self.K)
         if self.fullrank is True:
@@ -81,7 +81,7 @@ class MACG(nn.Module):
                 if init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
                     mu = diametrical_clustering_plusplus_torch(X=X,K=self.K)
                 elif init == 'dc' or init == 'diametrical_clustering':
-                    mu,_,_ = diametrical_clustering_torch(X=X,K=self.K,max_iter=100000,num_repl=5,init='++')
+                    mu,_,_ = diametrical_clustering_torch(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
                 elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
                     W = Watson(K=self.K,p=self.p)
                     params,_,_,_ = mixture_EM_loop(W,X,init='dc')

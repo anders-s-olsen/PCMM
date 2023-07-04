@@ -29,7 +29,7 @@ class MACG():
     def get_parameters(self):
         return {'Sigma': self.Sigma,'pi':self.pi}
     
-    def initialize(self,X=None,init=None):
+    def initialize(self,X=None,init=None,tol=None):
         self.pi = np.repeat(1/self.K,repeats=self.K)
         if init is None or init=='uniform' or init=='unif':
             self.mu = np.random.uniform(size=(self.p,self.K))
@@ -40,7 +40,7 @@ class MACG():
         elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
             self.mu = diametrical_clustering_plusplus(X=X[:,:,0],K=self.K)
         elif init == 'dc' or init == 'diametrical_clustering':
-            self.mu,_,_ = diametrical_clustering(X=X[:,:,0],K=self.K,max_iter=100000,num_repl=5,init='++')
+            self.mu,_,_ = diametrical_clustering(X=X[:,:,0],K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
         elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
             W = Watson(K=self.K,p=self.p)
             params,_,_,_ = mixture_EM_loop(W,X[:,:,0],init='dc')
