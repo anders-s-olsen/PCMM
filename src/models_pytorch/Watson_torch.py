@@ -46,17 +46,36 @@ class Watson(nn.Module):
         self.pi = nn.Parameter(torch.ones(self.K,device=self.device)/self.K)
         self.kappa = nn.Parameter(torch.ones(self.K))
 
-    def kummer_log(self,a, c, k, n=1000000,tol=1e-10):
-        logkum = torch.zeros((k.size(dim=0)))
-        logkum_old = torch.ones((k.size(dim=0)))
-        foo = torch.zeros((k.size(dim=0)))
+    def kummer_log(self,a, c, kappa, n=1000000,tol=1e-10):
+        if torch.any(kappa<0):
+            logkum = []
+            for k in kappa:
+                if k<0:
+                    logkum.append(self.kummer_log_neg(a,c,k,n,tol))
+                else:
+                    logkum.append(self.kummer_log(a,c,k,n,tol))
+        logkum = torch.zeros((kappa.size(dim=0)))
+        logkum_old = torch.ones((kappa.size(dim=0)))
+        foo = torch.zeros((kappa.size(dim=0)))
         j = 1
         while torch.any(torch.abs(logkum - logkum_old) > tol) and (j < n):
             logkum_old = logkum
-            foo += torch.log((a + j - 1) / (j * (c + j - 1)) * k)
+            foo += torch.log((a + j - 1) / (j * (c + j - 1)) * kappa)
             logkum = torch.logsumexp(torch.stack((logkum,foo),dim=0),dim=0)
             j += 1
         return logkum      
+    def kummer_log_neg(self,a, c, kappa, n=1000000,tol=1e-10):
+        a = c-a
+        logkum = torch.zeros((kappa.size(dim=0)))
+        logkum_old = torch.ones((kappa.size(dim=0)))
+        foo = torch.zeros((kappa.size(dim=0)))
+        j = 1
+        while torch.any(torch.abs(logkum - logkum_old) > tol) and (j < n):
+            logkum_old = logkum
+            foo += torch.log((a + j - 1) / (j * (c + j - 1)) * torch.abs(kappa))
+            logkum = torch.logsumexp(torch.stack((logkum,foo),dim=0),dim=0)
+            j += 1
+        return logkum+kappa      
 
     def log_norm_constant(self, kappa_pos):
         logC = self.logSA - self.kummer_log(self.a, self.c, kappa_pos)[:,None]
@@ -64,8 +83,8 @@ class Watson(nn.Module):
 
     def log_pdf(self, X):
         # Constraints
-        # kappa_positive = self.Softplus(self.kappa)  # Log softplus?
-        kappa_positive = self.kappa
+        kappa_positive = self.Softplus(self.kappa)  # Log softplus?
+        # kappa_positive = self.kappa
         mu_unit = nn.functional.normalize(self.mu, dim=0)  ##### Sufficent for backprop?
 
         if torch.any(torch.isinf(torch.log(kappa_positive))):
