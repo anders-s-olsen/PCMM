@@ -24,7 +24,7 @@ def run_experiment(mod,LR,init):
     # data_test = np.array(h5py.File('data/processed/fMRI_atlas_RL1.h5', 'r')['Dataset'][:,:240000]).T
     # print('Loaded test data, beginning fit')
 
-    expname = '3d_'+init+'_'+str(LR)
+    expname = '3d_noscheduler_'+init+'_'+str(LR)
     os.makedirs('experiments/outputs'+expname,exist_ok=True)
 
     data_train = np.loadtxt('data/synthetic/synth_data_ACG.csv',delimiter=',')

@@ -38,11 +38,17 @@ class ACG(nn.Module):
             self.diag_indices[i-1] = ((i**2+i)/2)-1
         
         if params is not None: # for evaluating likelihood with already-learned parameters
-            self.pi = nn.Parameter(torch.tensor(params['pi']))
+            if torch.is_tensor(params['pi']):
+                self.pi = nn.Parameter(params['pi'])
+            else:
+                self.pi = nn.Parameter(torch.tensor(params['pi']))
             if self.fullrank: #check if this works!!
                 self.L_vec = torch.zeros(self.K,self.num_params,device=self.device,dtype=torch.double)
                 for k in range(self.K):
-                    self.L_vec[k] = torch.linalg.cholesky(torch.linalg.inv(params['Lambda'][k]))[self.tril_indices[0],self.tril_indices[1]]
+                    if torch.is_tensor(params['pi']):
+                        self.L_vec[k] = torch.linalg.cholesky(torch.linalg.inv(params['Lambda'][k]))[self.tril_indices[0],self.tril_indices[1]]
+                    else:
+                        self.L_vec[k] = torch.linalg.cholesky(torch.linalg.inv(torch.tensor(params['Lambda'][k])))[self.tril_indices[0],self.tril_indices[1]]
                 self.L_vec = nn.Parameter(self.L_vec)
             else:
                 M_init = params['M']
