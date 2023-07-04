@@ -16,7 +16,7 @@ os.environ["OMP_NUM_THREADS"] = '16'
 
 
 
-def run_experiment(exp,LR,init):
+def run_experiment(mod,LR,init):
     ### load data, only the first 200 subjects (each with 1200 data points) (not the same subjects in train/test)
     # data_train = np.array(h5py.File('data/processed/fMRI_atlas_RL2.h5', 'r')['Dataset'][:,:240000]).T
     # n,p = data_train.shape
@@ -25,8 +25,7 @@ def run_experiment(exp,LR,init):
     # print('Loaded test data, beginning fit')
 
     expname = '3d_'+init+'_'+str(LR)
-    if not os.path.exists('experiments/outputs'+expname):
-        os.makedirs('experiments/outputs'+expname)
+    os.makedirs('experiments/outputs'+expname,exist_ok=True)
 
     data_train = np.loadtxt('data/synthetic/synth_data_ACG.csv',delimiter=',')
     data_test = np.loadtxt('data/synthetic/synth_data_ACG2.csv',delimiter=',')
@@ -39,36 +38,38 @@ def run_experiment(exp,LR,init):
     ### EM algorithms
     print('starting K='+str(K))
     for rep in range(num_repl_outer):
-        if exp==0:
-            model = Watson_EM(K=K,p=p)
-            name='Watson_EM'
-        elif exp==1:
-            model = ACG_EM(K=K,p=p)
-            name='ACG_EM'
-        elif exp==2:
-            model = Watson_torch(K=K,p=p)
-            name='Watson_torch'
-        elif exp==3:
-            model = ACG_torch(K=K,p=p,rank=p) #cholesky formulation when full rank
-            name='ACG_torch'
+        if mod==0:
+            if LR==0:
+                model = Watson_EM(K=K,p=p)
+            else:
+                model = Watson_torch(K=K,p=p)
+            name='Watson'
+        elif mod==1:
+            if LR==0:
+                model = ACG_EM(K=K,p=p)
+            else:
+                model = ACG_torch(K=K,p=p,rank=p) #cholesky formulation when full rank
+            name='ACG'
 
-        if exp==0 or exp==1:
-            params,_,loglik,num_iter = mixture_EM_loop(model,data_train,tol=1e-6,max_iter=100000,num_repl=num_repl_inner,init=init)
+        if LR==0: #EM
+            params,_,loglik,num_iter = mixture_EM_loop(model,data_train,tol=1e-6,max_iter=100000,
+                                                       num_repl=num_repl_inner,init=init)
             pi = params['pi']
-            if exp == 0:    
+            if mod == 0:    
                 mu = params['mu']
                 kappa = params['kappa']
-            elif exp == 1:
+            elif mod == 1:
                 Lambda = params['Lambda']
-        elif exp==2 or exp==3:
-            params,_,loglik,num_iter = mixture_torch_loop(model,torch.tensor(data_train),tol=1e-6,max_iter=100000,num_repl=num_repl_inner,init=init,LR=LR)
+        else:
+            params,_,loglik,num_iter = mixture_torch_loop(model,torch.tensor(data_train),tol=1e-6,max_iter=100000,
+                                                          num_repl=num_repl_inner,init=init,LR=LR)
             Softmax = torch.nn.Softmax(dim=0)
             Softplus = torch.nn.Softplus(beta=20, threshold=1)
             pi = Softmax(params['pi'])
-            if exp ==2:
+            if mod ==0:
                 mu = torch.nn.functional.normalize(params['mu'],dim=0)
                 kappa = Softplus(params['kappa'])
-            elif exp == 3:
+            elif mod == 1:
                 Lambda = torch.zeros(K,p,p)
                 for k in range(K):
                     L_tri_inv = params['L_tri_inv'][k]
@@ -77,29 +78,30 @@ def run_experiment(exp,LR,init):
 
         # np.savetxt('experiments/outputs'+expname+'/'+name+'_'+expname+'_trainlikelihoodcurve_K='+str(K)+'_r'+str(rep)+'.csv',np.array(loglik))
         np.savetxt('experiments/outputs'+expname+'/'+name+'_'+expname+'_pi_K='+str(K)+'_r'+str(rep)+'.csv',pi)
-        if exp==0 or exp==2:
+        if mod==0:
             np.savetxt('experiments/outputs'+expname+'/'+name+'_'+expname+'_mu_K='+str(K)+'_r'+str(rep)+'.csv',mu)
             np.savetxt('experiments/outputs'+expname+'/'+name+'_'+expname+'_kappa_K='+str(K)+'_r'+str(rep)+'.csv',kappa)
-        elif exp == 1 or exp == 3:
+        elif mod == 1:
             for k in range(K):
                 np.savetxt('experiments/outputs'+expname+'/'+name+'_'+expname+'_L_K='+str(K)+'_k'+str(k)+'_r'+str(rep)+'.csv',Lambda[k])
         
         # test
-        
-        if exp==0:
-            model = Watson_EM(K=K,p=p,params={'mu':mu,'kappa':kappa,'pi':pi})
-            test_loglik = model.log_likelihood(X=data_test)
-        elif exp==1:
-            model = ACG_EM(K=K,p=p,params={'pi':pi,'Lambda':Lambda})
-            test_loglik = model.log_likelihood(X=data_test)
-        if exp==2:
-            model = Watson_torch(K=K,p=p,params={'mu':mu,'kappa':kappa,'pi':pi})
-            with torch.no_grad():
-                test_loglik = model.test_log_likelihood(X=torch.tensor(data_test))
-        elif exp==3:
-            model = ACG_torch(K=K,p=p,rank=p,params={'pi':pi,'Lambda':Lambda})
-            with torch.no_grad():
-                test_loglik = model.test_log_likelihood(X=torch.tensor(data_test))
+        if mod==0:
+            if LR==0:
+                model = Watson_EM(K=K,p=p,params={'mu':mu,'kappa':kappa,'pi':pi})
+                test_loglik = model.log_likelihood(X=data_test)
+            else:
+                model = Watson_torch(K=K,p=p,params={'mu':mu,'kappa':kappa,'pi':pi})
+                with torch.no_grad():
+                    test_loglik = model.test_log_likelihood(X=torch.tensor(data_test))
+        elif mod==1:
+            if LR==0:
+                model = ACG_EM(K=K,p=p,params={'pi':pi,'Lambda':Lambda})
+                test_loglik = model.log_likelihood(X=data_test)
+            else:
+                model = ACG_torch(K=K,p=p,rank=p,params={'pi':pi,'Lambda':Lambda}) #cholesky formulation when full rank
+                with torch.no_grad():
+                    test_loglik = model.test_log_likelihood(X=torch.tensor(data_test))
         
         np.savetxt('experiments/outputs'+expname+'/'+name+'_'+expname+'_traintestlikelihood'+str(K)+'_r'+str(rep)+'.csv',np.array([loglik[-1],test_loglik]))
 

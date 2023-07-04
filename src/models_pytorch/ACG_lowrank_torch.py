@@ -40,9 +40,10 @@ class ACG(nn.Module):
         if params is not None: # for evaluating likelihood with already-learned parameters
             self.pi = nn.Parameter(torch.tensor(params['pi']))
             if self.fullrank: #check if this works!!
-                self.L_vec = nn.Parameter(torch.zeros(self.K,self.num_params,device=self.device,dtype=torch.double))
+                self.L_vec = torch.zeros(self.K,self.num_params,device=self.device,dtype=torch.double)
                 for k in range(self.K):
                     self.L_vec[k] = torch.linalg.cholesky(torch.linalg.inv(params['Lambda'][k]))[self.tril_indices[0],self.tril_indices[1]]
+                self.L_vec = nn.Parameter(self.L_vec)
             else:
                 M_init = params['M']
                 if M_init.dim()!=3 or M_init.shape[2]!=self.D: # add extra columns

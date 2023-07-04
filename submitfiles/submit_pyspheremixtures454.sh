@@ -1,10 +1,10 @@
 #!/bin/sh
 inits=("unif" "++" "dc")
-for LR in 0.01 0.1 1
+for LR in 0 0.01 0.1 1
 do
 for init in "${inits[@]}"
 do
-for m in 0 1 2 3
+for m in 0 1
 do
 
     sed -i '$ d' submitfiles/pyspheremixtures454_template.sh
