@@ -86,7 +86,7 @@ class Watson(nn.Module):
     
     def test_log_likelihood(self, X): #without constraints (assumed mu normalized and kappa positive and pi sum to one)
         norm_constant = self.log_norm_constant(self.kappa)
-        logpdf = norm_constant + self.kappa * ((self.mu.T @ X.T) ** 2)
+        logpdf = norm_constant + self.kappa[:,None] * ((self.mu.T @ X.T) ** 2)
         density = logpdf+torch.log(self.pi[:,None])
         logsum_density = torch.logsumexp(density, dim=0)
         loglik = torch.sum(logsum_density)
