@@ -9,6 +9,7 @@ from src.models_pytorch.Watson_torch import Watson as Watson_torch
 from src.models_pytorch.mixture_torch_loop import mixture_torch_loop
 
 torch.set_num_threads(16)
+torch.set_default_dtype(torch.float64)
 import sys
 import os
 os.environ["OMP_NUM_THREADS"] = '16'

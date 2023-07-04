@@ -45,7 +45,7 @@ class MACG(nn.Module):
         if params is not None: # for evaluating likelihood with already-learned parameters
             self.pi = params['pi']
             if self.fullrank: #check if this works!!
-                self.S_vec = torch.zeros(self.K,self.num_params,device=self.device,dtype=torch.double)
+                self.S_vec = torch.zeros(self.K,self.num_params,device=self.device)
                 for k in range(self.K):
                     self.S_vec[k] = torch.linalg.cholesky(torch.linalg.inv(params['Sigma'][k]))[self.tril_indices[0],self.tril_indices[1]]
             else:
@@ -56,13 +56,13 @@ class MACG(nn.Module):
                     else:
                         num_missing = self.D-M_init.shape[2]
 
-                    M_extra = torch.randn(self.K,self.p,num_missing,dtype=torch.double)
+                    M_extra = torch.randn(self.K,self.p,num_missing)
                     self.M = nn.Parameter(torch.cat([M_init,M_extra],dim=2))
             
 
     def get_params(self):
         if self.fullrank is True:
-            S_tri_inv = torch.zeros(self.K,self.p,self.p,device=self.device,dtype=torch.double)
+            S_tri_inv = torch.zeros(self.K,self.p,self.p,device=self.device)
             for k in range(self.K):
                 S_tri_inv[k,self.tril_indices[0],self.tril_indices[1]] = self.S_vec[k].data
             return {'S_tri_inv':S_tri_inv,'pi':self.pi.data} # should be L = inv(S_tri_inv@S_tri_inv.T)
@@ -74,10 +74,10 @@ class MACG(nn.Module):
         self.pi = nn.Parameter(torch.ones(self.K,device=self.device)/self.K)
         if self.fullrank is True:
             # only initialize the cholesky formulation as random, since this one is susceptible to singularity by rank-one methods
-            self.S_vec = nn.Parameter(torch.randn((self.K,self.num_params),dtype=torch.double).to(self.device))
+            self.S_vec = nn.Parameter(torch.randn((self.K,self.num_params)).to(self.device))
         else:
             if init is None or init=='uniform' or init=='unif':
-                self.M = nn.Parameter(torch.rand((self.K,self.p,self.D),dtype=torch.double).to(self.device))
+                self.M = nn.Parameter(torch.rand((self.K,self.p,self.D)).to(self.device))
             else:
                 if init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
                     mu = diametrical_clustering_plusplus_torch(X=X,K=self.K)
@@ -88,7 +88,7 @@ class MACG(nn.Module):
                     params,_,_,_ = mixture_EM_loop(W,X,init='dc')
                     mu = params['mu']
                     self.pi = nn.Parameter(params['pi'])
-                self.M = nn.Parameter(torch.rand((self.K,self.p,self.D),dtype=torch.double).to(self.device))
+                self.M = nn.Parameter(torch.rand((self.K,self.p,self.D)).to(self.device))
                 for k in range(self.K):
                     self.M[k,:,0] = mu[:,k] #initialize only the first of the rank D columns this way, the rest uniform
                 

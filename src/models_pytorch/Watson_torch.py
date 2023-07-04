@@ -36,14 +36,14 @@ class Watson(nn.Module):
     
     def initialize(self,X=None,init=None,tol=None):
         if init is None or init=='uniform' or init=='unif':
-            self.mu = nn.Parameter(nn.functional.normalize(torch.rand(size=(self.p,self.K),dtype=torch.double),dim=0))
+            self.mu = nn.Parameter(nn.functional.normalize(torch.rand(size=(self.p,self.K)),dim=0))
         elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
             self.mu = nn.Parameter(diametrical_clustering_plusplus_torch(X=X,K=self.K))
         elif init == 'dc' or init == 'diametrical_clustering':
             self.mu = nn.Parameter(diametrical_clustering_torch(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol))
             
-        self.pi = nn.Parameter(torch.ones(self.K,device=self.device,dtype=torch.double)/self.K)
-        self.kappa = nn.Parameter(torch.ones((self.K,1),dtype=torch.double))
+        self.pi = nn.Parameter(torch.ones(self.K,device=self.device)/self.K)
+        self.kappa = nn.Parameter(torch.ones((self.K,1)))
 
     def kummer_log(self,a, c, k, n=1000000,tol=1e-10):
         logkum = torch.zeros((k.size(dim=0),1))
