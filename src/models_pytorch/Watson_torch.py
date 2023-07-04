@@ -25,7 +25,7 @@ class Watson(nn.Module):
             self.pi = nn.Parameter(torch.tensor(params['pi']))
 
         self.LogSoftmax = nn.LogSoftmax(dim=0)
-        self.Softplus = nn.Softplus()
+        # self.Softplus = nn.Softplus()
 
         assert self.p != 1, 'Not properly implemented'
 

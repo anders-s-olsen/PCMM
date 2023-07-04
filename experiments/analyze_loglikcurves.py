@@ -21,7 +21,7 @@ for m in range(2):
                 LRname = str(LR)+'.0'
             else:
                 LRname = str(LR)
-            expname = '3d_'+init+'_'+LRname
+            expname = '3d_noscheduler_'+init+'_'+LRname
             
             testlike = []
             modelname = []

@@ -12,7 +12,8 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init='no',L
         model.initialize(X=data,init=init,tol=tol)
         # the 'no'-option (default) is for ACG-lowrank, where some columns are randomly initialized and others prespecified
         
-        optimizer = torch.optim.Adam(model.parameters(),lr=LR)
+        # optimizer = torch.optim.Adam(model.parameters(),lr=LR)
+        optimizer = torch.optim.SGD(model.parameters(),lr=LR)
         # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,threshold=tol,threshold_mode='abs',min_lr=0.0001,patience=100)
         scheduler = None
 
