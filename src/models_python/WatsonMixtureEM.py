@@ -34,24 +34,16 @@ class Watson():
             self.mu = diametrical_clustering_plusplus(X=X,K=self.K)
         elif init == 'dc' or init == 'diametrical_clustering':
             self.mu,_,_ = diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
+        elif init=='test':
+            self.mu = np.array([[1,1],[0,1],[0,1]])
+            self.mu = self.mu/np.linalg.norm(self.mu,axis=0)
             
         self.pi = np.repeat(1/self.K,repeats=self.K)
-        self.kappa = np.ones((self.K,1))
+        self.kappa = np.ones(self.K)
     
 
 ################ E-step ###################
     def kummer_log(self,a, c, k, n=1000000,tol=1e-10):
-        logkum = np.zeros((k.size,1))
-        logkum_old = np.ones((k.size,1))
-        foo = np.zeros((k.size,1))
-        j = 1
-        while np.any(np.abs(logkum - logkum_old) > tol) and (j < n):
-            logkum_old = logkum
-            foo += np.log((a + j - 1) / (j * (c + j - 1)) * k)
-            logkum = np.logaddexp(logkum,foo)
-            j += 1
-        return logkum
-    def kummer_log2(self,a, c, k, n=1000000,tol=1e-10):
         logkum = np.zeros((k.size))
         logkum_old = np.ones((k.size))
         foo = np.zeros((k.size))
@@ -65,14 +57,14 @@ class Watson():
     
     def log_norm_constant(self):
         # return self.logSA - np.log(hyp1f1(self.a,self.c,self.kappa)) 
-        return self.logSA - self.kummer_log(self.a,self.c,self.kappa)
+        return self.logSA - self.kummer_log(self.a,self.c,self.kappa)[:,None]
         # return self.logSA - self.log_kummer_np(self.a,self.c,self.kappa)
     
     def log_pdf(self,X):
-        return self.log_norm_constant() + self.kappa*((self.mu.T@X.T)**2)
+        return self.log_norm_constant() + self.kappa[:,None]*((self.mu.T@X.T)**2)
 
     def log_density(self,X):
-        return self.log_pdf(X)+np.log(self.pi)[:,np.newaxis]
+        return self.log_pdf(X)+np.log(self.pi)[:,None]
     
     def log_likelihood(self,X):
         self.density = self.log_density(X)

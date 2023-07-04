@@ -22,8 +22,6 @@ class Watson(nn.Module):
         if params is not None:
             self.mu = nn.Parameter(torch.tensor(params['mu']))
             self.kappa = nn.Parameter(torch.tensor(params['kappa'])) # should be (K,1)
-            if self.kappa.dim()==1:
-                self.kappa = self.kappa[:,None]
             self.pi = nn.Parameter(torch.tensor(params['pi']))
 
         self.LogSoftmax = nn.LogSoftmax(dim=0)
@@ -41,22 +39,13 @@ class Watson(nn.Module):
             self.mu = nn.Parameter(diametrical_clustering_plusplus_torch(X=X,K=self.K))
         elif init == 'dc' or init == 'diametrical_clustering':
             self.mu = nn.Parameter(diametrical_clustering_torch(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol))
+        elif init=='test':
+            self.mu = nn.Parameter(nn.functional.normalize(torch.tensor([[1,1],[0,1],[0,1]]).double(),dim=0))
             
         self.pi = nn.Parameter(torch.ones(self.K,device=self.device)/self.K)
-        self.kappa = nn.Parameter(torch.ones((self.K,1)))
+        self.kappa = nn.Parameter(torch.ones(self.K))
 
     def kummer_log(self,a, c, k, n=1000000,tol=1e-10):
-        logkum = torch.zeros((k.size(dim=0),1))
-        logkum_old = torch.ones((k.size(dim=0),1))
-        foo = torch.zeros((k.size(dim=0),1))
-        j = 1
-        while torch.any(torch.abs(logkum - logkum_old) > tol) and (j < n):
-            logkum_old = logkum
-            foo += torch.log((a + j - 1) / (j * (c + j - 1)) * k)
-            logkum = torch.logsumexp(torch.stack((logkum,foo),dim=0),dim=0)
-            j += 1
-        return logkum
-    def kummer_log2(self,a, c, k, n=1000000,tol=1e-10):
         logkum = torch.zeros((k.size(dim=0)))
         logkum_old = torch.ones((k.size(dim=0)))
         foo = torch.zeros((k.size(dim=0)))
@@ -69,19 +58,20 @@ class Watson(nn.Module):
         return logkum      
 
     def log_norm_constant(self, kappa_pos):
-        logC = self.logSA - self.kummer_log(self.a, self.c, kappa_pos)
+        logC = self.logSA - self.kummer_log(self.a, self.c, kappa_pos)[:,None]
         return logC
 
     def log_pdf(self, X):
         # Constraints
-        kappa_positive = self.Softplus(self.kappa)  # Log softplus?
+        # kappa_positive = self.Softplus(self.kappa)  # Log softplus?
+        kappa_positive = self.kappa
         mu_unit = nn.functional.normalize(self.mu, dim=0)  ##### Sufficent for backprop?
 
         if torch.any(torch.isinf(torch.log(kappa_positive))):
             raise ValueError('Too low kappa')
 
         norm_constant = self.log_norm_constant(kappa_positive)
-        logpdf = norm_constant + kappa_positive * ((mu_unit.T @ X.T) ** 2)
+        logpdf = norm_constant + kappa_positive[:,None] * ((mu_unit.T @ X.T) ** 2)
 
         return logpdf
     

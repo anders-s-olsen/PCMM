@@ -31,7 +31,7 @@ def run_experiment(mod,LR,init):
     data_train = np.loadtxt('data/synthetic/synth_data_ACG.csv',delimiter=',')
     data_test = np.loadtxt('data/synthetic/synth_data_ACG2.csv',delimiter=',')
     p=3
-    tol = 1e-8
+    tol = 1e-6
 
     num_repl_outer = 10
     num_repl_inner = 1
@@ -66,11 +66,12 @@ def run_experiment(mod,LR,init):
             params,_,loglik,_ = mixture_torch_loop(model,torch.tensor(data_train),tol=tol,max_iter=100000,
                                                           num_repl=num_repl_inner,init=init,LR=LR)
             Softmax = torch.nn.Softmax(dim=0)
-            Softplus = torch.nn.Softplus(beta=20, threshold=1)
+            # Softplus = torch.nn.Softplus(beta=20, threshold=1)
             pi = Softmax(params['pi'])
             if mod ==0:
                 mu = torch.nn.functional.normalize(params['mu'],dim=0)
-                kappa = Softplus(params['kappa'])
+                # kappa = Softplus(params['kappa'])
+                kappa = params['kappa']
             elif mod == 1:
                 Lambda = torch.zeros(K,p,p)
                 for k in range(K):
@@ -111,7 +112,7 @@ def run_experiment(mod,LR,init):
 
 
 if __name__=="__main__":
-    # run_experiment(exp=int(2))
+    run_experiment(mod=int(0),LR=float(0.1),init='++')
     # inits = ['unif','++','dc']
     # LRs = [0.01,0.1,1]
     # for init in inits:
