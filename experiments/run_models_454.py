@@ -53,7 +53,7 @@ def run_experiment(mod,LR,init):
             name='ACG'
 
         if LR==0: #EM
-            params,_,loglik,num_iter = mixture_EM_loop(model,data_train,tol=tol,max_iter=100000,
+            params,_,loglik,_ = mixture_EM_loop(model,data_train,tol=tol,max_iter=100000,
                                                        num_repl=num_repl_inner,init=init)
             pi = params['pi']
             if mod == 0:    
@@ -62,7 +62,7 @@ def run_experiment(mod,LR,init):
             elif mod == 1:
                 Lambda = params['Lambda']
         else:
-            params,_,loglik,num_iter = mixture_torch_loop(model,torch.tensor(data_train),tol=tol,max_iter=100000,
+            params,_,loglik,_ = mixture_torch_loop(model,torch.tensor(data_train),tol=tol,max_iter=100000,
                                                           num_repl=num_repl_inner,init=init,LR=LR)
             Softmax = torch.nn.Softmax(dim=0)
             Softplus = torch.nn.Softplus(beta=20, threshold=1)
