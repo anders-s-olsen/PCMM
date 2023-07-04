@@ -6,7 +6,7 @@ from src.models_python.WatsonMixtureEM import Watson as Watson_EM
 from src.models_python.mixture_EM_loop import mixture_EM_loop
 from src.models_pytorch.ACG_lowrank_torch import ACG as ACG_torch
 from src.models_pytorch.Watson_torch import Watson as Watson_torch
-from src.models_pytorch.mixture_torch_loop import mixture_torch_loop,mixture_torch_loop_batch
+from src.models_pytorch.mixture_torch_loop import mixture_torch_loop
 
 torch.set_num_threads(16)
 import sys
