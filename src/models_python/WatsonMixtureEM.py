@@ -39,7 +39,7 @@ class Watson():
             self.mu = self.mu/np.linalg.norm(self.mu,axis=0)
             
         self.pi = np.repeat(1/self.K,repeats=self.K)
-        self.kappa = np.random.randint(low=1,high=100,size=self.K)
+        self.kappa = np.random.randint(low=1,high=10,size=self.K)
     
 
 ################ E-step ###################
