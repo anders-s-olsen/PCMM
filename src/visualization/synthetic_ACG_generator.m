@@ -8,15 +8,15 @@ sig3 = diag([1e-2,1,1])+0.9*[0,0,0;0,0,1;0,1,0]; %noise is the first diagonal el
 sig3 = p*sig3/trace(sig3);
 SIGMAs = cat(3,sig2,sig3);
 
-% train data
-[X,cluster_id] = syntheticACGMixture([zeros(1,500),ones(1,500);ones(1,500),zeros(1,500)]',SIGMAs,1000,0);
-pointsspherefig(X,cluster_id);
-writetable(array2table(X),'data/synthetic/synth_data_ACG.csv','WriteVariableNames',false)
-
-% test data
-[X,cluster_id] = syntheticACGMixture([zeros(1,500),ones(1,500);ones(1,500),zeros(1,500)]',SIGMAs,1000,0);
-pointsspherefig(X,cluster_id);
-writetable(array2table(X),'data/synthetic/synth_data_ACG2.csv','WriteVariableNames',false)
+% % train data
+% [X,cluster_id] = syntheticACGMixture([zeros(1,500),ones(1,500);ones(1,500),zeros(1,500)]',SIGMAs,1000,0);
+% pointsspherefig(X,cluster_id);
+% writetable(array2table(X),'data/synthetic/synth_data_ACG.csv','WriteVariableNames',false)
+% 
+% % test data
+% [X,cluster_id] = syntheticACGMixture([zeros(1,500),ones(1,500);ones(1,500),zeros(1,500)]',SIGMAs,1000,0);
+% pointsspherefig(X,cluster_id);
+% writetable(array2table(X),'data/synthetic/synth_data_ACG2.csv','WriteVariableNames',false)
 
 %%
 [X,cluster_id] = syntheticMACGMixture([zeros(1,500),ones(1,500);ones(1,500),zeros(1,500)]',SIGMAs,1000,2,0);
@@ -25,7 +25,7 @@ pointsspherefig(X(:,:,2),cluster_id);
 X2 = zeros(2*size(X,1),3);
 X2(1:2:2000,:) = X(:,:,1);
 X2(2:2:2000,:) = X(:,:,2);
-writetable(array2table(X2),'data/synthetic/synth_data_MACG.csv','WriteVariableNames',false)
+% writetable(array2table(X2),'data/synthetic/synth_data_MACG.csv','WriteVariableNames',false)
 return
 %% generate data according to noise levels
 

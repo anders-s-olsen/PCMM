@@ -42,7 +42,7 @@ class ACG():
         
         self.Lambda = np.zeros((self.K,self.p,self.p))    
         for k in range(self.K):
-            self.Lambda[k] = np.outer(self.mu[:,k],self.mu[:,k])+np.eye(self.p)
+            self.Lambda[k] = 1e9*np.outer(self.mu[:,k],self.mu[:,k])+np.eye(self.p)
     
 
 ################ E-step ###################

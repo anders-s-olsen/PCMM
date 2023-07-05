@@ -9,7 +9,7 @@ num_repl_outer = 9
 K=2
 
 inits = ['unif','++','dc']
-LRs = [0,0.001,0.01,0.1,1]
+LRs = [0,0.001,0.01,0.1]
 for m in range(2):
     if m==0:
         name='Watson'
@@ -48,7 +48,9 @@ for m in range(2):
 
 plt.figure()
 sns.violinplot(data=df[df.model=='Watson'],x='Initialization',y='Log likelihood',hue='Optimizer',inner='point',scale='count')
+plt.title('Watson mixture, K=2')
 plt.figure()
 sns.violinplot(data=df[df.model=='ACG'],x='Initialization',y='Log likelihood',hue='Optimizer',inner='point',scale='count')
+plt.title('Angular Central Gaussian mixture, K=2')
 plt.show()
 stop=7

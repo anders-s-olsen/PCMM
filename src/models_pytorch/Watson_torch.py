@@ -26,7 +26,7 @@ class Watson(nn.Module):
             self.pi = nn.Parameter(torch.tensor(params['pi']))
 
         self.LogSoftmax = nn.LogSoftmax(dim=0)
-        self.Softplus = nn.Softplus(beta=20, threshold=1)
+        # self.Softplus = nn.Softplus(beta=20, threshold=1)
 
         assert self.p != 1, 'Not properly implemented'
 
@@ -44,7 +44,7 @@ class Watson(nn.Module):
             self.mu = nn.Parameter(nn.functional.normalize(torch.tensor([[1,1],[0,1],[0,1]]).double(),dim=0))
             
         self.pi = nn.Parameter(torch.ones(self.K,device=self.device)/self.K)
-        self.kappa = nn.Parameter(torch.ones(self.K))
+        self.kappa = nn.Parameter(torch.randint(low=1,high=100,size=self.K)) #start kappa stor
 
     def kummer_log(self,a, c, kappa, n=1000000,tol=1e-10):
         if kappa.ndim==0:
@@ -83,21 +83,21 @@ class Watson(nn.Module):
             j += 1
         return logkum+kappa    
 
-    def log_norm_constant(self, kappa_pos):
-        logC = self.logSA - self.kummer_log(self.a, self.c, kappa_pos)[:,None]
+    def log_norm_constant(self, kappa):
+        logC = self.logSA - self.kummer_log(self.a, self.c, kappa)[:,None]
         return logC
 
     def log_pdf(self, X):
         # Constraints
-        # kappa_positive = self.Softplus(self.kappa)  # Log softplus?
-        kappa_positive = self.kappa
+        # kappa = self.Softplus(self.kappa)  # Log softplus?
+        kappa = self.kappa
         mu_unit = nn.functional.normalize(self.mu, dim=0)  ##### Sufficent for backprop?
 
-        # if torch.any(torch.isinf(torch.log(kappa_positive))):
+        # if torch.any(torch.isinf(torch.log(kappa))):
         #     raise ValueError('Too low kappa')
 
-        norm_constant = self.log_norm_constant(kappa_positive)
-        logpdf = norm_constant + kappa_positive[:,None] * ((mu_unit.T @ X.T) ** 2)
+        norm_constant = self.log_norm_constant(kappa)
+        logpdf = norm_constant + kappa[:,None] * ((mu_unit.T @ X.T) ** 2)
 
         return logpdf
     
@@ -112,7 +112,7 @@ class Watson(nn.Module):
             raise ValueError('nan reached')
         return loglik
     
-    def test_log_likelihood(self, X): #without constraints (assumed mu normalized and kappa positive and pi sum to one)
+    def test_log_likelihood(self, X): #without constraints (assumed mu normalized and pi sum to one)
         norm_constant = self.log_norm_constant(self.kappa)
         logpdf = norm_constant + self.kappa[:,None] * ((self.mu.T @ X.T) ** 2)
         density = logpdf+torch.log(self.pi[:,None])
