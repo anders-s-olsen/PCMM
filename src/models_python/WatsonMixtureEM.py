@@ -33,7 +33,7 @@ class Watson():
         elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
             self.mu = diametrical_clustering_plusplus(X=X,K=self.K)
         elif init == 'dc' or init == 'diametrical_clustering':
-            self.mu,_,_ = diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
+            self.mu = diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
         elif init=='test':
             self.mu = np.array([[1,1],[0,1],[0,1]])
             self.mu = self.mu/np.linalg.norm(self.mu,axis=0)

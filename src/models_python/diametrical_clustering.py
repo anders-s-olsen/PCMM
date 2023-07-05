@@ -49,7 +49,7 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,call=0,tol=1e
         print('Diametrical clustering returned nan. Repeating')
         return diametrical_clustering(X,K,max_iter=max_iter,num_repl=num_repl,init=init,call=call+1)
     
-    return C_final[best],part_final[best],obj_final[best]
+    return C_final[best]
 
 def diametrical_clustering_plusplus(X,K):
     n,_ = X.shape

@@ -30,7 +30,7 @@ class ACG():
         elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
             mu = diametrical_clustering_plusplus(X=X,K=self.K)
         elif init == 'dc' or init == 'diametrical_clustering':
-            mu,_,_ = diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
+            mu = diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
         elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
             W = Watson(K=self.K,p=self.p)
             params,_,_,_ = mixture_EM_loop(W,X,init='dc')
