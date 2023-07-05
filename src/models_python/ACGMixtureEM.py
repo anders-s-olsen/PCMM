@@ -25,42 +25,35 @@ class ACG():
     def initialize(self,X=None,init=None,tol=None):
         self.pi = np.repeat(1/self.K,repeats=self.K)
         if init is None or init=='uniform' or init=='unif':
-            self.mu = np.random.uniform(size=(self.p,self.K))
-            self.mu = self.mu/np.linalg.norm(self.mu,axis=0)
-        elif init == "test":
-            self.mu = np.vstack((np.array([1,1,1]),np.array([1,1,-1]))).T
-            self.mu = self.mu/np.linalg.norm(self.mu,axis=0)
+            mu = np.random.uniform(size=(self.p,self.K))
+            mu = mu/np.linalg.norm(mu,axis=0)
         elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
-            self.mu = diametrical_clustering_plusplus(X=X,K=self.K)
+            mu = diametrical_clustering_plusplus(X=X,K=self.K)
         elif init == 'dc' or init == 'diametrical_clustering':
-            self.mu,_,_ = diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
+            mu,_,_ = diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
         elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
             W = Watson(K=self.K,p=self.p)
             params,_,_,_ = mixture_EM_loop(W,X,init='dc')
-            self.mu = params['mu']
+            mu = params['mu']
             self.pi = params['pi']
-        
         self.Lambda = np.zeros((self.K,self.p,self.p))    
         for k in range(self.K):
-            self.Lambda[k] = 1e9*np.outer(self.mu[:,k],self.mu[:,k])+np.eye(self.p)
-    
-
+            self.Lambda[k] = np.outer(mu[:,k],mu[:,k])+np.eye(self.p)
+        
 ################ E-step ###################
     
     def log_norm_constant(self):
         norm_const = self.logSA - 0.5*np.log(np.linalg.det(self.Lambda))
-        if np.any(np.isnan(norm_const)) or np.any(np.isinf(norm_const)):
-            stop=True
         return norm_const
 
     def log_pdf(self,X):
         pdf = np.zeros((self.K,X.shape[0]))
         for k in range(self.K):
             pdf[k] = np.sum(X@np.linalg.inv(self.Lambda[k])*X,axis=1)
-        return self.log_norm_constant()[:,np.newaxis] -self.c*np.log(pdf)
+        return self.log_norm_constant()[:,None] -self.c*np.log(pdf)
 
     def log_density(self,X):
-        return self.log_pdf(X)+np.log(self.pi)[:,np.newaxis]
+        return self.log_pdf(X)+np.log(self.pi)[:,None]
     
     def log_likelihood(self,X):
         self.density = self.log_density(X)
@@ -73,7 +66,7 @@ class ACG():
         logsum_density = np.logaddexp.reduce(density)
         return np.exp(density-logsum_density)
 
-    def Lambda_MLE(self,X,weights = None,tol=1e-10,max_iter=10000):
+    def Lambda_MLE(self,Lambda,X,weights = None,tol=1e-10,max_iter=10000):
         n,p = X.shape
         if n<p*(p-1):
             print("Too high dimensionality compared to number of observations. Lambda cannot be calculated")
@@ -81,12 +74,13 @@ class ACG():
         if weights is None:
             weights = np.ones(n)
         Lambda_old = np.eye(self.p)
-        Q = np.sqrt(weights)[:,np.newaxis]*X
+        Q = np.sqrt(weights)[:,None]*X
 
         # iteration 0 (Lambda initialized as eye(p)):
-        Lambda = p*Q.T@Q/np.sum(weights)
+        # Lambda = p*Q.T@Q/np.sum(weights)
+        # update: Lambda now initialized as old Lambda
         
-        j = 1
+        j = 0
         while np.linalg.norm(Lambda_old-Lambda) > tol and (j < max_iter):
             Lambda_old = Lambda
             
@@ -110,7 +104,7 @@ class ACG():
         self.pi = np.sum(Beta,axis=0)/n
 
         for k in range(self.K):
-            self.Lambda[k] = self.Lambda_MLE(X,weights=Beta[:,k],tol=tol)
+            self.Lambda[k] = self.Lambda_MLE(self.Lambda[k],X,weights=Beta[:,k],tol=tol)
 
 
 if __name__=='__main__':

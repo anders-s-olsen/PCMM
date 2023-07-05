@@ -73,25 +73,31 @@ class ACG(nn.Module):
     def initialize(self,X=None,init=None,tol=None):
 
         self.pi = nn.Parameter(torch.ones(self.K,device=self.device)/self.K)
-        if self.fullrank is True:
-            # only initialize the cholesky formulation as random, since this one is susceptible to singularity by rank-one methods
-            self.L_vec = nn.Parameter(torch.randn((self.K,self.num_params)).to(self.device))
-        else:
-            if init is None or init=='uniform' or init=='unif':
-                self.M = nn.Parameter(torch.rand((self.K,self.p,self.D)).to(self.device))
+        if init is not None and init !='unif' and init!='uniform':
+            if init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
+                mu = diametrical_clustering_plusplus_torch(X=X,K=self.K)
+            elif init == 'dc' or init == 'diametrical_clustering':
+                mu,_,_ = diametrical_clustering_torch(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
+            elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
+                W = Watson(K=self.K,p=self.p)
+                params,_,_,_ = mixture_EM_loop(W,X,init='dc')
+                mu = params['mu']
+                self.pi = nn.Parameter(params['pi'])
+            if self.fullrank is True:
+                self.L_vec = torch.zeros((self.K,self.num_params)).to(self.device)
+                for k in range(self.K):
+                    self.L_vec[k] = torch.linalg.cholesky(torch.outer(mu[:,k],mu[:,k])+torch.eye(self.p))[self.tril_indices[0],self.tril_indices[1]]
+                self.L_vec = nn.Parameter(self.L_vec)
             else:
-                if init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
-                    mu = diametrical_clustering_plusplus_torch(X=X,K=self.K)
-                elif init == 'dc' or init == 'diametrical_clustering':
-                    mu,_,_ = diametrical_clustering_torch(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
-                elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
-                    W = Watson(K=self.K,p=self.p)
-                    params,_,_,_ = mixture_EM_loop(W,X,init='dc')
-                    mu = params['mu']
-                    self.pi = nn.Parameter(params['pi'])
-                self.M = nn.Parameter(torch.rand((self.K,self.p,self.D)).to(self.device))
+                self.M = torch.rand((self.K,self.p,self.D)).to(self.device)
                 for k in range(self.K):
                     self.M[k,:,0] = mu[:,k] #initialize only the first of the rank D columns this way, the rest uniform
+                self.M = nn.Parameter(self.M)
+        elif init =='unif' or init=='uniform' or init is None:
+            if self.fullrank is True:
+                self.L_vec = nn.Parameter(torch.rand((self.K,self.num_params)).to(self.device))
+            else:
+                self.M = nn.Parameter(torch.rand((self.K,self.p,self.D)).to(self.device))
                 
 
     def log_determinant_L(self,L):

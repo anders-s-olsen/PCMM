@@ -44,7 +44,7 @@ class Watson(nn.Module):
             self.mu = nn.Parameter(nn.functional.normalize(torch.tensor([[1,1],[0,1],[0,1]]).double(),dim=0))
             
         self.pi = nn.Parameter(torch.ones(self.K,device=self.device)/self.K)
-        self.kappa = nn.Parameter(torch.randint(low=1,high=100,size=self.K)) #start kappa stor
+        self.kappa = nn.Parameter(torch.randint(low=1,high=100,size=(self.K,),dtype=torch.double)) #start kappa stor
 
     def kummer_log(self,a, c, kappa, n=1000000,tol=1e-10):
         if kappa.ndim==0:
