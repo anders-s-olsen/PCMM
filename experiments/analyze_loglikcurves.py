@@ -9,7 +9,7 @@ num_repl_outer = 9
 K=2
 
 inits = ['unif','++','dc']
-LRs = [0,0.001,0.01,0.1,1]
+LRs = [0,0.001,0.01,0.1]
 for m in range(2):
     if m==0:
         name='Watson'
