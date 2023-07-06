@@ -40,7 +40,7 @@ class Watson():
             
         self.pi = np.repeat(1/self.K,repeats=self.K)
         # self.kappa = np.random.randint(low=1,high=10,size=self.K)
-        self.kappa = np.ones(size=self.K)/10
+        self.kappa = np.ones(self.K)
     
 
 ################ E-step ###################
