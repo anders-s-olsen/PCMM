@@ -8,11 +8,10 @@ from src.models_pytorch.ACG_lowrank_torch import ACG as ACG_torch
 from src.models_pytorch.Watson_torch import Watson as Watson_torch
 from src.models_pytorch.mixture_torch_loop import mixture_torch_loop
 
-torch.set_num_threads(16)
 torch.set_default_dtype(torch.float64)
 import sys
 import os
-os.environ["OMP_NUM_THREADS"] = '16'
+
 # import matplotlib.pyplot as plt
 
 
@@ -24,6 +23,12 @@ def run_experiment(mod,LR,init):
     # print('Loaded training data')
     # data_test = np.array(h5py.File('data/processed/fMRI_atlas_RL1.h5', 'r')['Dataset'][:,:240000]).T
     # print('Loaded test data, beginning fit')
+
+    if LR==0:
+        os.environ["OMP_NUM_THREADS"] = '8'
+    else:
+        torch.set_num_threads(8)
+
     ps = [3,10,25]
     Ks = [2,5,10]
     for p in ps:

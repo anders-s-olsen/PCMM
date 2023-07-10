@@ -31,8 +31,8 @@ for m in range(2):
                 file_path = 'experiments/outputs'+expname+'/'+name+'_'+expname+'_traintestlikelihood'+str(K)+'_r'+str(rep)+'.csv'
                 try:
                     like = np.loadtxt(file_path)[0]
-                    if like < -1800:
-                        raise ValueError
+                    # if like < -1800:
+                    #     raise ValueError
                     testlike.append(like)
                 except: continue
                 modelname.append(name)
