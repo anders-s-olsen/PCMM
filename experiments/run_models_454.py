@@ -27,7 +27,9 @@ def run_experiment(mod,LR,init):
     if LR==0:
         os.environ["OMP_NUM_THREADS"] = '8'
     else:
+        os.environ["OMP_NUM_THREADS"] = '1'
         torch.set_num_threads(8)
+        torch.set_num_interop_threads(8)
 
     ps = [3,10,25]
     Ks = [2,5,10]
@@ -45,7 +47,6 @@ def run_experiment(mod,LR,init):
 
             num_repl_outer = 10
             num_repl_inner = 1
-            K = 2
 
             ### EM algorithms
             print('starting K='+str(K))
@@ -122,11 +123,11 @@ def run_experiment(mod,LR,init):
 
 
 if __name__=="__main__":
-    # run_experiment(mod=int(0),LR=float(0.1),init='unif')
+    run_experiment(mod=int(0),LR=float(0.1),init='unif')
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:
     #     for LR in LRs:
     #         for m in range(2):
     #             run_experiment(mod=int(m),LR=LR,init=init)
-    run_experiment(mod=int(sys.argv[1]),LR=float(sys.argv[2]),init=sys.argv[3])
+    # run_experiment(mod=int(sys.argv[1]),LR=float(sys.argv[2]),init=sys.argv[3])

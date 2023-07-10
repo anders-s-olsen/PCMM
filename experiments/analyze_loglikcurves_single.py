@@ -5,8 +5,9 @@ import pandas as pd
 
 df = pd.DataFrame(columns=['Log likelihood','model','Optimizer','Initialization'])
 
-num_repl_outer = 9
+num_repl_outer = 10
 K=2
+p=3
 
 inits = ['unif','++','dc']
 LRs = [0,0.001,0.01,0.1]
@@ -21,18 +22,16 @@ for m in range(2):
                 LRname = str(LR)+'.0'
             else:
                 LRname = str(LR)
-            expname = '3d_'+init+'_'+LRname
+            expname = '3d_'+init+'_'+LRname+'_p'+str(p)+'_K'+str(K)
             
             testlike = []
             modelname = []
             LRval = []
             initval = []
             for rep in range(num_repl_outer):
-                file_path = 'experiments/outputs'+expname+'/'+name+'_'+expname+'_traintestlikelihood'+str(K)+'_r'+str(rep)+'.csv'
+                file_path = 'experiments/synth_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'
                 try:
                     like = np.loadtxt(file_path)[0]
-                    # if like < -1800:
-                    #     raise ValueError
                     testlike.append(like)
                 except: continue
                 modelname.append(name)
