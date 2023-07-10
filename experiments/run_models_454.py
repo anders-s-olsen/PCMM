@@ -123,11 +123,11 @@ def run_experiment(mod,LR,init):
 
 
 if __name__=="__main__":
-    run_experiment(mod=int(0),LR=float(0.1),init='unif')
+    # run_experiment(mod=int(0),LR=float(0.1),init='unif')
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:
     #     for LR in LRs:
     #         for m in range(2):
     #             run_experiment(mod=int(m),LR=LR,init=init)
-    # run_experiment(mod=int(sys.argv[1]),LR=float(sys.argv[2]),init=sys.argv[3])
+    run_experiment(mod=int(sys.argv[1]),LR=float(sys.argv[2]),init=sys.argv[3])
