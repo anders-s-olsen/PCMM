@@ -32,32 +32,32 @@ view(-29,-13)
 T1 = nan(size(XX));T2 = nan(size(XX));
 
 varfactor = 0.5;
-likelihood_threshold = [-0.7,-0.7];
+likelihood_threshold = [-1.2,-0.7];
 
 if ~isempty(mu)&&~isempty(kappa)
-    M2 = kummer_log(0.5,1.5,kappa,50000);
+    M2 = kummer_log(0.5,1.5,kappa',50000);
     Cp = gammaln(1.5)-log(2)-1.5*log(pi)-M2';
     %     kappa = kappa*10;
     for i = 1:size(XX,1)
         for j = 1:size(XX,2)
             tmp = [XX(i,j),YY(i,j),ZZ(i,j)];
-            logpdf = Cp + kappa'.*((mu'*tmp').^2);
+            logpdf = Cp + kappa.*((mu'*tmp').^2);
 %             if (tmp*mu(:,1)).^2>1-varfactor./kappa(1)
 %                 T1(i,j) = (tmp*mu(:,1)).^2;
 %             elseif (tmp*mu(:,2)).^2>1-varfactor./kappa(2)
 %                 T2(i,j) = (tmp*mu(:,2)).^2;
 %             end
-            if logpdf(1)>likelihood_threshold(1)
-                T1(i,j) = logpdf(1);
-            elseif logpdf(2)>likelihood_threshold(1)
-                T2(i,j) = logpdf(2);
+            if max(logpdf)>likelihood_threshold(1)
+                T1(i,j) = max(logpdf);
             end
         end
     end
 elseif ~isempty(L)
     Cp = gammaln(1.5)-log(2)-1.5*log(pi);
-    logdeta1 = -2*sum(log(abs(diag(L(:,:,1)))));
-    logdeta2 = -2*sum(log(abs(diag(L(:,:,2)))));
+    logdeta1 = log(det(L(:,:,1)));
+    logdeta2 = log(det(L(:,:,2)));
+    L1_inv = inv(L(:,:,1));
+    L2_inv = inv(L(:,:,2));
     
     for i = 1:size(XX,1)
         for j = 1:size(XX,2)
@@ -65,13 +65,13 @@ elseif ~isempty(L)
             %             ll1(i,j) = Cp(1)+(-1.5)*log(tmp*A(:,:,1)*tmp');
             %             ll2(i,j) = Cp(2)+(-1.5)*log(tmp*A(:,:,2)*tmp');
             
-            B1 = tmp*L(:,:,1);B1 = sum(B1.*B1,2);
-            B2 = tmp*L(:,:,2);B2 = sum(B2.*B2,2);
+            B1 = tmp*L1_inv*tmp';
+            B2 = tmp*L2_inv*tmp';
             
-            if Cp-0.5*logdeta1+(-1.5)*log(B1)>likelihood_threshold(2)
-                T1(i,j) = Cp-0.5*logdeta1+(-1.5)*log(B1);
-            elseif Cp-0.5*logdeta2+(-1.5)*log(B2)>likelihood_threshold(2)
-                T2(i,j) = Cp-0.5*logdeta2+(-1.5)*log(B2);
+            if Cp-0.5*logdeta1-1.5*log(B1)>likelihood_threshold(2)
+                T1(i,j) = Cp-0.5*logdeta1-1.5*log(B1);
+            elseif Cp-0.5*logdeta2-1.5*log(B2)>likelihood_threshold(2)
+                T2(i,j) = Cp-0.5*logdeta2-1.5*log(B2);
             end
             
             
@@ -132,7 +132,9 @@ cmaps{2} = ([linspace(1,0.5,256)',linspace(1,0,256)',linspace(1,0.5,256)']);
 %
 if ~isempty(target)
 if ~isempty(mu)&&~isempty(kappa)
-    if (normr((target(:,:,1)*ones(3,1))')*mu(:,1)).^2<(normr((target(:,:,1)*ones(3,1))')*mu(:,2)).^2
+    [t1,~] = eigs(target(:,:,1),1);
+    % [t2,~] = eigs(target(:,:,2),1);
+    if (t1'*mu(:,1))^2<(t1'*mu(:,2))^2
         colormap(ax2,cmaps{2})
         colormap(ax3,cmaps{1})
         order = [2,1];
