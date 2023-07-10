@@ -19,15 +19,16 @@ for K = [2,5,10]
         end
         idx = repelem(1:K,1000/K);
 
+
         % train data
         [X,cluster_id] = syntheticACGMixture(idx,SIGMAs,1000,0);
         % pointsspherefig(X,cluster_id);
-        writetable(array2table(X),['data/synthetic/synth_data_ACG_p',num2str(p),'K',num2str(K),'_1.csv'],'WriteVariableNames',false)
+        % writetable(array2table(X),['data/synthetic/synth_data_ACG_p',num2str(p),'K',num2str(K),'_1.csv'],'WriteVariableNames',false)
 
         % test data
         [X,cluster_id] = syntheticACGMixture(idx,SIGMAs,1000,0);
         % pointsspherefig(X,cluster_id);
-        writetable(array2table(X),['data/synthetic/synth_data_ACG_p',num2str(p),'K',num2str(K),'_2.csv'],'WriteVariableNames',false)
+        % writetable(array2table(X),['data/synthetic/synth_data_ACG_p',num2str(p),'K',num2str(K),'_2.csv'],'WriteVariableNames',false)
 
         %%%%% MACG
         % [X,cluster_id] = syntheticMACGMixture(idx,SIGMAs,1000,2,0);
