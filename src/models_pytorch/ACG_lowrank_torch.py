@@ -117,10 +117,13 @@ class ACG(nn.Module):
             
         else:
             Lambda = torch.zeros(self.K,self.D,self.D)
+            log_det_L = torch.zeros(self.K)
             for k in range(self.K):
-                Lambda[k] = torch.eye(self.D)+self.M.T@self.M #note DxD not pxp since invariant
-                Lambda[k] = self.p*Lambda[k]/torch.trace(Lambda[k]) #trace-normalize, check if this is also invariant
-            log_det_L = self.log_determinant_L(Lambda)
+                Lambda[k] = torch.eye(self.D)+self.M[k].T@self.M[k] #note DxD not pxp since invariant
+                # Lambda[k] = self.D*Lambda[k]/torch.trace(Lambda[k]) #trace-normalize, check if this is also invariant
+                log_det_L[k] = 2 * torch.sum(torch.log(torch.abs(torch.diag(torch.linalg.cholesky(Lambda[k])))))
+            # log_det_L = self.log_determinant_L(Lambda)
+            
             B = X[None,:,:]@self.M
             matmul2 = 1-torch.sum(B@torch.linalg.inv(Lambda)*B,dim=2) #check
 

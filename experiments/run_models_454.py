@@ -61,7 +61,7 @@ def run_experiment(mod,LR,init):
                     if LR==0:
                         model = ACG_EM(K=K,p=p)
                     else:
-                        model = ACG_torch(K=K,p=p,rank=p) #cholesky formulation when full rank
+                        model = ACG_torch(K=K,p=p,rank=2) #cholesky formulation when full rank
                     name='ACG'
 
                 if LR==0: #EM
@@ -123,7 +123,7 @@ def run_experiment(mod,LR,init):
 
 
 if __name__=="__main__":
-    # run_experiment(mod=int(0),LR=float(0.1),init='unif')
+    run_experiment(mod=int(1),LR=float(0.1),init='unif')
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:

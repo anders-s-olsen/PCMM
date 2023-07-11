@@ -14,7 +14,7 @@ for K = [2,5,10]
             if k>K/2
                 continue
             end
-            sig = anisotropic_covariance(p,K-k,K-k+1);
+            sig = anisotropic_covariance(p,p-k,p-k+1);
             SIGMAs = cat(3,SIGMAs,sig);
         end
         idx = repelem(1:K,1000/K);
@@ -23,12 +23,12 @@ for K = [2,5,10]
         % train data
         [X,cluster_id] = syntheticACGMixture(idx,SIGMAs,1000,0);
         % pointsspherefig(X,cluster_id);
-        % writetable(array2table(X),['data/synthetic/synth_data_ACG_p',num2str(p),'K',num2str(K),'_1.csv'],'WriteVariableNames',false)
+        writetable(array2table(X),['data/synthetic/synth_data_ACG_p',num2str(p),'K',num2str(K),'_1.csv'],'WriteVariableNames',false)
 
         % test data
         [X,cluster_id] = syntheticACGMixture(idx,SIGMAs,1000,0);
         % pointsspherefig(X,cluster_id);
-        % writetable(array2table(X),['data/synthetic/synth_data_ACG_p',num2str(p),'K',num2str(K),'_2.csv'],'WriteVariableNames',false)
+        writetable(array2table(X),['data/synthetic/synth_data_ACG_p',num2str(p),'K',num2str(K),'_2.csv'],'WriteVariableNames',false)
 
         %%%%% MACG
         % [X,cluster_id] = syntheticMACGMixture(idx,SIGMAs,1000,2,0);

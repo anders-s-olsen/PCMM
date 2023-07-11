@@ -1,5 +1,6 @@
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import numpy as np
 import pandas as pd
 sns.set()
@@ -8,8 +9,8 @@ num_repl_outer = 10
 inits = ['unif','++','dc']
 LRs = [0,0.001,0.01,0.1]
 for m in range(2):
-    if m==0:
-        continue
+    # if m==0:
+    #     continue
     fig, axs = plt.subplots(3, 3, figsize=(20, 10))
     if m==0:
         name='Watson'
@@ -58,6 +59,8 @@ for m in range(2):
             sns.violinplot(ax=axs[idx1,idx2],data=df[df.model==name],x='Initialization',y='Log likelihood',hue='Optimizer',inner='point',scale='count')
             axs[idx1,idx2].legend([],[], frameon=False)
             axs[idx1,idx2].set_title('Log-likelihood, p='+str(p)+' K='+str(K), fontsize=12)
+            axs[idx1,idx2].get_yaxis().set_major_formatter(
+                ticker.FuncFormatter(lambda x, p: format(x)))
     # Add labels for the entire figure
     # fig.text(0.5, 0.04, 'X-axis Label', ha='center', fontsize=14)
     # fig.text(0.04, 0.5, 'Y-axis Label', va='center', rotation='vertical', fontsize=14)
