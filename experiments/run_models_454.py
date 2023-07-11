@@ -90,14 +90,14 @@ def run_experiment(mod,LR,init):
                             Lambda[k] = torch.linalg.inv(L_tri_inv@L_tri_inv.T)
                             Lambda[k] = p*Lambda[k]/torch.trace(Lambda[k])
 
-                # np.savetxt('experiments/synth_outputs'+'/'+name+'_'+expname+'_trainlikelihoodcurve_r'+str(rep)+'.csv',np.array(loglik))
-                np.savetxt('experiments/synth_outputs'+'/'+name+'_'+expname+'_pi_r'+str(rep)+'.csv',pi)
-                if mod==0:
-                    np.savetxt('experiments/synth_outputs'+'/'+name+'_'+expname+'_mu_r'+str(rep)+'.csv',mu)
-                    np.savetxt('experiments/synth_outputs'+'/'+name+'_'+expname+'_kappa_r'+str(rep)+'.csv',kappa)
-                elif mod == 1:
-                    for k in range(K):
-                        np.savetxt('experiments/synth_outputs'+'/'+name+'_'+expname+'_L_k'+str(k)+'_r'+str(rep)+'.csv',Lambda[k])
+                # np.savetxt('experiments/synth_outputs/'+name+'_'+expname+'_trainlikelihoodcurve_r'+str(rep)+'.csv',np.array(loglik))
+                # np.savetxt('experiments/synth_outputs/'+name+'_'+expname+'_pi_r'+str(rep)+'.csv',pi)
+                # if mod==0:
+                #     np.savetxt('experiments/synth_outputs/'+name+'_'+expname+'_mu_r'+str(rep)+'.csv',mu)
+                #     np.savetxt('experiments/synth_outputs/'+name+'_'+expname+'_kappa_r'+str(rep)+'.csv',kappa)
+                # elif mod == 1:
+                #     for k in range(K):
+                #         np.savetxt('experiments/synth_outputs/'+name+'_'+expname+'_L_k'+str(k)+'_r'+str(rep)+'.csv',Lambda[k])
                 
                 # test
                 if mod==0:
@@ -117,13 +117,13 @@ def run_experiment(mod,LR,init):
                         with torch.no_grad():
                             test_loglik = model.test_log_likelihood(X=torch.tensor(data_test))
                 
-                np.savetxt('experiments/synth_outputs'+'/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',np.array([loglik[-1],test_loglik]))
+                np.savetxt('experiments/synth_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',np.array([loglik[-1],test_loglik]))
 
     stop=7
 
 
 if __name__=="__main__":
-    run_experiment(mod=int(1),LR=float(0.1),init='unif')
+    # run_experiment(mod=int(1),LR=float(0.1),init='unif')
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:
