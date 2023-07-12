@@ -15,9 +15,11 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None):
         
             # E-step
             loglik.append(model.log_likelihood(X=data))
+            if np.isnan(loglik[-1]):
+                raise ValueError("Nan reached")
 
-            if iter>0:
-                if abs(loglik[-2]-loglik[-1])<tol or iter==max_iter:
+            if iter>100:
+                if loglik[-1]-loglik[-100]<tol or iter==max_iter:
                     if loglik[-1]>best_loglik:
                         best_loglik = loglik[-1]
                         loglik_final = loglik

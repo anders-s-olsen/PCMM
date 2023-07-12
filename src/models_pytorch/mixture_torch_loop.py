@@ -22,11 +22,14 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init='no',
         for iter in range(max_iter):
             
             epoch_nll = -model(data) #negative for nll
-
+            if torch.isnan(-epoch_nll):
+                raise ValueError("Nan reached")
+            
             optimizer.zero_grad(set_to_none=True)
             epoch_nll.backward()
             optimizer.step()
             loglik.append(-epoch_nll.item())
+            
 
             if iter>100:
                 if scheduler is not None:
