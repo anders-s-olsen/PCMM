@@ -8,6 +8,7 @@ sns.set()
 num_repl_outer = 10
 inits = ['unif','++','dc']
 LRs = [0,0.001,0.01,0.1]
+exptype = 'synth'
 for m in range(2):
     # if m==0:
     #     continue
@@ -36,7 +37,7 @@ for m in range(2):
                     LRval = []
                     initval = []
                     for rep in range(num_repl_outer):
-                        file_path = 'experiments/synth_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'
+                        file_path = 'experiments/'+exptype+'_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'
                         try:
                             like = np.loadtxt(file_path)[0]
                             # if like < -1800:
