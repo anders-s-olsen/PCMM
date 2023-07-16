@@ -45,7 +45,8 @@ def run_experiment(mod,LR,init):
         
         ### EM algorithms
         print('starting K='+str(K))
-        rep_order = np.random.shuffle(np.arange(num_repl_outer))
+        rep_order = np.arange(num_repl_outer)
+        np.random.shuffle(rep_order)
         for repl in range(num_repl_outer):
             rep = rep_order[repl]
 
