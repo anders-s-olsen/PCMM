@@ -101,6 +101,7 @@ class Watson():
             LB = (rk*self.c-self.a)/(rk*(1-rk))*(1+(1-rk)/(self.c-self.a))
             B  = (rk*self.c-self.a)/(2*rk*(1-rk))*(1+np.sqrt(1+4*(self.c+1)*rk*(1-rk)/(self.a*(self.c-self.a))))
             UB = (rk*self.c-self.a)/(rk*(1-rk))*(1+rk/self.a)
+            BBG = (self.c*rk-self.a)/(rk*(1-rk))+rk/(2*self.c*(1-rk))
 
             # def f(kappa):
             #     return -(kappa * rk - hyp1f1(self.a, self.c, kappa))
@@ -108,13 +109,15 @@ class Watson():
                 return ((self.a/self.c)*(np.exp(self.kummer_log(self.a+1,self.c+1,kappa)-self.kummer_log(self.a,self.c,kappa)))-rk)**2
 
             if rk>self.a/self.c:
-                self.kappa[k] = scipy.optimize.minimize(f, x0=np.mean([LB,B]), bounds=[(1e-10, B)],tol=None)['x']
+                # self.kappa[k] = scipy.optimize.minimize(f, x0=BBG, bounds=[(LB, B)],tol=None)['x']
+                self.kappa[k] = scipy.optimize.minimize_scalar(f, bounds=[LB, B],tol=None)['x']
             elif rk<self.a/self.c:
-                self.kappa[k] = scipy.optimize.minimize(f, x0=np.mean([B,UB]), bounds=[(B, UB)],tol=None)['x']
+                # self.kappa[k] = scipy.optimize.minimize(f, x0=BBG, bounds=[(B, UB)],tol=None)['x']
+                self.kappa[k] = scipy.optimize.minimize_scalar(f, bounds=[B, UB],tol=None)['x']
             elif rk==self.a/self.c:
                 self.kappa[k] = 0
             else:
-                print("kappa could not be optimized")
+                raise ValueError("kappa could not be optimized")
                 return
             if np.linalg.norm(self.kappa[k]-LB)<1e-10 or np.linalg.norm(self.kappa[k]-B)<1e-10 or np.linalg.norm(self.kappa[k]-UB)<1e-10:
                 print('Probably a convergence problem for kappa')

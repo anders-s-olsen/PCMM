@@ -7,11 +7,11 @@ sns.set()
 
 num_repl_outer = 10
 inits = ['unif','++','dc']
-LRs = [0,0.001,0.01,0.1]
+LRs = [0,0.01,0.1,1]
 exptype = '454'
 for m in range(2):
-    # if m==0:
-    #     continue
+    if m==1:
+        continue
     fig, axs = plt.subplots(3, figsize=(20, 10))
     if m==0:
         name='Watson'
@@ -26,7 +26,7 @@ for m in range(2):
                     LRname = str(LR)+'.0'
                 else:
                     LRname = str(LR)
-                expname = '3d_'+init+'_'+LRname+'_p454_K'+str(K)
+                expname = exptype+'_'+init+'_'+LRname+'_p454_K'+str(K)
                 
                 testlike = []
                 modelname = []

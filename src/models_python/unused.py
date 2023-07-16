@@ -22,9 +22,9 @@ class Watson_test():
         inner = loggamma(a + n) + loggamma(b) - loggamma(a) - loggamma(b + n) \
                 + n * np.log(kappa) - loggamma(n + 1)
     
-        logkum = np.logaddexp.reduce(inner, axis=0)
+        logkum2 = np.logaddexp.reduce(inner, axis=0)
     
-        return logkum
+        return logkum2
     def log_kummer_np2(self,kappa):
     
         inner = self.log_kummer_tmp + self.n * np.log(kappa)

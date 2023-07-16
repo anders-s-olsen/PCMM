@@ -45,6 +45,7 @@ def run_experiment(mod,LR,init):
         ### EM algorithms
         print('starting K='+str(K))
         for rep in range(num_repl_outer):
+
             if mod==0:
                 if LR==0:
                     model = Watson_EM(K=K,p=p)
@@ -57,6 +58,9 @@ def run_experiment(mod,LR,init):
                 else:
                     model = ACG_torch(K=K,p=p,rank=p) #cholesky formulation when full rank
                 name='ACG'
+                
+            if os.path.isfile('experiments/454_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'):
+                continue
 
             if LR==0: #EM
                 params,_,loglik,_ = mixture_EM_loop(model,data_train,tol=tol,max_iter=100000,
@@ -117,7 +121,7 @@ def run_experiment(mod,LR,init):
 
 
 if __name__=="__main__":
-    # run_experiment(mod=int(0),LR=float(0),init='++')
+    # run_experiment(mod=int(0),LR=float(1),init='++')
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:

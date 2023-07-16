@@ -36,7 +36,7 @@ if neg
     x0 = -1;
 else
     % tolerance = (10e-8)*numel(X);
-    tolerance = 1e-6;
+    tolerance = 10e-6;
     x0 = 1;
 end
 a = 1/2;
@@ -115,7 +115,7 @@ for repl = 1:nRepl
         
         %%%%% E-step, compute expectations %%%%%
         % first the pdf for every observation and component
-        M2 = kummer_log(a,c,kappa',1000000);
+        M2 = kummer_log(a,c,kappa',50000);
         Cp = gammaln(c)-log(2)-c*log(pi)-M2';
         logpdf = Cp + kappa.*((mu'*X').^2);
         
