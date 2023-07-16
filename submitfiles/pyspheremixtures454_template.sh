@@ -1,6 +1,6 @@
 #!/bin/sh
 #BSUB -J HCPjob
-#BSUB -q computebigbigmem
+#BSUB -q hpc
 #BSUB -R "rusage[mem=30GB]"
 # #BSUB -B
 # #BSUB -N
