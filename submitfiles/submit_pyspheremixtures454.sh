@@ -1,6 +1,6 @@
 #!/bin/sh
 inits=("unif" "++" "dc")
-for LR in 0 #0.001 0.01 0.1 1
+for LR in 0 0.001 0.01 0.1 1
 do
 for init in "${inits[@]}"
 do

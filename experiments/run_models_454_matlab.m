@@ -21,8 +21,8 @@ for ini = {'unif','++','dc'}
         init = 'diam';
     end
     for K = [2,5,10]
-        expname = ['454_',ini,'_-0.0_p',num2str(p),'_K',num2str(K)];
-        for rep = 1:10
+        expname = ['454_',ini{1},'_-0.0_p',num2str(p),'_K',num2str(K)];
+        for rep = 0:9 
             results = WMM_EM_BigMem2(data_train,K,maxIter,nRepl,init,neg);
             M2 = kummer_log(0.5,c,results.kappa',1000000);
             Cp = gammaln(c)-log(2)-c*log(pi)-M2';
