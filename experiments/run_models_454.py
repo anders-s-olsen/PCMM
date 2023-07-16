@@ -39,14 +39,15 @@ def run_experiment(mod,LR,init):
         torch.set_num_interop_threads(8)
 
     Ks = [2,5,10]
-    # Ks = [2,5]
     for K in Ks:
         
         expname = '454_'+init+'_'+str(LR)+'_p'+str(p)+'_K'+str(K)
         
         ### EM algorithms
         print('starting K='+str(K))
-        for rep in np.random.shuffle(range(num_repl_outer)):
+        rep_order = np.random.shuffle(np.arange(num_repl_outer))
+        for repl in range(num_repl_outer):
+            rep = rep_order[repl]
 
             if mod==0:
                 if LR==0:
