@@ -32,24 +32,24 @@ class MACG():
     def initialize(self,X=None,init=None,tol=None):
         self.pi = np.repeat(1/self.K,repeats=self.K)
         if init is None or init=='uniform' or init=='unif':
-            self.mu = np.random.uniform(size=(self.p,self.K))
-            self.mu = self.mu/np.linalg.norm(self.mu,axis=0)
+            mu = np.random.uniform(size=(self.p,self.K))
+            mu = mu/np.linalg.norm(mu,axis=0)
         elif init == "test":
-            self.mu = np.vstack((np.array([1,1,1]),np.array([1,1,-1]))).T
-            self.mu = self.mu/np.linalg.norm(self.mu,axis=0)
+            mu = np.vstack((np.array([1,1,1]),np.array([1,1,-1]))).T
+            mu = mu/np.linalg.norm(mu,axis=0)
         elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
-            self.mu = diametrical_clustering_plusplus(X=X[:,:,0],K=self.K)
+            mu = diametrical_clustering_plusplus(X=X[:,:,0],K=self.K)
         elif init == 'dc' or init == 'diametrical_clustering':
-            self.mu,_,_ = diametrical_clustering(X=X[:,:,0],K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
+            mu = diametrical_clustering(X=X[:,:,0],K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
         elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
             W = Watson(K=self.K,p=self.p)
             params,_,_,_ = mixture_EM_loop(W,X[:,:,0],init='dc')
-            self.mu = params['mu']
+            mu = params['mu']
             self.pi = params['pi']
             
         self.Sigma = np.zeros((self.K,self.p,self.p))
         for k in range(self.K):
-            self.Sigma[k] = np.outer(self.mu[:,k],self.mu[:,k])+np.eye(self.p)
+            self.Sigma[k] = np.outer(mu[:,k],mu[:,k])+np.eye(self.p)
     
 
 ################ E-step ###################

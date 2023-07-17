@@ -53,9 +53,9 @@ class MACG(nn.Module):
                 self.S_vec = torch.zeros(self.K,self.num_params,device=self.device)
                 for k in range(self.K):
                     if torch.is_tensor(params['Sigma'][k]):
-                        self.S_vec[k] = torch.linalg.cholesky(torch.linalg.inv(torch.tensor(params['Sigma'][k])))[self.tril_indices[0],self.tril_indices[1]]
-                    else:
                         self.S_vec[k] = torch.linalg.cholesky(torch.linalg.inv(params['Sigma'][k]))[self.tril_indices[0],self.tril_indices[1]]
+                    else:
+                        self.S_vec[k] = torch.linalg.cholesky(torch.linalg.inv(torch.tensor(params['Sigma'][k])))[self.tril_indices[0],self.tril_indices[1]]
                 self.S_vec = nn.Parameter(self.S_vec)
             else:
                 M_init = params['M']

@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 sns.set()
 sns.set_style("whitegrid", {'axes.grid' : False})
+# matplotlib.rcParams.update({'font.size': 10})
 
 num_repl_outer = 10
 inits = ['unif','++','dc']
@@ -14,7 +15,7 @@ exptype = 'synth'
 for m in range(2):
     if m==0:
         continue
-    fig, axs = plt.subplots(3, 3, figsize=(12, 7))
+    fig, axs = plt.subplots(3, 3, figsize=(15, 9))
     if m==0:
         name='Watson'
     elif m==1:
@@ -60,14 +61,14 @@ for m in range(2):
                     dftmp = pd.DataFrame({'Log likelihood': testlike, 'model': modelname, 'Optimizer': LRval, 'Initialization': initval})
                     df = pd.concat([df,dftmp])
             sns.violinplot(ax=axs[idx1,idx2],data=df[df.model==name],x='Initialization',y='Log likelihood',hue='Optimizer',inner='point',scale='count')
-            if not(idx1==0 and idx2==2):
-                axs[idx1,idx2].legend([],[], frameon=False)
+            # if not(idx1==0 and idx2==2):
+            #     axs[idx1,idx2].legend([],[], frameon=False)
             # axs[idx1,idx2].grid(False)
-            axs[idx1,idx2].set_title('Synthetic data training log-likelihood, p='+str(p)+' K='+str(K), fontsize=10)
+            axs[idx1,idx2].set_title('Synthetic data training log-likelihood, p='+str(p)+' K='+str(K), fontsize=12)
             axs[idx1,idx2].set_xlabel('')
             axs[idx1,idx2].get_yaxis().set_major_formatter(
                 ticker.FuncFormatter(lambda x, p: format(x)))
-            plt.rcParams.update({'font.size': 10})
+            
     # Add labels for the entire figure
     # fig.text(0.5, 0.04, 'X-axis Label', ha='center', fontsize=14)
     # fig.text(0.04, 0.5, 'Y-axis Label', va='center', rotation='vertical', fontsize=14)
