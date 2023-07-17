@@ -83,12 +83,12 @@ class MACG(nn.Module):
         self.pi = nn.Parameter(torch.ones(self.K,device=self.device)/self.K)
         if init is not None and init !='unif' and init!='uniform':
             if init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
-                mu = diametrical_clustering_plusplus_torch(X=X,K=self.K)
+                mu = diametrical_clustering_plusplus_torch(X=X[:,:,0],K=self.K)
             elif init == 'dc' or init == 'diametrical_clustering':
-                mu = diametrical_clustering_torch(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
+                mu = diametrical_clustering_torch(X=X[:,:,0],K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
             elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
                 W = Watson(K=self.K,p=self.p)
-                params,_,_,_ = mixture_EM_loop(W,X,init='dc')
+                params,_,_,_ = mixture_EM_loop(W,X[:,:,0],init='dc')
                 mu = params['mu']
                 self.pi = nn.Parameter(params['pi'])
             if self.fullrank is True:
