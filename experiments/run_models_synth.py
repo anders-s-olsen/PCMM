@@ -2,9 +2,11 @@ import h5py
 import numpy as np
 import torch
 from src.models_python.ACGMixtureEM import ACG as ACG_EM
+from src.models_python.MACGMixtureEM import MACG as MACG_EM
 from src.models_python.WatsonMixtureEM import Watson as Watson_EM
 from src.models_python.mixture_EM_loop import mixture_EM_loop
 from src.models_pytorch.ACG_lowrank_torch import ACG as ACG_torch
+from src.models_pytorch.MACG_lowrank_torch import MACG as MACG_torch
 from src.models_pytorch.Watson_torch import Watson as Watson_torch
 from src.models_pytorch.mixture_torch_loop import mixture_torch_loop
 
@@ -41,8 +43,19 @@ def run_experiment(mod,LR,init):
             expname = '3d_'+init+'_'+str(LR)+'_p'+str(p)+'_K'+str(K)
             os.makedirs('experiments/synth_outputs',exist_ok=True)
 
-            data_train = np.loadtxt('data/synthetic/synth_data_ACG_p'+str(p)+'K'+str(K)+'_1.csv',delimiter=',')
-            data_test = np.loadtxt('data/synthetic/synth_data_ACG_p'+str(p)+'K'+str(K)+'_2.csv',delimiter=',')
+            if mod == 0 or mod == 1:
+                data_train = np.loadtxt('data/synthetic/synth_data_ACG_p'+str(p)+'K'+str(K)+'_1.csv',delimiter=',')
+                data_test = np.loadtxt('data/synthetic/synth_data_ACG_p'+str(p)+'K'+str(K)+'_2.csv',delimiter=',')
+            elif mod==2:
+                data_train = np.zeros((1000,p,2))
+                data_train_tmp = np.loadtxt('data/synthetic/synth_data_MACG_p'+str(p)+'K'+str(K)+'_1.csv',delimiter=',')
+                data_train[:,:,0] = data_train_tmp[np.arange(2000,step=2),:]
+                data_train[:,:,1] = data_train_tmp[np.arange(2000,step=2)+1,:]
+                data_test = np.zeros((1000,p,2))
+                data_test_tmp = np.loadtxt('data/synthetic/synth_data_MACG_p'+str(p)+'K'+str(K)+'_2.csv',delimiter=',')
+                data_test[:,:,0] = data_test_tmp[np.arange(2000,step=2),:]
+                data_test[:,:,1] = data_test_tmp[np.arange(2000,step=2)+1,:]
+            
             tol = 1e-6
 
             num_repl_outer = 10
@@ -50,7 +63,10 @@ def run_experiment(mod,LR,init):
 
             ### EM algorithms
             print('starting K='+str(K))
-            for rep in range(num_repl_outer):
+            rep_order = np.arange(num_repl_outer)
+            np.random.shuffle(rep_order)
+            for repl in range(num_repl_outer):
+                rep = rep_order[repl]
                 if mod==0:
                     if LR==0:
                         model = Watson_EM(K=K,p=p)
@@ -63,6 +79,15 @@ def run_experiment(mod,LR,init):
                     else:
                         model = ACG_torch(K=K,p=p,rank=p) #cholesky formulation when full rank
                     name='ACG'
+                elif mod==2:
+                    if LR==0:
+                        model = MACG_EM(K=K,p=p,q=2)
+                    else:
+                        model = MACG_torch(K=K,p=p,q=2,rank=p)
+                    name = 'MACG'
+
+                if os.path.isfile('experiments/synth_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'):
+                    continue
 
                 if LR==0: #EM
                     params,_,loglik,_ = mixture_EM_loop(model,data_train,tol=tol,max_iter=100000,
@@ -73,6 +98,8 @@ def run_experiment(mod,LR,init):
                         kappa = params['kappa']
                     elif mod == 1:
                         Lambda = params['Lambda']
+                    elif mod == 2:
+                        Sigma = params['Sigma']
                 else:
                     params,_,loglik,_ = mixture_torch_loop(model,torch.tensor(data_train),tol=tol,max_iter=100000,
                                                                 num_repl=num_repl_inner,init=init,LR=LR)
@@ -89,6 +116,12 @@ def run_experiment(mod,LR,init):
                             L_tri_inv = params['L_tri_inv'][k]
                             Lambda[k] = torch.linalg.inv(L_tri_inv@L_tri_inv.T)
                             Lambda[k] = p*Lambda[k]/torch.trace(Lambda[k])
+                    elif mod == 2:
+                        Sigma = torch.zeros(K,p,p)
+                        for k in range(K):
+                            S_tri_inv = params['S_tri_inv'][k]
+                            Sigma[k] = torch.linalg.inv(S_tri_inv@S_tri_inv.T)
+                            Sigma[k] = p*Sigma[k]/torch.trace(Sigma[k])
 
                 # np.savetxt('experiments/synth_outputs/'+name+'_'+expname+'_trainlikelihoodcurve_r'+str(rep)+'.csv',np.array(loglik))
                 # np.savetxt('experiments/synth_outputs/'+name+'_'+expname+'_pi_r'+str(rep)+'.csv',pi)
@@ -116,6 +149,14 @@ def run_experiment(mod,LR,init):
                         model = ACG_torch(K=K,p=p,rank=p,params={'pi':pi,'Lambda':Lambda}) #cholesky formulation when full rank
                         with torch.no_grad():
                             test_loglik = model.test_log_likelihood(X=torch.tensor(data_test))
+                elif mod==2:
+                    if LR==0:
+                        model = MACG_EM(K=K,p=p,q=2,params={'pi':pi,'Sigma':Sigma})
+                        test_loglik = model.log_likelihood(X=data_test)
+                    else:
+                        model = MACG_torch(K=K,p=p,q=2,rank=p,params={'pi':pi,'Sigma':Sigma}) #cholesky formulation when full rank
+                        with torch.no_grad():
+                            test_loglik = model.test_log_likelihood(X=torch.tensor(data_test))
                 
                 np.savetxt('experiments/synth_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',np.array([loglik[-1],test_loglik]))
 
@@ -123,7 +164,7 @@ def run_experiment(mod,LR,init):
 
 
 if __name__=="__main__":
-    # run_experiment(mod=int(1),LR=float(0.1),init='unif')
+    # run_experiment(mod=int(2),LR=float(0.1),init='unif')
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:

@@ -36,6 +36,7 @@ class ACG():
             params,_,_,_ = mixture_EM_loop(W,X,init='dc')
             mu = params['mu']
             self.pi = params['pi']
+            
         self.Lambda = np.zeros((self.K,self.p,self.p))    
         for k in range(self.K):
             self.Lambda[k] = np.outer(mu[:,k],mu[:,k])+np.eye(self.p)

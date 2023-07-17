@@ -7,7 +7,7 @@ sns.set()
 
 num_repl_outer = 10
 inits = ['unif','++','dc']
-LRs = [0,0.01,0.1,1]
+LRs = ['-0.0','0.0','0.01','0.1']
 exptype = '454'
 for m in range(2):
     if m==1:
@@ -22,11 +22,7 @@ for m in range(2):
         df = pd.DataFrame(columns=['Log likelihood','model','Optimizer','Initialization'])
         for init in inits:
             for LR in LRs:
-                if LR==1 or LR==0:
-                    LRname = str(LR)+'.0'
-                else:
-                    LRname = str(LR)
-                expname = exptype+'_'+init+'_'+LRname+'_p454_K'+str(K)
+                expname = exptype+'_'+init+'_'+LR+'_p454_K'+str(K)
                 
                 testlike = []
                 modelname = []
@@ -54,7 +50,7 @@ for m in range(2):
                 dftmp = pd.DataFrame({'Log likelihood': testlike, 'model': modelname, 'Optimizer': LRval, 'Initialization': initval})
                 df = pd.concat([df,dftmp])
         sns.violinplot(ax=axs[idx1],data=df[df.model==name],x='Initialization',y='Log likelihood',hue='Optimizer',inner='point',scale='count')
-        axs[idx1].legend([],[], frameon=False)
+        # axs[idx1].legend([],[], frameon=False)
         axs[idx1].set_title('Log-likelihood, K='+str(K), fontsize=12)
         axs[idx1].get_yaxis().set_major_formatter(
             ticker.FuncFormatter(lambda x, p: format(x)))

@@ -20,24 +20,31 @@ for K = [2,5,10]
         idx = repelem(1:K,1000/K);
 
 
-        % train data
-        [X,cluster_id] = syntheticACGMixture(idx,SIGMAs,1000,0);
-        % pointsspherefig(X,cluster_id);
-        writetable(array2table(X),['data/synthetic/synth_data_ACG_p',num2str(p),'K',num2str(K),'_1.csv'],'WriteVariableNames',false)
+        % % train data
+        % [X,cluster_id] = syntheticACGMixture(idx,SIGMAs,1000,0);
+        % % pointsspherefig(X,cluster_id);
+        % writetable(array2table(X),['data/synthetic/synth_data_ACG_p',num2str(p),'K',num2str(K),'_1.csv'],'WriteVariableNames',false)
+        % 
+        % % test data
+        % [X,cluster_id] = syntheticACGMixture(idx,SIGMAs,1000,0);
+        % % pointsspherefig(X,cluster_id);
+        % writetable(array2table(X),['data/synthetic/synth_data_ACG_p',num2str(p),'K',num2str(K),'_2.csv'],'WriteVariableNames',false)
 
-        % test data
-        [X,cluster_id] = syntheticACGMixture(idx,SIGMAs,1000,0);
-        % pointsspherefig(X,cluster_id);
-        writetable(array2table(X),['data/synthetic/synth_data_ACG_p',num2str(p),'K',num2str(K),'_2.csv'],'WriteVariableNames',false)
-
-        %%%%% MACG
-        % [X,cluster_id] = syntheticMACGMixture(idx,SIGMAs,1000,2,0);
+        %%%% MACG
+        [X,cluster_id] = syntheticMACGMixture(idx,SIGMAs,1000,2,0);
         % pointsspherefig(X(:,:,1),cluster_id);
         % pointsspherefig(X(:,:,2),cluster_id);
-        % X2 = zeros(2*size(X,1),3);
-        % X2(1:2:2000,:) = X(:,:,1);
-        % X2(2:2:2000,:) = X(:,:,2);
-        % writetable(array2table(X2),['data/synthetic/synth_data_MACG_p',num2str(p),'K',num2str(K),'.csv'],'WriteVariableNames',false)
+        X2 = zeros(2*size(X,1),p);
+        X2(1:2:2000,:) = X(:,:,1);
+        X2(2:2:2000,:) = X(:,:,2);
+        writetable(array2table(X2),['data/synthetic/synth_data_MACG_p',num2str(p),'K',num2str(K),'_1.csv'],'WriteVariableNames',false)
+        [X,cluster_id] = syntheticMACGMixture(idx,SIGMAs,1000,2,0);
+        % pointsspherefig(X(:,:,1),cluster_id);
+        % pointsspherefig(X(:,:,2),cluster_id);
+        X2 = zeros(2*size(X,1),p);
+        X2(1:2:2000,:) = X(:,:,1);
+        X2(2:2:2000,:) = X(:,:,2);
+        writetable(array2table(X2),['data/synthetic/synth_data_MACG_p',num2str(p),'K',num2str(K),'_2.csv'],'WriteVariableNames',false)
 
     end
 end
@@ -91,18 +98,18 @@ for n = 1:num_points
     Xsq = (Xi'*Xi)^(-0.5);
     tmp = Xi*Xsq;
     % sort
-    sim = (tmp'*(target./vecnorm(target))).^2;
-    [val1,id1] = max(sim(1,:));
-    [val2,id2] = max(sim(2,:));
-    if id1==id2
-        if val1>val2
-            id2 = setdiff([1,2],id1);
-        else
-            id1 = setdiff([1,2],id2);
-        end
-    end
-    X(n,:,1) = tmp(:,id1);
-    X(n,:,2) = tmp(:,id2);
+    % sim = (tmp'*(target./vecnorm(target))).^2;
+    % [val1,id1] = max(sim(1,:));
+    % [val2,id2] = max(sim(2,:));
+    % if id1==id2
+    %     if val1>val2
+    %         id2 = setdiff([1,2],id1);
+    %     else
+    %         id1 = setdiff([1,2],id2);
+    %     end
+    % end
+    X(n,:,1) = tmp(:,1);
+    X(n,:,2) = tmp(:,2);
     cluster_allocation(n) = idx(n);
 end
 end

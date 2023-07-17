@@ -4,7 +4,7 @@ for LR in 0 0.001 0.01 0.1 1
 do
 for init in "${inits[@]}"
 do
-for m in 0 1
+for m in 1 2
 do
 
     sed -i '$ d' submitfiles/pyspheremixtures_synth_template.sh

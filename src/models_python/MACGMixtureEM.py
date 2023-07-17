@@ -26,7 +26,7 @@ class MACG():
             self.pi = np.array(params['pi'])
 
         
-    def get_parameters(self):
+    def get_params(self):
         return {'Sigma': self.Sigma,'pi':self.pi}
     
     def initialize(self,X=None,init=None,tol=None):
@@ -61,18 +61,23 @@ class MACG():
         pdf = np.zeros((self.K,X.shape[0]))
         for k in range(self.K):
             pdf[k] = np.linalg.det(np.swapaxes(X,-2,-1)@np.linalg.inv(self.Sigma[k])@X)
-        return self.log_norm_constant()[:,np.newaxis] -self.c*np.log(pdf)
+        return self.log_norm_constant()[:,None] -self.c*np.log(pdf)
 
     def log_density(self,X):
-        return self.log_pdf(X)+np.log(self.pi)[:,np.newaxis]
+        return self.log_pdf(X)+np.log(self.pi)[:,None]
     
     def log_likelihood(self,X):
         self.density = self.log_density(X)
         self.logsum_density = np.logaddexp.reduce(self.density)
         loglik = np.sum(self.logsum_density)
         return loglik
+    
+    def posterior(self,X):
+        density = self.log_density(X)
+        logsum_density = np.logaddexp.reduce(density)
+        return np.exp(density-logsum_density)    
 
-    def Sigma_MLE(self,X,weights = None,tol=1e-10,max_iter=10000):
+    def Sigma_MLE(self,Sigma,X,weights = None,tol=1e-10,max_iter=10000):
         n,p,q = X.shape
         if n<(p*(p-1)*q):
             print("Too high dimensionality compared to number of observations. Sigma cannot be calculated")
@@ -80,13 +85,13 @@ class MACG():
         if weights is None:
             weights = np.ones(n)
         Sigma_old = np.eye(self.p)
-        Q = np.sqrt(weights)[:,np.newaxis,np.newaxis]*X
+        Q = np.sqrt(weights)[:,None,None]*X
         
         # iteration 0 (initialized Sigma=eye(p)):
-        Sigma = p*np.sum(Q@np.swapaxes(Q,-2,-1),axis=0) \
-                /(q*np.sum(weights))
+        # Sigma = p*np.sum(Q@np.swapaxes(Q,-2,-1),axis=0) \
+        #         /(q*np.sum(weights))
 
-        j = 1
+        j = 0
         while np.linalg.norm(Sigma_old-Sigma) > tol and (j < max_iter):
             Sigma_old = Sigma
             
@@ -101,13 +106,13 @@ class MACG():
 
 
 ############# M-step #################
-    def M_step(self,X):
+    def M_step(self,X,tol=1e-10):
         n,p,q = X.shape
         Beta = np.exp(self.density-self.logsum_density).T
         self.pi = np.sum(Beta,axis=0)/n
 
         for k in range(self.K):
-            self.Sigma[k] = self.Sigma_MLE(X,weights=Beta[:,k])
+            self.Sigma[k] = self.Sigma_MLE(self.Sigma[k],X,weights=Beta[:,k],tol=tol)
 
 
 if __name__=='__main__':

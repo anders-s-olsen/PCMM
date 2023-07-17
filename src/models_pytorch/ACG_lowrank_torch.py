@@ -41,10 +41,11 @@ class ACG(nn.Module):
                 self.pi = nn.Parameter(params['pi'])
             else:
                 self.pi = nn.Parameter(torch.tensor(params['pi']))
+
             if self.fullrank: #check if this works!!
                 self.L_vec = torch.zeros(self.K,self.num_params,device=self.device)
                 for k in range(self.K):
-                    if torch.is_tensor(params['pi']):
+                    if torch.is_tensor(params['Lambda'][k]):
                         self.L_vec[k] = torch.linalg.cholesky(torch.linalg.inv(params['Lambda'][k]))[self.tril_indices[0],self.tril_indices[1]]
                     else:
                         self.L_vec[k] = torch.linalg.cholesky(torch.linalg.inv(torch.tensor(params['Lambda'][k])))[self.tril_indices[0],self.tril_indices[1]]
@@ -100,10 +101,10 @@ class ACG(nn.Module):
                 self.M = nn.Parameter(torch.rand((self.K,self.p,self.D)).to(self.device))
                 
 
-    def log_determinant_L(self,L):
-        log_det_L = torch.log(torch.linalg.det(L))
+    # def log_determinant_L(self,L):
+    #     log_det_L = torch.log(torch.linalg.det(L))
         
-        return log_det_L
+    #     return log_det_L
     
     def log_pdf(self,X):
 

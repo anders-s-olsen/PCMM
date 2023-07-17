@@ -10,8 +10,8 @@ inits = ['unif','++','dc']
 LRs = [0,0.001,0.01,0.1]
 exptype = 'synth'
 for m in range(2):
-    # if m==0:
-    #     continue
+    if m==0:
+        continue
     fig, axs = plt.subplots(3, 3, figsize=(20, 10))
     if m==0:
         name='Watson'
@@ -39,7 +39,7 @@ for m in range(2):
                     for rep in range(num_repl_outer):
                         file_path = 'experiments/'+exptype+'_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'
                         try:
-                            like = np.loadtxt(file_path)[0]
+                            like = np.loadtxt(file_path)[1]
                             # if like < -1800:
                             #     raise ValueError
                             testlike.append(like)
