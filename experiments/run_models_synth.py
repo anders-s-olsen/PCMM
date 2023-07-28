@@ -86,8 +86,8 @@ def run_experiment(mod,LR,init):
                         model = MACG_torch(K=K,p=p,q=2,rank=p)
                     name = 'MACG'
 
-                if os.path.isfile('experiments/synth_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'):
-                    continue
+                # if os.path.isfile('experiments/synth_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'):
+                #     continue
 
                 if LR==0: #EM
                     params,_,loglik,_ = mixture_EM_loop(model,data_train,tol=tol,max_iter=100000,
@@ -164,7 +164,7 @@ def run_experiment(mod,LR,init):
 
 
 if __name__=="__main__":
-    # run_experiment(mod=int(2),LR=float(0),init='dc')
+    run_experiment(mod=int(1),LR=float(0),init='dc')
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:

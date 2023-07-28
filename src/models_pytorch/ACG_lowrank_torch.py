@@ -113,7 +113,7 @@ class ACG(nn.Module):
             for k in range(self.K):
                 L_tri_inv[k,self.tril_indices[0],self.tril_indices[1]] = self.L_vec[k]
             B = X[None,:,:] @ L_tri_inv
-            matmul2 = torch.sum(B * B, dim=2)
+            pdf = torch.sum(B * B, dim=2)
             log_det_L = -2 * torch.sum(torch.log(torch.abs(self.L_vec[:,self.diag_indices])),dim=1)
             
         else:
@@ -126,10 +126,10 @@ class ACG(nn.Module):
             # log_det_L = self.log_determinant_L(Lambda)
             
             B = X[None,:,:]@self.M
-            matmul2 = 1-torch.sum(B@torch.linalg.inv(Lambda)*B,dim=2) #check
+            pdf = 1-torch.sum(B@torch.linalg.inv(Lambda)*B,dim=2) #check
 
         # minus log_det_L instead of + log_det_A_inv
-        log_acg_pdf = self.logSA - 0.5 * log_det_L[:,None] - self.c * torch.log(matmul2)
+        log_acg_pdf = self.logSA - 0.5 * log_det_L[:,None] - self.c * torch.log(pdf)
         return log_acg_pdf
     
     def log_density(self,X):

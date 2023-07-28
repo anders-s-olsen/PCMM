@@ -91,7 +91,7 @@ class ACG():
             # at least before implementing weights
 
             XtLX = np.sum(X@np.linalg.inv(Lambda)*X,axis=1) #x_i^T*L^(-1)*x_i for batch
-            Lambda = p*(Q/XtLX[:,np.newaxis]).T@Q/np.sum(weights/XtLX)
+            Lambda = p*Q.T/XtLX@Q/np.sum(weights/XtLX)
             j +=1
         return Lambda
     

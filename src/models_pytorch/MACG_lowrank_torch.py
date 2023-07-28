@@ -126,7 +126,7 @@ class MACG(nn.Module):
             log_det_S = torch.zeros(self.K)
             for k in range(self.K):
                 Sigma[k] = torch.eye(self.D)+self.M[k].T@self.M[k]
-                Sigma[k] = self.p*Sigma[k]/torch.trace(Sigma[k]) #trace-normalize, check if this is also invariant
+                # Sigma[k] = self.p*Sigma[k]/torch.trace(Sigma[k]) #trace-normalize, check if this is also invariant
                 # pdf[k] = np.linalg.det(np.swapaxes(X,-2,-1)@np.linalg.inv(Sigma[k])@X)
                 log_det_S[k] = 2 * torch.sum(torch.log(torch.abs(torch.diag(torch.linalg.cholesky(Sigma[k])))))
             pdf = torch.stack([np.linalg.det(np.swapaxes(X,-2,-1)@np.linalg.inv(S)@X) for S in Sigma])

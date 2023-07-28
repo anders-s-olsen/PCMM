@@ -2,9 +2,11 @@ import h5py
 import numpy as np
 import torch
 from src.models_python.ACGMixtureEM import ACG as ACG_EM
+from src.models_python.MACGMixtureEM import MACG as MACG_EM
 from src.models_python.WatsonMixtureEM import Watson as Watson_EM
 from src.models_python.mixture_EM_loop import mixture_EM_loop
 from src.models_pytorch.ACG_lowrank_torch import ACG as ACG_torch
+from src.models_pytorch.MACG_lowrank_torch import MACG as MACG_torch
 from src.models_pytorch.Watson_torch import Watson as Watson_torch
 from src.models_pytorch.mixture_torch_loop import mixture_torch_loop
 
@@ -62,6 +64,12 @@ def run_experiment(mod,LR,init):
                 else:
                     model = ACG_torch(K=K,p=p,rank=p) #cholesky formulation when full rank
                 name='ACG'
+            elif mod==2:
+                if LR==0:
+                    model = MACG_EM(K=K,p=p,q=2)
+                else:
+                    model = MACG_torch(K=K,p=p,q=2,rank=p)
+                name = 'MACG'
                 
             if os.path.isfile('experiments/454_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'):
                 continue
@@ -125,7 +133,7 @@ def run_experiment(mod,LR,init):
 
 
 if __name__=="__main__":
-    # run_experiment(mod=int(0),LR=float(1),init='++')
+    run_experiment(mod=int(2),LR=float(1),init='++')
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:
