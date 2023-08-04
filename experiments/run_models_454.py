@@ -147,7 +147,7 @@ def run_experiment(mod,LR,init,K):
 
 
 if __name__=="__main__":
-    run_experiment(mod=int(2),LR=float(0.1),init='++',K=30)
+    # run_experiment(mod=int(2),LR=float(0.1),init='++',K=30)
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:
