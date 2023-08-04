@@ -24,51 +24,51 @@ for sub = randperm(numel(subjects))
 %         end
         disp(['Working on subject ',subjects(sub).name,' session ',num2str(ses)])
         data = double(squeeze(niftiread([dses(ses).folder,'/',dses(ses).name])));
-%         disp(['Loaded data in ',num2str(toc),' seconds'])
-        % atlas
-        data_roi = nan(size(data,1),max(atlas(:)));
-        eigenvectors_roi = nan(size(data,1)*2,max(atlas(:)));
-        for roi = 1:max(atlas(:))
-            data_roi(:,roi) = mean(data(:,atlas==roi),2);
-            data_roi(:,roi) = angle(hilbert(filtfilt(bfilt,afilt,detrend(data_roi(:,roi)))));
-        end
-%         disp(['Atlas Hilbert done in ',num2str(toc),' seconds'])
-        for tt = 1:size(data,1)
+% %         disp(['Loaded data in ',num2str(toc),' seconds'])
+%         % atlas
+%         data_roi = nan(size(data,1),max(atlas(:)));
+%         eigenvectors_roi = nan(size(data,1)*2,max(atlas(:)));
+%         for roi = 1:max(atlas(:))
+%             data_roi(:,roi) = mean(data(:,atlas==roi),2);
+%             data_roi(:,roi) = angle(hilbert(filtfilt(bfilt,afilt,detrend(data_roi(:,roi)))));
+%         end
+% %         disp(['Atlas Hilbert done in ',num2str(toc),' seconds'])
+%         for tt = 1:size(data,1)
+%         
+%             cosX = cos(data_roi(tt,:));
+%             sinX = sin(data_roi(tt,:));
+%             
+%             y = data_roi(tt,:)';
+%             X = [cosX',sinX'];
+%             
+%             [U,~,~] = svds(X,2);
+%             eigenvectors_roi(tt*2-1:tt*2,:) = U';
+%         end
+%         disp(['Atlas eig done in ',num2str(toc),' seconds'])
+%         parSave(['/dtu-compute/HCP_dFC/2023/hcp_dfc/data/processed/fMRI_SchaeferTian454/',subjects(sub).name,'_',dses(ses).name(1:end-13),'.mat'],eigenvectors_roi)
         
-            cosX = cos(data_roi(tt,:));
-            sinX = sin(data_roi(tt,:));
+        Phase_BOLD = nan(size(data));
+        eigenvectors_all = nan(size(data));
+
+        for i = 1:size(data,2)
+            Phase_BOLD(:,i) = angle(hilbert(filtfilt(bfilt,afilt,detrend(data(:,i)))));
+        end
+%         disp(['data Hilbert done in ',num2str(toc),' seconds'])
+                
+        for tt = 1:size(data,1)
             
-            y = data_roi(tt,:)';
+            cosX = cos(Phase_BOLD(tt,:));
+            sinX = sin(Phase_BOLD(tt,:));
+            
+            y = Phase_BOLD(tt,:)';
             X = [cosX',sinX'];
             
             [U,~,~] = svds(X,2);
-            eigenvectors_roi(tt*2-1:tt*2,:) = U';
+            eigenvectors_all(tt*2-1:tt*2,:) = U;
         end
-        disp(['Atlas eig done in ',num2str(toc),' seconds'])
-        parSave(['/dtu-compute/HCP_dFC/2023/hcp_dfc/data/processed/fMRI_SchaeferTian454/',subjects(sub).name,'_',dses(ses).name(1:end-13),'.mat'],eigenvectors_roi)
+        disp(['Data eig done in ',num2str(toc),' seconds'])
         
-%         Phase_BOLD = nan(size(data));
-%         eigenvectors_all = nan(size(data));
-% 
-%         for i = 1:size(data,2)
-%             Phase_BOLD(:,i) = angle(hilbert(filtfilt(bfilt,afilt,detrend(data(:,i)))));
-%         end
-% %         disp(['data Hilbert done in ',num2str(toc),' seconds'])
-%                 
-%         for tt = 1:size(data,1)
-%             
-%             cosX = cos(Phase_BOLD(tt,:));
-%             sinX = sin(Phase_BOLD(tt,:));
-%             
-%             y = Phase_BOLD(tt,:)';
-%             X = [cosX',sinX'];
-%             
-%             [U,~,~] = svds(X,1);
-%             eigenvectors_all(tt,:) = U;
-%         end
-%         disp(['Data eig done in ',num2str(toc),' seconds'])
-%         
-%         parSave(['/dtu-compute/HCP_dFC/2023/hcp_dfc/data/processed/fMRI_full/',subjects(sub).name,'_',dses(ses).name(1:end-13),'.mat'],eigenvectors_all)
+        parSave(['/dtu-compute/HCP_dFC/2023/hcp_dfc/data/processed/fMRI_full/',subjects(sub).name,'_',dses(ses).name(1:end-13),'.mat'],eigenvectors_all)
         
     end
 end
