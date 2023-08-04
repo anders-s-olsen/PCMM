@@ -4,7 +4,7 @@ for LR in 0.1
 do
 for m in 0 1 2
 do
-for K in 30
+for K in {2..30}
 do
 
     sed -i '$ d' submitfiles/pyspheremixtures454_template.sh

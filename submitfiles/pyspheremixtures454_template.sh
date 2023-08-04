@@ -1,7 +1,7 @@
 #!/bin/sh
 #BSUB -J HCPjob
 #BSUB -q hpc
-#BSUB -R "rusage[mem=30GB]"
+#BSUB -R "rusage[mem=1GB]"
 # #BSUB -B
 # #BSUB -N
 #BSUB -o submitfiles/output/HCPjob_out_%J.txt
