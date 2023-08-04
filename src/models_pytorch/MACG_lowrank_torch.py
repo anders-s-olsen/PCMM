@@ -67,6 +67,8 @@ class MACG(nn.Module):
 
                     M_extra = torch.randn(self.K,self.p,num_missing)
                     self.M = nn.Parameter(torch.cat([M_init,M_extra],dim=2))
+                else:
+                    self.M = M_init
             
 
     def get_params(self):
@@ -79,8 +81,9 @@ class MACG(nn.Module):
             return {'M':self.M.data,'pi':self.pi.data} #should be normalized: L=MM^T+I and then L = p*L/trace(L)
 
     def initialize(self,X=None,init=None,tol=None):
-
         self.pi = nn.Parameter(torch.ones(self.K,device=self.device)/self.K)
+        if init == 'no':
+            return
         if init is not None and init !='unif' and init!='uniform':
             if init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
                 mu = diametrical_clustering_plusplus_torch(X=X[:,:,0],K=self.K)
@@ -123,13 +126,26 @@ class MACG(nn.Module):
             
         else:
             Sigma = torch.zeros(self.K,self.D,self.D)
+            # Sigma2 = torch.zeros(self.K,self.p,self.p)
             log_det_S = torch.zeros(self.K)
+            # log_det_S2 = torch.zeros(self.K)
             for k in range(self.K):
                 Sigma[k] = torch.eye(self.D)+self.M[k].T@self.M[k]
+                # Sigma2[k] = torch.eye(self.p)+self.M[k]@self.M[k].T
                 # Sigma[k] = self.p*Sigma[k]/torch.trace(Sigma[k]) #trace-normalize, check if this is also invariant
                 # pdf[k] = np.linalg.det(np.swapaxes(X,-2,-1)@np.linalg.inv(Sigma[k])@X)
                 log_det_S[k] = 2 * torch.sum(torch.log(torch.abs(torch.diag(torch.linalg.cholesky(Sigma[k])))))
-            pdf = torch.stack([np.linalg.det(np.swapaxes(X,-2,-1)@np.linalg.inv(S)@X) for S in Sigma])
+                # log_det_S2[k] = 2 * torch.sum(torch.log(torch.abs(torch.diag(torch.linalg.cholesky(Sigma2[k])))))
+
+            # pdf = torch.stack([torch.linalg.det(torch.swapaxes(X,-2,-1)@torch.linalg.inv(S)@X) for S in Sigma])
+            B = torch.swapaxes(X,-2,-1)[None,:,:,:]@self.M[:,None,:,:]
+            C = B@torch.linalg.inv(Sigma)[:,None,:,:]@torch.swapaxes(B,-2,-1)
+            pdf = 1-C.diagonal(dim1=-2,dim2=-1).sum(dim=-1)+torch.linalg.det(C) #diagonal stuff is the trace
+
+            # Sigma2_inv = torch.linalg.inv(Sigma2)
+            # pdf2 = torch.zeros(self.K,X.shape[0])
+            # for i in range(X.shape[0]):
+            #     pdf2[:,i] = torch.linalg.det(X[i].T@Sigma2_inv@X[i])
 
         log_acg_pdf = self.logSA_Stiefel - self.q/2 * log_det_S[:,None] - self.c * torch.log(pdf)
         return log_acg_pdf

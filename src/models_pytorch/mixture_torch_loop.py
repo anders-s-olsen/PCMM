@@ -37,7 +37,7 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init='no',
                     if optimizer.param_groups[0]["lr"]<0.001:
                         break
                 else:
-                    if loglik[-1]-loglik[-100]<tol:
+                    if loglik[-1]-loglik[-10]<tol:
                         break
             print('Done with iteration '+str(iter))
         

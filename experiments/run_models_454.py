@@ -20,16 +20,49 @@ import os
 
 def run_experiment(mod,LR,init):
     ## load data, only the first 200 subjects (each with 1200 data points) (not the same subjects in train/test)
-    data_train = np.array(h5py.File('data/processed/fMRI_atlas_RL2.h5', 'r')['Dataset'][:,:240000]).T
-    n,p = data_train.shape
+    data_train_tmp = np.array(h5py.File('data/processed/fMRI_SchaeferTian454_RL2.h5', 'r')['Dataset'][:,:480000]).T
+    if mod == 0 or mod == 1:
+        data_train = torch.tensor(data_train_tmp[np.arange(480000,step=2),:])
     print('Loaded training data')
-    data_test = np.array(h5py.File('data/processed/fMRI_atlas_RL1.h5', 'r')['Dataset'][:,:240000]).T
+    data_test_tmp = np.array(h5py.File('data/processed/fMRI_SchaeferTian454_RL1.h5', 'r')['Dataset'][:,:480000]).T
+    if mod == 0 or mod == 1:
+        data_test = torch.tensor(data_test_tmp[np.arange(480000,step=2),:])
     print('Loaded test data, beginning fit')
+    p = data_train_tmp.shape[1]
 
-    tol = 1e-6
+    if mod == 2:
+        data_train = np.zeros((240000,p,2))
+        data_train[:,:,0] = data_train_tmp[np.arange(480000,step=2),:]
+        data_train[:,:,1] = data_train_tmp[np.arange(480000,step=2)+1,:]
+        data_train = torch.tensor(data_train)
+        data_test = np.zeros((240000,p,2))
+        data_test[:,:,0] = data_test_tmp[np.arange(480000,step=2),:]
+        data_test[:,:,1] = data_test_tmp[np.arange(480000,step=2)+1,:]
+        data_test = torch.tensor(data_test)
+
+    # p=3
+    # K=2
+    # if mod == 0 or mod == 1:
+    #     data_train = np.loadtxt('data/synthetic/synth_data_ACG_p'+str(p)+'K'+str(K)+'_1.csv',delimiter=',')
+    #     data_test = np.loadtxt('data/synthetic/synth_data_ACG_p'+str(p)+'K'+str(K)+'_2.csv',delimiter=',')
+    # elif mod==2:
+    #     data_train = np.zeros((1000,p,2))
+    #     data_train_tmp = np.loadtxt('data/synthetic/synth_data_MACG_p'+str(p)+'K'+str(K)+'_1.csv',delimiter=',')
+    #     data_train[:,:,0] = data_train_tmp[np.arange(2000,step=2),:]
+    #     data_train[:,:,1] = data_train_tmp[np.arange(2000,step=2)+1,:]
+    #     data_test = np.zeros((1000,p,2))
+    #     data_test_tmp = np.loadtxt('data/synthetic/synth_data_MACG_p'+str(p)+'K'+str(K)+'_2.csv',delimiter=',')
+    #     data_test[:,:,0] = data_test_tmp[np.arange(2000,step=2),:]
+    #     data_test[:,:,1] = data_test_tmp[np.arange(2000,step=2)+1,:]
+    # data_train = torch.tensor(data_train)
+    # data_test = torch.tensor(data_test)
+
+    
+    tol = 10000
 
     num_repl_outer = 10
     num_repl_inner = 1
+    Softmax = torch.nn.Softmax(dim=0)
 
     os.makedirs('experiments/454_outputs',exist_ok=True)
 
@@ -40,10 +73,11 @@ def run_experiment(mod,LR,init):
         torch.set_num_threads(8)
         torch.set_num_interop_threads(8)
 
-    Ks = [2,5,10]
+    Ks = np.arange(2,30)
+    ranks = np.arange(1,454)
     for K in Ks:
         
-        expname = '454_'+init+'_'+str(LR)+'_p'+str(p)+'_K'+str(K)
+        expname = '454_full_'+init+'_'+str(LR)+'_p'+str(p)+'_K'+str(K)
         
         ### EM algorithms
         print('starting K='+str(K))
@@ -51,89 +85,70 @@ def run_experiment(mod,LR,init):
         np.random.shuffle(rep_order)
         for repl in range(num_repl_outer):
             rep = rep_order[repl]
-
-            if mod==0:
-                if LR==0:
-                    model = Watson_EM(K=K,p=p)
-                else:
+            for r in ranks:
+                if mod == 0 and r>1:
+                    continue
+                if mod==0:
                     model = Watson_torch(K=K,p=p)
-                name='Watson'
-            elif mod==1:
-                if LR==0:
-                    model = ACG_EM(K=K,p=p)
-                else:
-                    model = ACG_torch(K=K,p=p,rank=p) #cholesky formulation when full rank
-                name='ACG'
-            elif mod==2:
-                if LR==0:
-                    model = MACG_EM(K=K,p=p,q=2)
-                else:
-                    model = MACG_torch(K=K,p=p,q=2,rank=p)
-                name = 'MACG'
+                    name='Watson'
+                elif mod==1:
+                    if r==1:
+                        model = ACG_torch(K=K,p=p,rank=r) 
+                    else:
+                        model = ACG_torch(K=K,p=p,rank=r,params=params)
+                    name='ACG'
+                elif mod==2:
+                    if r==1:
+                        model = MACG_torch(K=K,p=p,q=2,rank=r) 
+                    else:
+                        model = MACG_torch(K=K,p=p,q=2,rank=r,params=params)
+                    name = 'MACG'
                 
-            if os.path.isfile('experiments/454_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'):
-                continue
-
-            if LR==0: #EM
-                params,_,loglik,_ = mixture_EM_loop(model,data_train,tol=tol,max_iter=100000,
-                                                        num_repl=num_repl_inner,init=init)
-                pi = params['pi']
-                if mod == 0:    
-                    mu = params['mu']
-                    kappa = params['kappa']
-                elif mod == 1:
-                    Lambda = params['Lambda']
-            else:
-                params,_,loglik,_ = mixture_torch_loop(model,torch.tensor(data_train),tol=tol,max_iter=100000,
-                                                            num_repl=num_repl_inner,init=init,LR=LR)
-                Softmax = torch.nn.Softmax(dim=0)
-                # Softplus = torch.nn.Softplus(beta=20, threshold=1)
+                if r == 1:
+                    params,_,loglik,_ = mixture_torch_loop(model,data_train,tol=tol,max_iter=100000,
+                                                        num_repl=num_repl_inner,init=init,LR=LR)
+                else:
+                    params,_,loglik,_ = mixture_torch_loop(model,data_train,tol=tol,max_iter=100000,
+                                                        num_repl=num_repl_inner,init='no',LR=LR)                    
+            
                 pi = Softmax(params['pi'])
                 if mod ==0:
                     mu = torch.nn.functional.normalize(params['mu'],dim=0)
                     # kappa = Softplus(params['kappa'])
                     kappa = params['kappa']
-                elif mod == 1:
-                    Lambda = torch.zeros(K,p,p)
-                    for k in range(K):
-                        L_tri_inv = params['L_tri_inv'][k]
-                        Lambda[k] = torch.linalg.inv(L_tri_inv@L_tri_inv.T)
-                        Lambda[k] = p*Lambda[k]/torch.trace(Lambda[k])
-
-            # np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_trainlikelihoodcurve_r'+str(rep)+'.csv',np.array(loglik))
-            # np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_pi_r'+str(rep)+'.csv',pi)
-            # if mod==0:
-            #     np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_mu_r'+str(rep)+'.csv',mu)
-            #     np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_kappa_r'+str(rep)+'.csv',kappa)
-            # elif mod == 1:
-            #     for k in range(K):
-            #         np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_L_k'+str(k)+'_r'+str(rep)+'.csv',Lambda[k])
-            
-            # test
-            if mod==0:
-                if LR==0:
-                    model = Watson_EM(K=K,p=p,params={'mu':mu,'kappa':kappa,'pi':pi})
-                    test_loglik = model.log_likelihood(X=data_test)
                 else:
+                    M = params['M']
+
+                # np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_trainlikelihoodcurve_r'+str(rep)+'.csv',np.array(loglik))
+                # np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_pi_r'+str(rep)+'.csv',pi)
+                # if mod==0:
+                #     np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_mu_r'+str(rep)+'.csv',mu)
+                #     np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_kappa_r'+str(rep)+'.csv',kappa)
+                # elif mod == 1:
+                #     for k in range(K):
+                #         np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_L_k'+str(k)+'_r'+str(rep)+'.csv',Lambda[k])
+                
+                # test
+                if mod==0:
                     model = Watson_torch(K=K,p=p,params={'mu':mu,'kappa':kappa,'pi':pi})
                     with torch.no_grad():
-                        test_loglik = model.test_log_likelihood(X=torch.tensor(data_test))
-            elif mod==1:
-                if LR==0:
-                    model = ACG_EM(K=K,p=p,params={'pi':pi,'Lambda':Lambda})
-                    test_loglik = model.log_likelihood(X=data_test)
-                else:
-                    model = ACG_torch(K=K,p=p,rank=p,params={'pi':pi,'Lambda':Lambda}) #cholesky formulation when full rank
+                        test_loglik = model.test_log_likelihood(X=data_test)
+                elif mod==1:
+                    model = ACG_torch(K=K,p=p,rank=r,params={'pi':pi,'M':M}) #cholesky formulation when full rank
                     with torch.no_grad():
-                        test_loglik = model.test_log_likelihood(X=torch.tensor(data_test))
-            
-            np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',np.array([loglik[-1],test_loglik]))
+                        test_loglik = model.test_log_likelihood(X=data_test)
+                elif mod==2:
+                    model = MACG_torch(K=K,p=p,q=2,rank=r,params={'pi':pi,'M':M}) #cholesky formulation when full rank
+                    with torch.no_grad():
+                        test_loglik = model.test_log_likelihood(X=data_test)                        
+                
+                np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'_rank'+str(r)+'.csv',np.array([loglik[-1],test_loglik]))
 
     stop=7
 
 
 if __name__=="__main__":
-    run_experiment(mod=int(2),LR=float(1),init='++')
+    run_experiment(mod=int(0),LR=float(0.1),init='++')
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:

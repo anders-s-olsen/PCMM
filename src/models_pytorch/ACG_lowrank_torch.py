@@ -60,6 +60,8 @@ class ACG(nn.Module):
 
                     M_extra = torch.randn(self.K,self.p,num_missing)
                     self.M = nn.Parameter(torch.cat([M_init,M_extra],dim=2))
+                else: 
+                    self.M = M_init
             
 
     def get_params(self):
@@ -74,6 +76,8 @@ class ACG(nn.Module):
     def initialize(self,X=None,init=None,tol=None):
 
         self.pi = nn.Parameter(torch.ones(self.K,device=self.device)/self.K)
+        if init == 'no':
+            return
         if init is not None and init !='unif' and init!='uniform':
             if init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
                 mu = diametrical_clustering_plusplus_torch(X=X,K=self.K)
@@ -118,15 +122,24 @@ class ACG(nn.Module):
             
         else:
             Lambda = torch.zeros(self.K,self.D,self.D)
+            # Lambda2 = torch.zeros(self.K,self.p,self.p)
             log_det_L = torch.zeros(self.K)
+            # log_det_L2 = torch.zeros(self.K)
             for k in range(self.K):
                 Lambda[k] = torch.eye(self.D)+self.M[k].T@self.M[k] #note DxD not pxp since invariant
+                # Lambda2[k] = torch.eye(self.p)+self.M[k]@self.M[k].T 
                 # Lambda[k] = self.D*Lambda[k]/torch.trace(Lambda[k]) #trace-normalize, check if this is also invariant
                 log_det_L[k] = 2 * torch.sum(torch.log(torch.abs(torch.diag(torch.linalg.cholesky(Lambda[k])))))
+                # log_det_L2[k] = 2 * torch.sum(torch.log(torch.abs(torch.diag(torch.linalg.cholesky(Lambda2[k])))))
             # log_det_L = self.log_determinant_L(Lambda)
             
             B = X[None,:,:]@self.M
             pdf = 1-torch.sum(B@torch.linalg.inv(Lambda)*B,dim=2) #check
+
+            # lambda2_inv = torch.linalg.inv(Lambda2)
+            # pdf2 = torch.zeros(self.K,X.shape[0])
+            # for i in range(X.shape[0]):
+            #     pdf2[:,i] = X[i]@lambda2_inv@X[i]
 
         # minus log_det_L instead of + log_det_A_inv
         log_acg_pdf = self.logSA - 0.5 * log_det_L[:,None] - self.c * torch.log(pdf)
