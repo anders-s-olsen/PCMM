@@ -48,9 +48,7 @@ class ACG():
         return norm_const
 
     def log_pdf(self,X):
-        pdf = np.zeros((self.K,X.shape[0]))
-        for k in range(self.K):
-            pdf[k] = np.sum(X@np.linalg.inv(self.Lambda[k])*X,axis=1)
+        pdf = np.sum(X@np.linalg.inv(self.Lambda)*X,axis=2)
         return self.log_norm_constant()[:,None] -self.c*np.log(pdf)
 
     def log_density(self,X):
@@ -77,10 +75,6 @@ class ACG():
         Lambda_old = np.eye(self.p)
         Q = np.sqrt(weights)[:,None]*X
 
-        # iteration 0 (Lambda initialized as eye(p)):
-        # Lambda = p*Q.T@Q/np.sum(weights)
-        # update: Lambda now initialized as old Lambda
-        
         j = 0
         while np.linalg.norm(Lambda_old-Lambda) > tol and (j < max_iter):
             Lambda_old = Lambda

@@ -21,9 +21,14 @@ class Watson(nn.Module):
         self.logSA = torch.lgamma(self.c) - torch.log(torch.tensor(2,device=self.device)) -self.c* torch.log(torch.tensor(np.pi,device=self.device))
 
         if params is not None:
-            self.mu = nn.Parameter(torch.tensor(params['mu']))
-            self.kappa = nn.Parameter(torch.tensor(params['kappa'])) # should be (K,1)
-            self.pi = nn.Parameter(torch.tensor(params['pi']))
+            if torch.is_tensor(params['pi']):
+                self.mu = nn.Parameter(params['mu'])
+                self.kappa = nn.Parameter(params['kappa']) # should be (K,1)
+                self.pi = nn.Parameter(params['pi'])
+            else:
+                self.mu = nn.Parameter(torch.tensor(params['mu']))
+                self.kappa = nn.Parameter(torch.tensor(params['kappa'])) # should be (K,1)
+                self.pi = nn.Parameter(torch.tensor(params['pi']))
 
         self.LogSoftmax = nn.LogSoftmax(dim=0)
         # self.Softplus = nn.Softplus(beta=20, threshold=1)

@@ -108,7 +108,7 @@ class MACG(nn.Module):
         if self.fullrank is True:
             S_tri_inv = torch.zeros(self.K,self.p,self.p,device=self.device,dtype=torch.double)
             S_tri_inv[:, self.tril_mask[0], self.tril_mask[1]] = self.S_vec
-            pdf = torch.stack([torch.linalg.det(torch.swapaxes(X,-2,-1)@S@S.T@X) for S in S_tri_inv])
+            pdf = torch.linalg.det(torch.swapaxes(X,-2,-1)[None,:,:]@S_tri_inv[:,None,:,:]@torch.swapaxes(S_tri_inv,-2,-1)[:,None,:,:]@X)
             log_det_S = -2 * torch.sum(torch.log(torch.abs(self.S_vec[:,self.diag_mask])),dim=1)
         else:
             Sigma = torch.eye(self.r) + torch.swapaxes(self.M,-2,-1)@self.M

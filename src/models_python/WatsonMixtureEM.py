@@ -86,7 +86,7 @@ class Watson():
         self.pi = np.sum(Beta,axis=0)/n
 
         for k in range(self.K):
-            Q = np.sqrt(Beta[:,k])[:,np.newaxis]*X
+            Q = np.sqrt(Beta[:,k])[:,None]*X
 
             # the folllowing options are optimized for n>p but should work otherwise
             if self.kappa[k]>0:

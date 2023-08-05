@@ -20,8 +20,8 @@ class ACG(nn.Module):
 
         self.K = K
         self.p = torch.tensor(p) #dimensionality
-        self.D = torch.tensor(rank) 
-        if rank is None or self.D == self.p:
+        self.r = torch.tensor(rank) 
+        if rank is None or self.r == self.p:
             self.fullrank = True
         else:
             self.fullrank = False
@@ -30,11 +30,9 @@ class ACG(nn.Module):
 
         self.LogSoftmax = nn.LogSoftmax(dim=0)
 
-        self.tril_indices = torch.tril_indices(self.p,self.p)
-        self.diag_indices = torch.zeros(self.p).type(torch.LongTensor)
+        self.tril_mask = torch.tril_indices(self.p,self.p)
+        self.diag_mask = ((torch.arange(1,self.p+1)**2+torch.arange(1,self.p+1))/2-1).type(torch.LongTensor)
         self.num_params = int(self.p*(self.p-1)/2+self.p)
-        for i in range(1,self.p+1):   
-            self.diag_indices[i-1] = ((i**2+i)/2)-1
         
         if params is not None: # for evaluating likelihood with already-learned parameters
             if torch.is_tensor(params['pi']):
@@ -42,21 +40,19 @@ class ACG(nn.Module):
             else:
                 self.pi = nn.Parameter(torch.tensor(params['pi']))
 
-            if self.fullrank: #check if this works!!
-                self.L_vec = torch.zeros(self.K,self.num_params,device=self.device)
-                for k in range(self.K):
-                    if torch.is_tensor(params['Lambda'][k]):
-                        self.L_vec[k] = torch.linalg.cholesky(torch.linalg.inv(params['Lambda'][k]))[self.tril_indices[0],self.tril_indices[1]]
-                    else:
-                        self.L_vec[k] = torch.linalg.cholesky(torch.linalg.inv(torch.tensor(params['Lambda'][k])))[self.tril_indices[0],self.tril_indices[1]]
+            if self.fullrank:
+                if torch.is_tensor(params['Lambda']):
+                    self.L_vec = torch.linalg.cholesky(torch.linalg.inv(params['Lambda']))[:,self.tril_mask[0],self.tril_mask[1]]
+                else:
+                    self.L_vec = torch.linalg.cholesky(torch.linalg.inv(torch.tensor(params['Lambda'])))[:,self.tril_mask[0],self.tril_mask[1]]
                 self.L_vec = nn.Parameter(self.L_vec)
             else:
                 M_init = params['M']
-                if M_init.dim()!=3 or M_init.shape[2]!=self.D: # add extra columns
+                if M_init.dim()!=3 or M_init.shape[2]!=self.r: # add extra columns
                     if M_init.dim()==2:
-                        num_missing = self.D-1
+                        num_missing = self.r-1
                     else:
-                        num_missing = self.D-M_init.shape[2]
+                        num_missing = self.r-M_init.shape[2]
 
                     M_extra = torch.randn(self.K,self.p,num_missing)
                     self.M = nn.Parameter(torch.cat([M_init,M_extra],dim=2))
@@ -67,9 +63,8 @@ class ACG(nn.Module):
     def get_params(self):
         if self.fullrank is True:
             L_tri_inv = torch.zeros(self.K,self.p,self.p,device=self.device)
-            for k in range(self.K):
-                L_tri_inv[k,self.tril_indices[0],self.tril_indices[1]] = self.L_vec[k].data
-            return {'L_tri_inv':L_tri_inv,'pi':self.pi.data} # should be L = inv(L_tri_inv@L_tri_inv.T)
+            L_tri_inv[:,self.tril_mask[0],self.tril_mask[1]] = self.L_vec.data
+            return {'L_tri_inv':L_tri_inv,'pi':self.pi.data} # should be L = inv(S_tri_inv@S_tri_inv.T)
         else:
             return {'M':self.M.data,'pi':self.pi.data} #should be normalized: L=MM^T+I and then L = p*L/trace(L)
 
@@ -91,10 +86,10 @@ class ACG(nn.Module):
             if self.fullrank is True:
                 self.L_vec = torch.zeros((self.K,self.num_params)).to(self.device)
                 for k in range(self.K):
-                    self.L_vec[k] = torch.linalg.cholesky(torch.outer(mu[:,k],mu[:,k])+torch.eye(self.p))[self.tril_indices[0],self.tril_indices[1]]
+                    self.L_vec[k] = torch.linalg.cholesky(torch.outer(mu[:,k],mu[:,k])+torch.eye(self.p))[self.tril_mask[0],self.tril_mask[1]]
                 self.L_vec = nn.Parameter(self.L_vec)
             else:
-                self.M = torch.rand((self.K,self.p,self.D)).to(self.device)
+                self.M = torch.rand((self.K,self.p,self.r)).to(self.device)
                 for k in range(self.K):
                     self.M[k,:,0] = mu[:,k] #initialize only the first of the rank D columns this way, the rest uniform
                 self.M = nn.Parameter(self.M)
@@ -102,44 +97,24 @@ class ACG(nn.Module):
             if self.fullrank is True:
                 self.L_vec = nn.Parameter(torch.rand((self.K,self.num_params)).to(self.device))
             else:
-                self.M = nn.Parameter(torch.rand((self.K,self.p,self.D)).to(self.device))
+                self.M = nn.Parameter(torch.rand((self.K,self.p,self.r)).to(self.device))
                 
 
-    # def log_determinant_L(self,L):
-    #     log_det_L = torch.log(torch.linalg.det(L))
-        
-    #     return log_det_L
-    
     def log_pdf(self,X):
 
         if self.fullrank is True:
             L_tri_inv = torch.zeros(self.K,self.p,self.p,device=self.device,dtype=torch.double)
-            for k in range(self.K):
-                L_tri_inv[k,self.tril_indices[0],self.tril_indices[1]] = self.L_vec[k]
+            L_tri_inv[:, self.tril_mask[0], self.tril_mask[1]] = self.L_vec
             B = X[None,:,:] @ L_tri_inv
             pdf = torch.sum(B * B, dim=2)
-            log_det_L = -2 * torch.sum(torch.log(torch.abs(self.L_vec[:,self.diag_indices])),dim=1)
+            log_det_L = -2 * torch.sum(torch.log(torch.abs(self.L_vec[:,self.diag_mask])),dim=1)
             
         else:
-            Lambda = torch.zeros(self.K,self.D,self.D)
-            # Lambda2 = torch.zeros(self.K,self.p,self.p)
-            log_det_L = torch.zeros(self.K)
-            # log_det_L2 = torch.zeros(self.K)
-            for k in range(self.K):
-                Lambda[k] = torch.eye(self.D)+self.M[k].T@self.M[k] #note DxD not pxp since invariant
-                # Lambda2[k] = torch.eye(self.p)+self.M[k]@self.M[k].T 
-                # Lambda[k] = self.D*Lambda[k]/torch.trace(Lambda[k]) #trace-normalize, check if this is also invariant
-                log_det_L[k] = 2 * torch.sum(torch.log(torch.abs(torch.diag(torch.linalg.cholesky(Lambda[k])))))
-                # log_det_L2[k] = 2 * torch.sum(torch.log(torch.abs(torch.diag(torch.linalg.cholesky(Lambda2[k])))))
-            # log_det_L = self.log_determinant_L(Lambda)
+            Lambda = torch.eye(self.r) + torch.swapaxes(self.M,-2,-1)@self.M
+            log_det_L = 2*torch.sum(torch.log(torch.abs(torch.diagonal(torch.linalg.cholesky(Lambda),dim1=-2,dim2=-1))),dim=-1)
             
             B = X[None,:,:]@self.M
             pdf = 1-torch.sum(B@torch.linalg.inv(Lambda)*B,dim=2) #check
-
-            # lambda2_inv = torch.linalg.inv(Lambda2)
-            # pdf2 = torch.zeros(self.K,X.shape[0])
-            # for i in range(X.shape[0]):
-            #     pdf2[:,i] = X[i]@lambda2_inv@X[i]
 
         # minus log_det_L instead of + log_det_A_inv
         log_acg_pdf = self.logSA - 0.5 * log_det_L[:,None] - self.c * torch.log(pdf)

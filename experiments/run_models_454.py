@@ -41,7 +41,7 @@ def run_experiment(mod,LR,init,K):
         data_test[:,:,1] = data_test_tmp[np.arange(num_subjects*1200*2,step=2)+1,:]
         data_test = torch.tensor(data_test)
 
-    tol = 10000
+    tol = 1
     num_iter = 100000
 
     num_repl_outer = 10
@@ -125,13 +125,13 @@ def run_experiment(mod,LR,init,K):
                 with torch.no_grad():
                     test_loglik = model.test_log_likelihood(X=data_test)                        
             
-            # np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'_rank'+str(r)+'.csv',np.array([loglik[-1],test_loglik]))
+            np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'_rank'+str(r)+'.csv',np.array([loglik[-1],test_loglik]))
 
     stop=7
 
 
 if __name__=="__main__":
-    run_experiment(mod=int(2),LR=float(0.1),init='++',K=30)
+    # run_experiment(mod=int(0),LR=float(0.1),init='++',K=30)
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:
