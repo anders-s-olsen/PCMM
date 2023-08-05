@@ -6,7 +6,7 @@
 # #BSUB -N
 #BSUB -o submitfiles/output/HCPjob_out_%J.txt
 #BSUB -e submitfiles/output/HCPjob_err_%J.txt
-#BSUB -W 24:00 
+#BSUB -W 48:00 
 #BSUB -n 8
 #BSUB -R "span[hosts=1]"
 
