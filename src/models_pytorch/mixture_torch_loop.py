@@ -8,7 +8,8 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init='no',
     best_loglik = -1000000
 
     for repl in range(num_repl):
-        print(['Initializing repl '+str(repl)])
+        if num_repl>1:
+            print(['Initializing inner repl '+str(repl)])
         model.initialize(X=data,init=init,tol=tol)
         # the 'no'-option (default) is for ACG-lowrank, where some columns are randomly initialized and others prespecified
         

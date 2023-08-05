@@ -79,14 +79,15 @@ def run_experiment(mod,LR,init,K):
     expname = '454_full_'+init+'_'+str(LR)+'_p'+str(p)+'_K'+str(K)
     
     ### EM algorithms
-    print('starting K='+str(K))
     rep_order = np.arange(num_repl_outer)
     np.random.shuffle(rep_order)
     for repl in range(num_repl_outer):
         rep = rep_order[repl]
+        print('starting K='+str(K)+' rep='+str(rep))
         for r in ranks:
-            if mod == 0 and r>1:
-                continue
+            if mod == 0:
+                if r>1 or os.path.isfile('experiments/454_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'_rank'+str(r)+'.csv'):
+                    continue
             if mod==0:
                 model = Watson_torch(K=K,p=p)
                 name='Watson'
