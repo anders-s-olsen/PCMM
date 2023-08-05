@@ -1,10 +1,6 @@
 import h5py
 import numpy as np
 import torch
-from src.models_python.ACGMixtureEM import ACG as ACG_EM
-from src.models_python.MACGMixtureEM import MACG as MACG_EM
-from src.models_python.WatsonMixtureEM import Watson as Watson_EM
-from src.models_python.mixture_EM_loop import mixture_EM_loop
 from src.models_pytorch.ACG_lowrank_torch import ACG as ACG_torch
 from src.models_pytorch.MACG_lowrank_torch import MACG as MACG_torch
 from src.models_pytorch.Watson_torch import Watson as Watson_torch
@@ -14,30 +10,27 @@ torch.set_default_dtype(torch.float64)
 import sys
 import os
 
-# import matplotlib.pyplot as plt
-
-
 
 def run_experiment(mod,LR,init,K):
-    ## load data, only the first 200 subjects (each with 1200 data points)
-    data_train_tmp = np.array(h5py.File('data/processed/fMRI_SchaeferTian454_RL2.h5', 'r')['Dataset'][:,:480000]).T
+    ## load data, only the first 250 subjects (each with 1200 data points)
+    data_train_tmp = np.array(h5py.File('data/processed/fMRI_full_RL2.h5', 'r')['Dataset'][:,:600000]).T
     if mod == 0 or mod == 1:
-        data_train = torch.tensor(data_train_tmp[np.arange(480000,step=2),:])
+        data_train = torch.tensor(data_train_tmp[np.arange(600000,step=2),:])
     print('Loaded training data')
-    data_test_tmp = np.array(h5py.File('data/processed/fMRI_SchaeferTian454_RL1.h5', 'r')['Dataset'][:,:480000]).T
+    data_test_tmp = np.array(h5py.File('data/processed/fMRI_full_RL1.h5', 'r')['Dataset'][:,:600000]).T
     if mod == 0 or mod == 1:
-        data_test = torch.tensor(data_test_tmp[np.arange(480000,step=2),:])
+        data_test = torch.tensor(data_test_tmp[np.arange(600000,step=2),:])
     print('Loaded test data, beginning fit')
     p = data_train_tmp.shape[1]
 
     if mod == 2:
-        data_train = np.zeros((240000,p,2))
-        data_train[:,:,0] = data_train_tmp[np.arange(480000,step=2),:]
-        data_train[:,:,1] = data_train_tmp[np.arange(480000,step=2)+1,:]
+        data_train = np.zeros((300000,p,2))
+        data_train[:,:,0] = data_train_tmp[np.arange(600000,step=2),:]
+        data_train[:,:,1] = data_train_tmp[np.arange(600000,step=2)+1,:]
         data_train = torch.tensor(data_train)
-        data_test = np.zeros((240000,p,2))
-        data_test[:,:,0] = data_test_tmp[np.arange(480000,step=2),:]
-        data_test[:,:,1] = data_test_tmp[np.arange(480000,step=2)+1,:]
+        data_test = np.zeros((300000,p,2))
+        data_test[:,:,0] = data_test_tmp[np.arange(600000,step=2),:]
+        data_test[:,:,1] = data_test_tmp[np.arange(600000,step=2)+1,:]
         data_test = torch.tensor(data_test)
 
     # p=3
@@ -86,7 +79,7 @@ def run_experiment(mod,LR,init,K):
         print('starting K='+str(K)+' rep='+str(rep))
         for r in ranks:
             if mod == 0:
-                if r>1 or os.path.isfile('experiments/454_outputs/Watson_'+expname+'_traintestlikelihood_r'+str(rep)+'_rank'+str(r)+'.csv'):
+                if r>1 or os.path.isfile('experiments/454_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'_rank'+str(r)+'.csv'):
                     continue
             if mod==0:
                 model = Watson_torch(K=K,p=p)
