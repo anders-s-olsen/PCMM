@@ -16,10 +16,8 @@ class MACG():
         self.q = q
         self.p = p
         self.c = self.p/2
-        self.gamma_k = np.pi**(self.q*(self.q-1)/4)
-        for i in range(self.q):
-            self.gamma_k *= gamma(self.c-i/2) # should be (i-1)/2 but python is zero-indexed :(
-        self.logSA_Stiefel = np.log(self.gamma_k)-q*np.log(2)-self.q*self.p/2*np.log(np.pi)
+        loggamma_k = (self.q*(self.q-1)/4)*np.log(np.pi)+np.sum(loggamma(self.c-np.arange(self.q)/2))
+        self.logSA_Stiefel = loggamma_k-self.q*np.log(2)-self.q*self.c*np.log(np.pi)
 
         if params is not None: # for evaluating likelihood with already-learned parameters
             self.Sigma = np.array(params['Sigma'])
@@ -58,9 +56,7 @@ class MACG():
         return self.logSA_Stiefel - (self.q/2)*np.log(np.linalg.det(self.Sigma))
 
     def log_pdf(self,X):
-        pdf = np.zeros((self.K,X.shape[0]))
-        for k in range(self.K):
-            pdf[k] = np.linalg.det(np.swapaxes(X,-2,-1)@np.linalg.inv(self.Sigma[k])@X)
+        pdf = np.linalg.det(np.swapaxes(X,-2,-1)[None,:,:,:]@np.linalg.inv(self.Sigma)[:,None,:,:]@X)
         return self.log_norm_constant()[:,None] -self.c*np.log(pdf)
 
     def log_density(self,X):
@@ -87,10 +83,6 @@ class MACG():
         Sigma_old = np.eye(self.p)
         Q = np.sqrt(weights)[:,None,None]*X
         
-        # iteration 0 (initialized Sigma=eye(p)):
-        # Sigma = p*np.sum(Q@np.swapaxes(Q,-2,-1),axis=0) \
-        #         /(q*np.sum(weights))
-
         j = 0
         while np.linalg.norm(Sigma_old-Sigma) > tol and (j < max_iter):
             Sigma_old = Sigma

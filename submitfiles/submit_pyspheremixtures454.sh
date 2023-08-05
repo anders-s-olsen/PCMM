@@ -2,7 +2,7 @@
 # inits=("unif" "++" "dc")
 for LR in 0.1
 do
-for m in 0
+for m in 0 1 2
 do
 for K in {2..30}
 do

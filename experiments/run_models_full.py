@@ -33,26 +33,8 @@ def run_experiment(mod,LR,init,K):
         data_test[:,:,1] = data_test_tmp[np.arange(600000,step=2)+1,:]
         data_test = torch.tensor(data_test)
 
-    # p=3
-    # K=2
-    # if mod == 0 or mod == 1:
-    #     data_train = np.loadtxt('data/synthetic/synth_data_ACG_p'+str(p)+'K'+str(K)+'_1.csv',delimiter=',')
-    #     data_test = np.loadtxt('data/synthetic/synth_data_ACG_p'+str(p)+'K'+str(K)+'_2.csv',delimiter=',')
-    # elif mod==2:
-    #     data_train = np.zeros((1000,p,2))
-    #     data_train_tmp = np.loadtxt('data/synthetic/synth_data_MACG_p'+str(p)+'K'+str(K)+'_1.csv',delimiter=',')
-    #     data_train[:,:,0] = data_train_tmp[np.arange(2000,step=2),:]
-    #     data_train[:,:,1] = data_train_tmp[np.arange(2000,step=2)+1,:]
-    #     data_test = np.zeros((1000,p,2))
-    #     data_test_tmp = np.loadtxt('data/synthetic/synth_data_MACG_p'+str(p)+'K'+str(K)+'_2.csv',delimiter=',')
-    #     data_test[:,:,0] = data_test_tmp[np.arange(2000,step=2),:]
-    #     data_test[:,:,1] = data_test_tmp[np.arange(2000,step=2)+1,:]
-    # data_train = torch.tensor(data_train)
-    # data_test = torch.tensor(data_test)
-
-    
     tol = 1
-    num_iter = 100000
+    num_iter = 1000000
 
     num_repl_outer = 10
     num_repl_inner = 1
@@ -60,12 +42,8 @@ def run_experiment(mod,LR,init,K):
 
     os.makedirs('experiments/454_outputs',exist_ok=True)
 
-    if LR==0:
-        os.environ["OMP_NUM_THREADS"] = '8'
-    else:
-        os.environ["OMP_NUM_THREADS"] = '1'
-        torch.set_num_threads(8)
-        torch.set_num_interop_threads(8)
+    torch.set_num_threads(8)
+    torch.set_num_interop_threads(8)
 
     ranks = np.arange(1,454)
     
