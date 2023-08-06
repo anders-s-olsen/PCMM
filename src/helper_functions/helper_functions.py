@@ -52,21 +52,23 @@ def load_data(type,num_subjects=200,num_eigs=1,LR=0,p=3,K=2):
         data_test = torch.tensor(data_test)
     return data_train,data_test
 
-def train_model(modelname,K,data_train,rank,init,LR,num_repl_inner,num_iter,tol):
-    p = data_train.shape[1]
+def train_model(modelname,K,data_train,rank,init,LR,num_repl_inner,num_iter,tol,params=None):
     if modelname == 'Watson':
+        p = data_train.shape[1]
         if LR==0:
-            model = Watson_EM(K=K,p=p)
+            model = Watson_EM(K=K,p=p,params=params)
         else:
-            model = Watson_torch(K=K,p=p)
+            model = Watson_torch(K=K,p=p,params=params)
     elif modelname == 'ACG':
+        p = data_train.shape[1]
         if LR==0:
-            model = ACG_EM(K=K,p=p)
+            model = ACG_EM(K=K,p=p,params=params)
         else:
-            model = ACG_torch(K=K,p=p,rank=rank) #cholesky formulation when full rank
+            model = ACG_torch(K=K,p=p,rank=rank,params=params) #cholesky formulation when full rank
     elif modelname == 'MACG':
+        p = data_train.shape[2]
         if LR==0:
-            model = MACG_EM(K=K,p=p,q=2)
+            model = MACG_EM(K=K,p=p,q=2,params=params)
         else:
             model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params)
 

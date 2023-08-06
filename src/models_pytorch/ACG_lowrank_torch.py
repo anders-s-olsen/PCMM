@@ -20,7 +20,7 @@ class ACG(nn.Module):
 
         self.K = K
         self.p = torch.tensor(p) #dimensionality
-        self.r = torch.tensor(rank) 
+        self.r = rank
         if rank is None or self.r == self.p:
             self.fullrank = True
         else:
