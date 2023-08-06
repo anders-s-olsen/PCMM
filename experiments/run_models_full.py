@@ -1,129 +1,61 @@
-import h5py
 import numpy as np
 import torch
-from src.models_pytorch.ACG_lowrank_torch import ACG as ACG_torch
-from src.models_pytorch.MACG_lowrank_torch import MACG as MACG_torch
-from src.models_pytorch.Watson_torch import Watson as Watson_torch
-from src.models_pytorch.mixture_torch_loop import mixture_torch_loop
+from src.helper_functions.helper_functions import load_data,train_model,test_model
 
 torch.set_default_dtype(torch.float64)
+torch.set_num_threads(8)
 import sys
 import os
 
+tol = 1
+num_iter = 100000
+num_repl_outer = 10
+num_repl_inner = 1
+ranks = np.arange(start=1,stop=200,step=5)
 
-def run_experiment(mod,LR,init,K):
-    ## load data, only the first 250 subjects (each with 1200 data points)
-    data_train_tmp = np.array(h5py.File('data/processed/fMRI_full_RL2.h5', 'r')['Dataset'][:,:600000]).T
-    if mod == 0 or mod == 1:
-        data_train = torch.tensor(data_train_tmp[np.arange(600000,step=2),:])
-    print('Loaded training data')
-    data_test_tmp = np.array(h5py.File('data/processed/fMRI_full_RL1.h5', 'r')['Dataset'][:,:600000]).T
-    if mod == 0 or mod == 1:
-        data_test = torch.tensor(data_test_tmp[np.arange(600000,step=2),:])
-    print('Loaded test data, beginning fit')
-    p = data_train_tmp.shape[1]
-
-    if mod == 2:
-        data_train = np.zeros((300000,p,2))
-        data_train[:,:,0] = data_train_tmp[np.arange(600000,step=2),:]
-        data_train[:,:,1] = data_train_tmp[np.arange(600000,step=2)+1,:]
-        data_train = torch.tensor(data_train)
-        data_test = np.zeros((300000,p,2))
-        data_test[:,:,0] = data_test_tmp[np.arange(600000,step=2),:]
-        data_test[:,:,1] = data_test_tmp[np.arange(600000,step=2)+1,:]
-        data_test = torch.tensor(data_test)
-
-    tol = 1
-    num_iter = 1000000
-
-    num_repl_outer = 10
-    num_repl_inner = 1
-    Softmax = torch.nn.Softmax(dim=0)
-
+def run_experiment(modelname,LR,init0,K):
+    ## load data, only the first 200 subjects (each with 1200 data points)
+    num_subjects = 10
+    if modelname=='Watson' or modelname=='ACG':
+        data_train,data_test = load_data(type='fMRI_full',num_subjects=num_subjects,num_eigs=1,LR=LR)
+    elif modelname=='MACG':
+        data_train,data_test = load_data(type='fMRI_full',num_subjects=num_subjects,num_eigs=2,LR=LR)
+        data_train = data_train.swapaxes(-2,-1)
+        data_test = data_test.swapaxes(-2,-1)
+    
     os.makedirs('experiments/454_outputs',exist_ok=True)
-
-    torch.set_num_threads(8)
-    torch.set_num_interop_threads(8)
-
-    ranks = np.arange(1,454)
-    
-    expname = '454_full_'+init+'_'+str(LR)+'_p'+str(p)+'_K'+str(K)
-    
-    ### EM algorithms
+    expname = '454_full_'+init0+'_'+str(LR)+'_p'+str(data_train.shape[1])+'_K'+str(K)
     rep_order = np.arange(num_repl_outer)
     np.random.shuffle(rep_order)
+
     for repl in range(num_repl_outer):
         rep = rep_order[repl]
         print('starting K='+str(K)+' rep='+str(rep))
-        for r in ranks:
-            if mod == 0:
-                if r>1 or os.path.isfile('experiments/454_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'_rank'+str(r)+'.csv'):
-                    continue
-            if mod==0:
-                model = Watson_torch(K=K,p=p)
-                name='Watson'
-            elif mod==1:
-                if r==1:
-                    model = ACG_torch(K=K,p=p,rank=r) 
-                else:
-                    model = ACG_torch(K=K,p=p,rank=r,params=params)
-                name='ACG'
-            elif mod==2:
-                if r==1:
-                    model = MACG_torch(K=K,p=p,q=2,rank=r) 
-                else:
-                    model = MACG_torch(K=K,p=p,q=2,rank=r,params=params)
-                name = 'MACG'
-            
-            if r == 1:
-                params,_,loglik,_ = mixture_torch_loop(model,data_train,tol=tol,max_iter=100000,
-                                                    num_repl=num_repl_inner,init=init,LR=LR)
-            else:
-                params,_,loglik,_ = mixture_torch_loop(model,data_train,tol=tol,max_iter=100000,
-                                                    num_repl=num_repl_inner,init='no',LR=LR)                    
-        
-            pi = Softmax(params['pi'])
-            if mod ==0:
-                mu = torch.nn.functional.normalize(params['mu'],dim=0)
-                # kappa = Softplus(params['kappa'])
-                kappa = params['kappa']
-            else:
-                M = params['M']
 
-            # np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_trainlikelihoodcurve_r'+str(rep)+'.csv',np.array(loglik))
-            # np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_pi_r'+str(rep)+'.csv',pi)
-            # if mod==0:
-            #     np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_mu_r'+str(rep)+'.csv',mu)
-            #     np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_kappa_r'+str(rep)+'.csv',kappa)
-            # elif mod == 1:
-            #     for k in range(K):
-            #         np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_L_k'+str(k)+'_r'+str(rep)+'.csv',Lambda[k])
-            
-            # test
-            if mod==0:
-                model = Watson_torch(K=K,p=p,params={'mu':mu,'kappa':kappa,'pi':pi})
-                with torch.no_grad():
-                    test_loglik = model.test_log_likelihood(X=data_test)
-            elif mod==1:
-                model = ACG_torch(K=K,p=p,rank=r,params={'pi':pi,'M':M}) #cholesky formulation when full rank
-                with torch.no_grad():
-                    test_loglik = model.test_log_likelihood(X=data_test)
-            elif mod==2:
-                model = MACG_torch(K=K,p=p,q=2,rank=r,params={'pi':pi,'M':M}) #cholesky formulation when full rank
-                with torch.no_grad():
-                    test_loglik = model.test_log_likelihood(X=data_test)                        
-            
-            np.savetxt('experiments/454_outputs/'+name+'_'+expname+'_traintestlikelihood_r'+str(rep)+'_rank'+str(r)+'.csv',np.array([loglik[-1],test_loglik]))
-
-    stop=7
+        if modelname=='Watson': #no rank stuff
+            if os.path.isfile('experiments/454_outputs/Watson_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'):
+                continue
+            params,train_loglik = train_model(modelname=modelname,K=K,data_train=data_train,rank=None,init=init0,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol)
+            test_loglik = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR)
+            np.savetxt('experiments/454_outputs/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',np.array([train_loglik,test_loglik]))
+        else:
+            params = None
+            for r in ranks:
+                if r>1:
+                    init = 'no'
+                else:
+                    init = init0
+                params,train_loglik = train_model(modelname=modelname,K=K,data_train=data_train,rank=r,init=init,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol,params=params)
+                test_loglik = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR,r=r)
+                np.savetxt('experiments/454_outputs/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'_rank'+str(r)+'.csv',np.array([train_loglik,test_loglik]))
 
 
 if __name__=="__main__":
-    # run_experiment(mod=int(2),LR=float(0.1),init='++',K=30)
+    # run_experiment(modelname='Watson',LR=float(0.1),init0='++',K=30)
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:
     #     for LR in LRs:
     #         for m in range(2):
     #             run_experiment(mod=int(m),LR=LR,init=init)
-    run_experiment(mod=int(sys.argv[1]),LR=float(sys.argv[2]),init=sys.argv[3],K=int(sys.argv[4]))
+    run_experiment(modelname=sys.argv[1],LR=float(sys.argv[2]),init0=sys.argv[3],K=int(sys.argv[4]))

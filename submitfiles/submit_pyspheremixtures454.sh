@@ -1,5 +1,5 @@
 #!/bin/sh
-modelnames=("Watson","ACG","MACG")
+modelnames=("Watson" "ACG" "MACG")
 for LR in 0.1
 do
 for m in "${modelnames[@]}"
