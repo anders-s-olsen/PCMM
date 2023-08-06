@@ -15,7 +15,7 @@ ranks = np.arange(start=1,stop=200,step=2)
 
 def run_experiment(modelname,LR,init0,K):
     ## load data, only the first 200 subjects (each with 1200 data points)
-    num_subjects = 10
+    num_subjects = 200
     if modelname=='Watson' or modelname=='ACG':
         data_train,data_test = load_data(type='fMRI_SchaeferTian454',num_subjects=num_subjects,num_eigs=1,LR=LR)
     elif modelname=='MACG':
