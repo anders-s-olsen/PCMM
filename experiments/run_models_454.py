@@ -11,7 +11,7 @@ tol = 1
 num_iter = 100000
 num_repl_outer = 10
 num_repl_inner = 1
-ranks = np.arange(start=1,stop=227,step=2)
+ranks = np.arange(start=1,stop=200,step=2)
 
 def run_experiment(modelname,LR,init0,K):
     ## load data, only the first 200 subjects (each with 1200 data points)
