@@ -50,8 +50,9 @@ def load_data(type,num_subjects=200,num_eigs=1,LR=0,p=3,K=2):
     if LR!=0:
         data_train = torch.tensor(data_train)
         data_test = torch.tensor(data_test)
+    return data_train,data_test
 
-def run_model(modelname,K,data_train,rank,init,LR,num_repl_inner,num_iter,tol):
+def train_model(modelname,K,data_train,rank,init,LR,num_repl_inner,num_iter,tol):
     p = data_train.shape[1]
     if modelname == 'Watson':
         if LR==0:

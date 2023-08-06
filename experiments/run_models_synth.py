@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from src.helper_functions.helper_functions import load_data,run_model,test_model
+from src.helper_functions.helper_functions import load_data,train_model,test_model
 
 torch.set_default_dtype(torch.float64)
 import sys
@@ -42,7 +42,7 @@ def run_experiment(modelname,LR,init):
             np.random.shuffle(rep_order)
             for repl in range(num_repl_outer):
                 rep = rep_order[repl]
-                params,train_loglik = run_model(modelname,K,data_train,p,init,LR,num_repl_inner,num_iter,tol)
+                params,train_loglik = train_model(modelname,K,data_train,p,init,LR,num_repl_inner,num_iter,tol)
                 test_loglik = test_model(modelname,K,data_test,params,LR,p)
 
                 np.savetxt('experiments/synth_outputs/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',np.array([train_loglik,test_loglik]))

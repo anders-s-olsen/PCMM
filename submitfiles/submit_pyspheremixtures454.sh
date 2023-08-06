@@ -1,8 +1,8 @@
 #!/bin/sh
-# inits=("unif" "++" "dc")
+modelnames=("Watson","ACG","MACG")
 for LR in 0.1
 do
-for m in 0 1 2
+for m in "${modelnames[@]}"
 do
 for K in {2..30}
 do

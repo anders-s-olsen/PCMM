@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from src.helper_functions.helper_functions import load_data,run_model,test_model
+from src.helper_functions.helper_functions import load_data,train_model,test_model
 
 torch.set_default_dtype(torch.float64)
 torch.set_num_threads(8)
@@ -11,7 +11,7 @@ tol = 1
 num_iter = 100000
 num_repl_outer = 10
 num_repl_inner = 1
-ranks = np.arange(1,454/2)
+ranks = np.arange(start=1,stop=454/2,step=2)
 
 def run_experiment(modelname,LR,init,K):
     ## load data, only the first 200 subjects (each with 1200 data points)
@@ -31,8 +31,8 @@ def run_experiment(modelname,LR,init,K):
         print('starting K='+str(K)+' rep='+str(rep))
 
         if modelname=='Watson': #no rank stuff
-            params,train_loglik = run_model(modelname,K,data_train,r,init,LR,num_repl_inner,num_iter,tol)
-            test_loglik = test_model(modelname,K,data_test,params,LR,r)
+            params,train_loglik = train_model(modelname=modelname,K=K,data_train=data_train,rank=None,init=init,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol)
+            test_loglik = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR)
             np.savetxt('experiments/454_outputs/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',np.array([train_loglik,test_loglik]))
         else:
             params = None
@@ -41,13 +41,13 @@ def run_experiment(modelname,LR,init,K):
                     init = 'no'
                 if r>1 or os.path.isfile('experiments/454_outputs/Watson_'+expname+'_traintestlikelihood_r'+str(rep)+'_rank'+str(r)+'.csv'):
                     continue
-                params,train_loglik = run_model(modelname,K,data_train,r,init,LR,num_repl_inner,num_iter,tol)
-                test_loglik = test_model(modelname,K,data_test,params,LR,r)
+                params,train_loglik = train_model(modelname=modelname,K=K,data_train=data_train,rank=r,init=init,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol)
+                test_loglik = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR,r=r)
                 np.savetxt('experiments/454_outputs/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'_rank'+str(r)+'.csv',np.array([train_loglik,test_loglik]))
 
 
 if __name__=="__main__":
-    # run_experiment(modelname='Watson',LR=float(0.1),init='++',K=30)
+    # run_experiment(modelname='ACG',LR=float(0.1),init='++',K=30)
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:
