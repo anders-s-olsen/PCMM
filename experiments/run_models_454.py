@@ -46,7 +46,7 @@ def run_experiment(modelname,LR,init0,K):
                 else:
                     init = init0
                 params,train_loglik = train_model(modelname=modelname,K=K,data_train=data_train,rank=r,init=init,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol,params=params)
-                test_loglik = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR,r=r)
+                test_loglik = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR,rank=r)
                 np.savetxt('experiments/454_outputs/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'_rank'+str(r)+'.csv',np.array([train_loglik,test_loglik]))
 
 
