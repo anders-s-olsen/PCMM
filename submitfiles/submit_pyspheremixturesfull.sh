@@ -1,6 +1,6 @@
 #!/bin/sh
 modelnames=("Watson" "ACG" "MACG")
-for K in {2..30}
+for K in {2..10}
 do
 for LR in 0.1
 do
