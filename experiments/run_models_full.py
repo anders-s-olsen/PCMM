@@ -9,13 +9,13 @@ import os
 
 tol = 1
 num_iter = 100000
-num_repl_outer = 10
+num_repl_outer = 5
 num_repl_inner = 1
 ranks = np.arange(start=1,stop=200,step=5)
 
 def run_experiment(modelname,LR,init0,K):
-    ## load data, only the first 200 subjects (each with 1200 data points)
-    num_subjects = 10
+    ## load data, only the first 250 subjects (each with 1200 data points)
+    num_subjects = 250
     if modelname=='Watson' or modelname=='ACG':
         data_train,data_test = load_data(type='fMRI_full',num_subjects=num_subjects,num_eigs=1,LR=LR)
     elif modelname=='MACG':
@@ -23,8 +23,8 @@ def run_experiment(modelname,LR,init0,K):
         data_train = data_train.swapaxes(-2,-1)
         data_test = data_test.swapaxes(-2,-1)
     
-    os.makedirs('experiments/454_outputs',exist_ok=True)
-    expname = '454_full_'+init0+'_'+str(LR)+'_p'+str(data_train.shape[1])+'_K'+str(K)
+    os.makedirs('experiments/full_outputs',exist_ok=True)
+    expname = 'full_'+init0+'_'+str(LR)+'_p'+str(data_train.shape[1])+'_K'+str(K)
     rep_order = np.arange(num_repl_outer)
     np.random.shuffle(rep_order)
 
@@ -33,11 +33,11 @@ def run_experiment(modelname,LR,init0,K):
         print('starting K='+str(K)+' rep='+str(rep))
 
         if modelname=='Watson': #no rank stuff
-            if os.path.isfile('experiments/454_outputs/Watson_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'):
+            if os.path.isfile('experiments/full_outputs/Watson_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'):
                 continue
             params,train_loglik = train_model(modelname=modelname,K=K,data_train=data_train,rank=None,init=init0,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol)
             test_loglik = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR)
-            np.savetxt('experiments/454_outputs/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',np.array([train_loglik,test_loglik]))
+            np.savetxt('experiments/full_outputs/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',np.array([train_loglik,test_loglik]))
         else:
             params = None
             for r in ranks:
@@ -47,7 +47,7 @@ def run_experiment(modelname,LR,init0,K):
                     init = init0
                 params,train_loglik = train_model(modelname=modelname,K=K,data_train=data_train,rank=r,init=init,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol,params=params)
                 test_loglik = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR,r=r)
-                np.savetxt('experiments/454_outputs/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'_rank'+str(r)+'.csv',np.array([train_loglik,test_loglik]))
+                np.savetxt('experiments/full_outputs/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'_rank'+str(r)+'.csv',np.array([train_loglik,test_loglik]))
 
 
 if __name__=="__main__":
