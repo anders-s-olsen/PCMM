@@ -36,7 +36,7 @@ def run_experiment(modelname,LR,init0,K):
             if os.path.isfile('experiments/454_outputs/Watson_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'):
                 continue
             params,train_loglik = train_model(modelname=modelname,K=K,data_train=data_train,rank=None,init=init0,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol)
-            test_loglik = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR)
+            test_loglik = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR,rank=None)
             np.savetxt('experiments/454_outputs/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',np.array([train_loglik,test_loglik]))
         else:
             params = None
