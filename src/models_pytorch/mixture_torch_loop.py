@@ -23,11 +23,11 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init='no',
         loglik = []
 
         for iter in range(max_iter):
-            with profile(activities=[ProfilerActivity.CPU], record_shapes=True) as prof:
-                with record_function("model_inference"):
-                    epoch_nll = -model(data) #negative for nll
-            print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
-            # epoch_nll = -model(data) #negative for nll
+            # with profile(activities=[ProfilerActivity.CPU], record_shapes=True) as prof:
+            #     with record_function("model_inference"):
+            #         epoch_nll = -model(data) #negative for nll
+            # print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
+            epoch_nll = -model(data) #negative for nll
 
             if torch.isnan(-epoch_nll):
                 raise ValueError("Nan reached")
