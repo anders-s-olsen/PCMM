@@ -1,13 +1,13 @@
 #!/bin/sh
 #BSUB -J bigjob
 #BSUB -q computebigbigmem
-#BSUB -R "rusage[mem=30GB]"
+#BSUB -R "rusage[mem=31GB]"
 # #BSUB -B
 # #BSUB -N
 #BSUB -o submitfiles/output/bigjob_out_%J.txt
 #BSUB -e submitfiles/output/bigjob_err_%J.txt
 #BSUB -W 72:00 
-#BSUB -n 8
+#BSUB -n 16
 #BSUB -R "span[hosts=1]"
 
 # -- commands you want to execute -- 
