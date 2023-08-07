@@ -15,4 +15,4 @@
 source /dtu-compute/macaroni/miniconda3/bin/activate
 conda activate hcp
 
-python3 experiments/run_models_454.py MACG 0.1 ++ 30
+python3 experiments/run_models_454.py Watson 0.01 dc 30
