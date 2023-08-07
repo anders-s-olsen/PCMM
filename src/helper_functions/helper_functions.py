@@ -22,9 +22,11 @@ def load_data(type,num_subjects=200,num_eigs=1,LR=0,p=3,K=2):
     if type=='fMRI_SchaeferTian454' or type=='fMRI_full':
         data_train_tmp = np.array(h5py.File(loc+'2.h5', 'r')['Dataset'][:,:num_subjects*1200*2]).T
         data_test_tmp = np.array(h5py.File(loc+'1.h5', 'r')['Dataset'][:,:num_subjects*1200*2]).T
+        data_test2_tmp = np.array(h5py.File(loc+'2.h5', 'r')['Dataset'][:,num_subjects*1200*2:num_subjects*1200*4]).T
         if num_eigs==1:
             data_train = data_train_tmp[np.arange(num_subjects*1200*2,step=2),:]
             data_test = data_test_tmp[np.arange(num_subjects*1200*2,step=2),:]
+            data_test2 = data_test2_tmp[np.arange(num_subjects*1200*2,step=2),:]
         elif num_eigs == 2:
             p = data_train_tmp.shape[1]
             data_train = np.zeros((num_subjects*1200,p,2))
@@ -33,6 +35,9 @@ def load_data(type,num_subjects=200,num_eigs=1,LR=0,p=3,K=2):
             data_test = np.zeros((num_subjects*1200,p,2))
             data_test[:,:,0] = data_test_tmp[np.arange(num_subjects*1200*2,step=2),:]
             data_test[:,:,1] = data_test_tmp[np.arange(num_subjects*1200*2,step=2)+1,:]
+            data_test2 = np.zeros((num_subjects*1200,p,2))
+            data_test2[:,:,0] = data_test2_tmp[np.arange(num_subjects*1200*2,step=2),:]
+            data_test2[:,:,1] = data_test2_tmp[np.arange(num_subjects*1200*2,step=2)+1,:]
     elif type=='synth' or type=='synthetic':
         if num_eigs==1:
             data_train = np.loadtxt('data/synthetic/synth_data_ACG_p'+str(p)+'K'+str(K)+'_1.csv',delimiter=',')
@@ -50,7 +55,7 @@ def load_data(type,num_subjects=200,num_eigs=1,LR=0,p=3,K=2):
     if LR!=0:
         data_train = torch.tensor(data_train)
         data_test = torch.tensor(data_test)
-    return data_train,data_test
+    return data_train,data_test,data_test2
 
 def train_model(modelname,K,data_train,rank,init,LR,num_repl_inner,num_iter,tol,params=None):
     if modelname == 'Watson':
