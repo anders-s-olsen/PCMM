@@ -47,13 +47,14 @@ class MACG():
             
         self.Sigma = np.zeros((self.K,self.p,self.p))
         for k in range(self.K):
-            self.Sigma[k] = np.outer(mu[:,k],mu[:,k])+np.eye(self.p)
+            self.Sigma[k] = 10e6*np.outer(mu[:,k],mu[:,k])+np.eye(self.p)
     
 
 ################ E-step ###################
     
     def log_norm_constant(self):
-        return self.logSA_Stiefel - (self.q/2)*np.log(np.linalg.det(self.Sigma))
+        logdetsign,logdet = np.linalg.slogdet(self.Lambda)
+        return self.logSA_Stiefel - (self.q/2)*logdetsign*logdet
 
     def log_pdf(self,X):
         pdf = np.linalg.det(np.swapaxes(X,-2,-1)[None,:,:,:]@np.linalg.inv(self.Sigma)[:,None,:,:]@X)

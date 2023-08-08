@@ -108,11 +108,10 @@ class ACG(nn.Module):
             B = X[None,:,:] @ L_tri_inv
             pdf = torch.sum(B * B, dim=2)
             log_det_L = -2 * torch.sum(torch.log(torch.abs(self.L_vec[:,self.diag_mask])),dim=1)
-            
         else:
             Lambda = torch.eye(self.r) + torch.swapaxes(self.M,-2,-1)@self.M
-            log_det_L = 2*torch.sum(torch.log(torch.abs(torch.diagonal(torch.linalg.cholesky(Lambda),dim1=-2,dim2=-1))),dim=-1)
-            
+            # log_det_L = 2*torch.sum(torch.log(torch.abs(torch.diagonal(torch.linalg.cholesky(Lambda),dim1=-2,dim2=-1))),dim=-1)
+            log_det_L = torch.logdet(Lambda)
             B = X[None,:,:]@self.M
             pdf = 1-torch.sum(B@torch.linalg.inv(Lambda)*B,dim=2) #check
 

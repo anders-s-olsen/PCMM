@@ -16,10 +16,14 @@ def load_data(type,num_subjects=200,num_eigs=1,LR=0,p=3,K=2):
         loc = 'data/processed/fMRI_SchaeferTian454_RL'
     elif type=='fMRI_full':
         loc = 'data/processed/fMRI_full_RL'
+    elif type=='fMRI_SchaeferTian116':
+        loc = 'data/processed/fMRI_SchaeferTian116_RL'
+    elif type=='fMRI_SchaeferTian116_GSR':
+        loc = 'data/processed/fMRI_SchaeferTian116_GSR_RL'
     elif type=='synth' or type=='synthetic':
         loc = 'data/synthetic/synth_data_'
     
-    if type=='fMRI_SchaeferTian454' or type=='fMRI_full':
+    if type!='synth' and type!='synthetic':
         data_train_tmp = np.array(h5py.File(loc+'2.h5', 'r')['Dataset'][:,:num_subjects*1200*2]).T
         data_test_tmp = np.array(h5py.File(loc+'1.h5', 'r')['Dataset'][:,:num_subjects*1200*2]).T
         data_test2_tmp = np.array(h5py.File(loc+'2.h5', 'r')['Dataset'][:,num_subjects*1200*2:num_subjects*1200*4]).T
@@ -55,6 +59,7 @@ def load_data(type,num_subjects=200,num_eigs=1,LR=0,p=3,K=2):
     if LR!=0:
         data_train = torch.tensor(data_train)
         data_test = torch.tensor(data_test)
+        data_test2 = torch.tensor(data_test2)
     return data_train,data_test,data_test2
 
 def train_model(modelname,K,data_train,rank,init,LR,num_repl_inner,num_iter,tol,params=None):
@@ -96,6 +101,7 @@ def test_model(modelname,K,data_test,params,LR,rank):
         elif modelname == 'MACG':
             model = MACG_EM(K=K,p=p,params=params)
         test_loglik = model.log_likelihood(X=data_test)
+        params_transformed = model.get_params()
     else:
         Softmax = torch.nn.Softmax(dim=0)
         pi_soft = Softmax(params['pi'])

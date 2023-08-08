@@ -38,7 +38,7 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init='no',
             loglik.append(-epoch_nll.item())
             
 
-            if iter>100:
+            if iter>10:
                 if scheduler is not None:
                     scheduler.step(epoch_nll)
                     if optimizer.param_groups[0]["lr"]<0.001:

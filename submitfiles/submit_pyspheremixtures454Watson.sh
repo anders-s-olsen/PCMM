@@ -2,7 +2,7 @@
 inits=("unif" "++" "dc")
 for K in {2..30}
 do
-for LR in 0 #1 0 0.1 0.01
+for LR in 0 1 0 0.1 0.01
 do
 for init in "${inits[@]}"
 do

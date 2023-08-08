@@ -13,7 +13,7 @@ inits = ['unif','++','dc']
 LRs = ['0.01','0.1','0.0','1.0']
 exptype = '454'
 # left_labels = ['Number of components, K=2','Number of components, K=5','Number of components, K=10']
-fix,axs = plt.subplots(1,2,figsize=(16,9))
+fix,axs = plt.subplots(1,3,figsize=(16,9))
 df = pd.DataFrame(columns=['Log likelihood','Optimizer','Initialization','Test or train','Model order (K)'])
 for idx1,K in enumerate(np.arange(2,31)):
     for init in inits:
@@ -25,7 +25,7 @@ for idx1,K in enumerate(np.arange(2,31)):
             testtrainval = []
             modelorder = []
             for rep in range(num_repl_outer):
-                for tt,traintest in enumerate(['Train','Test']):
+                for tt,traintest in enumerate(['Train','Test','Test2']):
                     file_path = 'experiments/'+exptype+'_outputs/Watson_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'
                     try:
                         like = np.loadtxt(file_path)[tt]
@@ -48,6 +48,7 @@ for idx1,K in enumerate(np.arange(2,31)):
   
 sns.lineplot(ax=axs[0],x='Model order (K)',y='Log likelihood',hue='Initialization',style='Optimizer',data=df[df['Test or train']=='Train'])
 sns.lineplot(ax=axs[1],x='Model order (K)',y='Log likelihood',hue='Initialization',style='Optimizer',data=df[df['Test or train']=='Test'])
+sns.lineplot(ax=axs[1],x='Model order (K)',y='Log likelihood',hue='Initialization',style='Optimizer',data=df[df['Test or train']=='Test2'])
 plt.show()
 
 plt.savefig('reports/figures/'+exptype+'_results_Watson_'+str(tt))

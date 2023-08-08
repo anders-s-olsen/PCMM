@@ -39,13 +39,13 @@ class ACG():
             
         self.Lambda = np.zeros((self.K,self.p,self.p))    
         for k in range(self.K):
-            self.Lambda[k] = np.outer(mu[:,k],mu[:,k])+np.eye(self.p)
+            self.Lambda[k] = 10e6*np.outer(mu[:,k],mu[:,k])+np.eye(self.p)
         
 ################ E-step ###################
     
     def log_norm_constant(self):
-        norm_const = self.logSA - 0.5*np.log(np.linalg.det(self.Lambda))
-        return norm_const
+        logdetsign,logdet = np.linalg.slogdet(self.Lambda)
+        return self.logSA - 0.5*logdetsign*logdet
 
     def log_pdf(self,X):
         pdf = np.sum(X@np.linalg.inv(self.Lambda)*X,axis=2)
