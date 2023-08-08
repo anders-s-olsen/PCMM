@@ -70,7 +70,7 @@ def run_experiment(modelname,LR,init0,GSR):
 
 
 if __name__=="__main__":
-    run_experiment(modelname='ACG',LR=float(0.1),init0='unif',GSR=1)
+    # run_experiment(modelname='ACG',LR=float(0.1),init0='unif',GSR=1)
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:
