@@ -11,7 +11,7 @@ tol = 0.1
 num_iter = 1000000
 num_repl_outer = 10
 num_repl_inner = 1
-ranks = np.arange(start=1,stop=116,step=1)
+
 
 def run_experiment(modelname,LR,init0,GSR):
     ## load data, only the first 100 subjects (each with 1200 data points)
@@ -29,6 +29,8 @@ def run_experiment(modelname,LR,init0,GSR):
         data_train = data_train.swapaxes(-2,-1)
         data_test = data_test.swapaxes(-2,-1)
         data_test2 = data_test2.swapaxes(-2,-1)
+    
+    ranks = np.arange(start=1,stop=116,step=1)
     
     os.makedirs(outfolder,exist_ok=True)
     
@@ -50,10 +52,15 @@ def run_experiment(modelname,LR,init0,GSR):
                 np.savetxt(outfolder+'/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',np.array([train_loglik,test_loglik,test_loglik2]))
             else:
                 params = None
-                logliks = np.zeros((3,116))
+                if LR == 0:
+                    logliks = np.zeros(3)
+                else:
+                    logliks = np.zeros((3,116))
                 for r,rank in enumerate(ranks):
                     if rank>1:
                         init = 'no'
+                        if LR==0:
+                            break
                     else:
                         init = init0
                     if rank==116:
@@ -70,7 +77,7 @@ def run_experiment(modelname,LR,init0,GSR):
 
 
 if __name__=="__main__":
-    # run_experiment(modelname='MACG',LR=float(0.1),init0='unif',GSR=1)
+    run_experiment(modelname='MACG',LR=float(0.1),init0='++',GSR=1)
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:

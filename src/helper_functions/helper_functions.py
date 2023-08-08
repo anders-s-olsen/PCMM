@@ -92,14 +92,16 @@ def train_model(modelname,K,data_train,rank,init,LR,num_repl_inner,num_iter,tol,
     return params,loglik[-1]
     
 def test_model(modelname,K,data_test,params,LR,rank):
-    p = data_test.shape[1]
     if LR == 0:
         if modelname == 'Watson':    
             model = Watson_EM(K=K,p=p,params=params)
+            p = data_test.shape[1]
         elif modelname == 'ACG':
             model = ACG_EM(K=K,p=p,params=params)
+            p = data_test.shape[1]
         elif modelname == 'MACG':
             model = MACG_EM(K=K,p=p,params=params)
+            p = data_test.shape[2]
         test_loglik = model.log_likelihood(X=data_test)
         params_transformed = model.get_params()
     else:
