@@ -1,13 +1,13 @@
 #!/bin/sh
 modelnames=("Watson" "ACG" "MACG")
 inits=("unif" "++")
-for LR in 0 0.1
-do
-for m in "${modelnames[@]}"
-do
 for init in "${inits[@]}"
 do
 for GSR in 0 1
+do
+for LR in 0 0.1
+do
+for m in "${modelnames[@]}"
 do
 
     sed -i '$ d' submitfiles/pyspheremixtures454_template.sh

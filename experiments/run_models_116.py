@@ -15,7 +15,7 @@ ranks = np.arange(start=1,stop=116,step=1)
 
 def run_experiment(modelname,LR,init0,GSR):
     ## load data, only the first 100 subjects (each with 1200 data points)
-    num_subjects = 30
+    num_subjects = 50
     if GSR==0:
         type = 'fMRI_SchaeferTian116'
         outfolder = 'experiments/116_outputs'
@@ -59,10 +59,10 @@ def run_experiment(modelname,LR,init0,GSR):
                     if rank==116:
                         params,train_loglik = train_model(modelname=modelname,K=K,data_train=data_train,rank=116,init=init0,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol,params=None)
                     else:
-                        params,train_loglik = train_model(modelname=modelname,K=K,data_train=data_train,rank=114,init=init,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol,params=params)
+                        params,train_loglik = train_model(modelname=modelname,K=K,data_train=data_train,rank=rank,init=init,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol,params=params)
                     
-                    test_loglik,_ = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR,rank=114)
-                    test_loglik2,_ = test_model(modelname=modelname,K=K,data_test=data_test2,params=params,LR=LR,rank=114)
+                    test_loglik,_ = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR,rank=rank)
+                    test_loglik2,_ = test_model(modelname=modelname,K=K,data_test=data_test2,params=params,LR=LR,rank=rank)
                     logliks[0,r] = train_loglik
                     logliks[1,r] = test_loglik
                     logliks[2,r] = test_loglik2
@@ -70,7 +70,7 @@ def run_experiment(modelname,LR,init0,GSR):
 
 
 if __name__=="__main__":
-    # run_experiment(modelname='ACG',LR=float(0.1),init0='unif',GSR=1)
+    # run_experiment(modelname='MACG',LR=float(0.1),init0='unif',GSR=1)
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:
