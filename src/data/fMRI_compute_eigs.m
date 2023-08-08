@@ -3,7 +3,7 @@ maxNumCompThreads('automatic');
 rng shuffle
 subjects = dir('/dtu-compute/HCP_dFC/2023/hcp_dfc/data/raw');
 
-perform_GSR = true;
+perform_GSR = false;
 
 % Compute eigenvectors
 TR = 0.72;%s
@@ -17,13 +17,20 @@ k=2;                          % 2nd order butterworth filter
 % atlas = squeeze(niftiread('/dtu-compute/HCP_dFC/2023/hcp_dfc/data/external/Schaefer2018_400Parcels_7Networks_order_Tian_Subcortex_S4.dlabel.nii'));
 atlas = squeeze(niftiread('/dtu-compute/HCP_dFC/2023/hcp_dfc/data/external/Schaefer2018_100Parcels_7Networks_order_Tian_Subcortex_S1.dlabel.nii'));
 for sub = randperm(numel(subjects))
-    dses = dir([subjects(sub).folder,'/',subjects(sub).name,'/fMRI/rfMRI_REST*']);
+    dses = dir([subjects(sub).folder,'/',subjects(sub).name,'/fMRI/rfMRI_REST*_RL*']);
     for ses = 1:numel(dses)
         tic
-        %         if exist(['/dtu-compute/HCP_dFC/2023/hcp_dfc/data/processed/fMRI_SchaeferTian454/',subjects(sub).name,'_',dses(ses).name(1:end-13),'.mat'])&...
-        %                 exist(['/dtu-compute/HCP_dFC/2023/hcp_dfc/data/processed/fMRI_full/',subjects(sub).name,'_',dses(ses).name(1:end-13),'.mat'])
-        %             continue
-        %         end
+        if perform_GSR
+            if exist(['/dtu-compute/HCP_dFC/2023/hcp_dfc/data/processed/fMRI_SchaeferTian116_GSR/',subjects(sub).name,'_',dses(ses).name(1:end-13),'.mat'])
+                disp('continue')
+                continue
+            end
+        else
+            if exist(['/dtu-compute/HCP_dFC/2023/hcp_dfc/data/processed/fMRI_SchaeferTian116/',subjects(sub).name,'_',dses(ses).name(1:end-13),'.mat'])
+                disp('continue')
+                continue
+            end
+        end
         disp(['Working on subject ',subjects(sub).name,' session ',num2str(ses)])
         data = double(squeeze(niftiread([dses(ses).folder,'/',dses(ses).name])));
         if perform_GSR
