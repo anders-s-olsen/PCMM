@@ -77,4 +77,4 @@ if __name__=="__main__":
     #     for LR in LRs:
     #         for m in range(2):
     #             run_experiment(mod=int(m),LR=LR,init=init)
-    run_experiment(modelname=sys.argv[1],LR=float(sys.argv[2]),init0=sys.argv[3],GSR=sys.argv[4])
+    run_experiment(modelname=sys.argv[1],LR=float(sys.argv[2]),init0=sys.argv[3],GSR=int(sys.argv[4]))
