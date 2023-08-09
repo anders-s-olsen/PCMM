@@ -63,20 +63,18 @@ def load_data(type,num_subjects=200,num_eigs=1,LR=0,p=3,K=2):
     return data_train,data_test,data_test2
 
 def train_model(modelname,K,data_train,rank,init,LR,num_repl_inner,num_iter,tol,params=None):
+    p = data_train.shape[1]
     if modelname == 'Watson':
-        p = data_train.shape[1]
         if LR==0:
             model = Watson_EM(K=K,p=p,params=params)
         else:
             model = Watson_torch(K=K,p=p,params=params)
     elif modelname == 'ACG':
-        p = data_train.shape[1]
         if LR==0:
             model = ACG_EM(K=K,p=p,params=params)
         else:
             model = ACG_torch(K=K,p=p,rank=rank,params=params) #cholesky formulation when full rank
     elif modelname == 'MACG':
-        p = data_train.shape[2]
         if LR==0:
             model = MACG_EM(K=K,p=p,q=2,params=params)
         else:
@@ -92,10 +90,7 @@ def train_model(modelname,K,data_train,rank,init,LR,num_repl_inner,num_iter,tol,
     return params,loglik[-1]
     
 def test_model(modelname,K,data_test,params,LR,rank):
-    if modelname == 'Watson' or modelname=='ACG':    
-        p = data_test.shape[1]
-    elif modelname == 'MACG':
-        p = data_test.shape[2]
+    p = data_test.shape[1]
     if LR == 0:
         if modelname == 'Watson':    
             model = Watson_EM(K=K,p=p,params=params)

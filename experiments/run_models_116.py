@@ -26,9 +26,6 @@ def run_experiment(modelname,LR,init0,GSR):
         data_train,data_test,data_test2 = load_data(type=type,num_subjects=num_subjects,num_eigs=1,LR=LR)
     elif modelname=='MACG':
         data_train,data_test,data_test2 = load_data(type=type,num_subjects=num_subjects,num_eigs=2,LR=LR)
-        data_train = data_train.swapaxes(-2,-1)
-        data_test = data_test.swapaxes(-2,-1)
-        data_test2 = data_test2.swapaxes(-2,-1)
     
     ranks = np.arange(start=1,stop=116,step=1)
     
@@ -69,14 +66,19 @@ def run_experiment(modelname,LR,init0,GSR):
                     
                     test_loglik,_ = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR,rank=rank)
                     test_loglik2,_ = test_model(modelname=modelname,K=K,data_test=data_test2,params=params,LR=LR,rank=rank)
-                    logliks[0,r] = train_loglik
-                    logliks[1,r] = test_loglik
-                    logliks[2,r] = test_loglik2
+                    if LR!=0:
+                        logliks[0,r] = train_loglik
+                        logliks[1,r] = test_loglik
+                        logliks[2,r] = test_loglik2
+                    else:
+                        logliks[0] = train_loglik
+                        logliks[1] = test_loglik
+                        logliks[2] = test_loglik2
                     np.savetxt(outfolder+'/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',logliks)
 
 
 if __name__=="__main__":
-    # run_experiment(modelname='MACG',LR=float(0.1),init0='++',GSR=1)
+    # run_experiment(modelname='ACG',LR=float(0),init0='++',GSR=1)
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:

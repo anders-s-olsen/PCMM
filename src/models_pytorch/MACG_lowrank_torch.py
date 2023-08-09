@@ -79,7 +79,6 @@ class MACG(nn.Module):
         if init == 'no':
             return
         if init is not None and init !='unif' and init!='uniform':
-            X = torch.swapaxes(X,-2,-1)
             if init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
                 mu = diametrical_clustering_plusplus_torch(X=X[:,:,0],K=self.K)
             elif init == 'dc' or init == 'diametrical_clustering':
@@ -115,7 +114,7 @@ class MACG(nn.Module):
             Sigma = torch.eye(self.r) + torch.swapaxes(self.M,-2,-1)@self.M
             # log_det_S = 2*torch.sum(torch.log(torch.abs(torch.diagonal(torch.linalg.cholesky(Sigma),dim1=-2,dim2=-1))),dim=-1)
             log_det_S = torch.logdet(Sigma)
-            B = X[None,:,:,:]@self.M[:,None,:,:]
+            B = torch.swapaxes(X,-2,-1)[None,:,:,:]@self.M[:,None,:,:]
             C = B@torch.linalg.inv(Sigma)[:,None,:,:]@torch.swapaxes(B,-2,-1)
             pdf = 1-torch.sum(torch.diagonal(C,dim1=-2,dim2=-1),dim=-1)+torch.linalg.det(C) #diagonal stuff is the trace
 

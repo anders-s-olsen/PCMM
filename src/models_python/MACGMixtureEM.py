@@ -53,7 +53,7 @@ class MACG():
 ################ E-step ###################
     
     def log_norm_constant(self):
-        logdetsign,logdet = np.linalg.slogdet(self.Lambda)
+        logdetsign,logdet = np.linalg.slogdet(self.Sigma)
         return self.logSA_Stiefel - (self.q/2)*logdetsign*logdet
 
     def log_pdf(self,X):
