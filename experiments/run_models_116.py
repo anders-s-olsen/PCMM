@@ -41,7 +41,7 @@ def run_experiment(modelname,LR,init0,GSR):
             print('starting K='+str(K)+' rep='+str(rep))
 
             if modelname=='Watson': #no rank stuff
-                if os.path.isfile(outfolder+'/Watson_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'):
+                if os.path.isfile(outfolder+'/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'):
                     continue
                 params,train_loglik = train_model(modelname=modelname,K=K,data_train=data_train,rank=None,init=init0,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol)
                 test_loglik,_ = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR,rank=None)

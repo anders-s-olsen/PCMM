@@ -97,7 +97,7 @@ def test_model(modelname,K,data_test,params,LR,rank):
         elif modelname == 'ACG':
             model = ACG_EM(K=K,p=p,params=params)
         elif modelname == 'MACG':
-            model = MACG_EM(K=K,p=p,params=params)
+            model = MACG_EM(K=K,p=p,q=2,params=params)
         test_loglik = model.log_likelihood(X=data_test)
         params_transformed = model.get_params()
     else:
