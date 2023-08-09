@@ -7,15 +7,20 @@ torch.set_num_threads(8)
 import sys
 import os
 
-tol = 0.1
+tol = 0.001
 num_iter = 1000000
 num_repl_outer = 10
 num_repl_inner = 1
+import matplotlib.pyplot as plt
 
 
 def run_experiment(modelname,LR,init0,GSR):
+    if modelname=='ACG' or modelname=='MACG':
+        if init0=='++':
+            return
+        
     ## load data, only the first 100 subjects (each with 1200 data points)
-    num_subjects = 50
+    num_subjects = 100
     if GSR==0:
         type = 'fMRI_SchaeferTian116'
         outfolder = 'experiments/116_outputs'
@@ -24,61 +29,33 @@ def run_experiment(modelname,LR,init0,GSR):
         outfolder = 'experiments/116GSR_outputs'
     if modelname=='Watson' or modelname=='ACG':
         data_train,data_test,data_test2 = load_data(type=type,num_subjects=num_subjects,num_eigs=1,LR=LR)
+        p = data_train.shape[1]
     elif modelname=='MACG':
         data_train,data_test,data_test2 = load_data(type=type,num_subjects=num_subjects,num_eigs=2,LR=LR)
-    
-    ranks = np.arange(start=1,stop=116,step=1)
+        p = data_train.shape[2]
     
     os.makedirs(outfolder,exist_ok=True)
     
     for K in np.arange(2,31):
-        expname = '116_'+init0+'_'+str(LR)+'_p'+str(data_train.shape[1])+'_K'+str(K)
+        expname = '116_'+init0+'_'+str(LR)+'_p'+str(p)+'_K'+str(K)
         rep_order = np.arange(num_repl_outer)
         np.random.shuffle(rep_order)
+        logliks = np.zeros((3,num_repl_outer))
 
         for repl in range(num_repl_outer):
             rep = rep_order[repl]
             print('starting K='+str(K)+' rep='+str(rep))
-
-            if modelname=='Watson': #no rank stuff
-                if os.path.isfile(outfolder+'/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv'):
-                    continue
-                params,train_loglik = train_model(modelname=modelname,K=K,data_train=data_train,rank=None,init=init0,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol)
-                test_loglik,_ = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR,rank=None)
-                test_loglik2,_ = test_model(modelname=modelname,K=K,data_test=data_test2,params=params,LR=LR,rank=None)
-                np.savetxt(outfolder+'/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',np.array([train_loglik,test_loglik,test_loglik2]))
-            else:
-                params = None
-                if LR == 0:
-                    logliks = np.zeros(3)
-                else:
-                    logliks = np.zeros((3,116))
-                for r,rank in enumerate(ranks):
-                    if rank>1:
-                        init = 'no'
-                        if LR==0:
-                            break
-                    else:
-                        init = init0
-                    if rank==116:
-                        params = None
-                    params,train_loglik = train_model(modelname=modelname,K=K,data_train=data_train,rank=rank,init=init,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol,params=params)
-                    
-                    test_loglik,_ = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR,rank=rank)
-                    test_loglik2,_ = test_model(modelname=modelname,K=K,data_test=data_test2,params=params,LR=LR,rank=rank)
-                    if LR!=0:
-                        logliks[0,r] = train_loglik
-                        logliks[1,r] = test_loglik
-                        logliks[2,r] = test_loglik2
-                    else:
-                        logliks[0] = train_loglik
-                        logliks[1] = test_loglik
-                        logliks[2] = test_loglik2
-                    np.savetxt(outfolder+'/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',logliks)
+            params,train_loglik,_ = train_model(modelname=modelname,K=K,data_train=data_train,rank=p,init=init0,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol)
+            test_loglik,_ = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR,rank=p)
+            test_loglik2,_ = test_model(modelname=modelname,K=K,data_test=data_test2,params=params,LR=LR,rank=p)
+            logliks[0,rep] = train_loglik
+            logliks[1,rep] = test_loglik
+            logliks[2,rep] = test_loglik2
+            np.savetxt(outfolder+'/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',logliks)
 
 
 if __name__=="__main__":
-    # run_experiment(modelname='ACG',LR=float(0),init0='++',GSR=1)
+    run_experiment(modelname='ACG',LR=float(0.1),init0='uniform',GSR=1)
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:

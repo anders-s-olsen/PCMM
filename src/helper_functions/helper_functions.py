@@ -87,7 +87,7 @@ def train_model(modelname,K,data_train,rank,init,LR,num_repl_inner,num_iter,tol,
         params,_,loglik,_ = mixture_torch_loop(model,data_train,tol=tol,max_iter=num_iter,
                                         num_repl=num_repl_inner,init=init,LR=LR)
     
-    return params,loglik[-1]
+    return params,loglik[-1],loglik
     
 def test_model(modelname,K,data_test,params,LR,rank):
     p = data_test.shape[1]
