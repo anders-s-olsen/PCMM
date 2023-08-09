@@ -64,9 +64,8 @@ def run_experiment(modelname,LR,init0,GSR):
                     else:
                         init = init0
                     if rank==116:
-                        params,train_loglik = train_model(modelname=modelname,K=K,data_train=data_train,rank=116,init=init0,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol,params=None)
-                    else:
-                        params,train_loglik = train_model(modelname=modelname,K=K,data_train=data_train,rank=rank,init=init,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol,params=params)
+                        params = None
+                    params,train_loglik = train_model(modelname=modelname,K=K,data_train=data_train,rank=rank,init=init,LR=LR,num_repl_inner=num_repl_inner,num_iter=num_iter,tol=tol,params=params)
                     
                     test_loglik,_ = test_model(modelname=modelname,K=K,data_test=data_test,params=params,LR=LR,rank=rank)
                     test_loglik2,_ = test_model(modelname=modelname,K=K,data_test=data_test2,params=params,LR=LR,rank=rank)
@@ -77,7 +76,7 @@ def run_experiment(modelname,LR,init0,GSR):
 
 
 if __name__=="__main__":
-    run_experiment(modelname='MACG',LR=float(0.1),init0='++',GSR=1)
+    # run_experiment(modelname='MACG',LR=float(0.1),init0='++',GSR=1)
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:
