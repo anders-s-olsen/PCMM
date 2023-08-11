@@ -131,10 +131,10 @@ class MACG():
         self.pi = np.sum(Beta,axis=0)/n
 
         for k in range(self.K):
-            # self.Sigma[k] = self.Sigma_MLE(self.Sigma[k],X,weights=Beta[:,k],tol=tol)
-            a = self.Sigma_MLE(self.Sigma[k],X,weights=Beta[:,k],tol=tol)
-            b = self.Sigma_MLE2(self.Sigma[k],X,weights=Beta[:,k],tol=tol)
-            s = 0
+            self.Sigma[k] = self.Sigma_MLE(self.Sigma[k],X,weights=Beta[:,k],tol=tol)
+            # a = self.Sigma_MLE(self.Sigma[k],X,weights=Beta[:,k],tol=tol)
+            # b = self.Sigma_MLE2(self.Sigma[k],X,weights=Beta[:,k],tol=tol)
+            # s = 0
 
 
 if __name__=='__main__':
