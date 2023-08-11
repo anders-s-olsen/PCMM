@@ -108,24 +108,24 @@ def test_model(modelname,K,data_test,params,LR,rank):
             kappa = params['kappa']
             params_transformed={'mu':mu_norm,'kappa':kappa,'pi':pi_soft}
         else:
-            if rank==p:
-                if modelname=='ACG':
-                    Lambda = torch.zeros(K,p,p)
-                    for k in range(K):
-                        L_tri_inv = params['L_tri_inv'][k]
-                        Lambda[k] = torch.linalg.inv(L_tri_inv@L_tri_inv.T)
-                        Lambda[k] = p*Lambda[k]/torch.trace(Lambda[k])
-                    params_transformed={'pi':pi_soft,'Lambda':Lambda}
-                elif modelname=='MACG':
-                    Sigma = torch.zeros(K,p,p)
-                    for k in range(K):
-                        S_tri_inv = params['S_tri_inv'][k]
-                        Sigma[k] = torch.linalg.inv(S_tri_inv@S_tri_inv.T)
-                        Sigma[k] = p*Sigma[k]/torch.trace(Sigma[k])
-                    params_transformed={'pi':pi_soft,'Sigma':Sigma}
-            else:
-                M = params['M']
-                params_transformed={'M':M,'pi':pi_soft}
+            # if rank==p:
+            #     if modelname=='ACG':
+            #         Lambda = torch.zeros(K,p,p)
+            #         for k in range(K):
+            #             L_tri_inv = params['L_tri_inv'][k]
+            #             Lambda[k] = torch.linalg.inv(L_tri_inv@L_tri_inv.T)
+            #             Lambda[k] = p*Lambda[k]/torch.trace(Lambda[k])
+            #         params_transformed={'pi':pi_soft,'Lambda':Lambda}
+            #     elif modelname=='MACG':
+            #         Sigma = torch.zeros(K,p,p)
+            #         for k in range(K):
+            #             S_tri_inv = params['S_tri_inv'][k]
+            #             Sigma[k] = torch.linalg.inv(S_tri_inv@S_tri_inv.T)
+            #             Sigma[k] = p*Sigma[k]/torch.trace(Sigma[k])
+            #         params_transformed={'pi':pi_soft,'Sigma':Sigma}
+            # else:
+            M = params['M']
+            params_transformed={'M':M,'pi':pi_soft}
         with torch.no_grad():
             if modelname == 'Watson':
                 model = Watson_torch(K=K,p=p,params=params_transformed)

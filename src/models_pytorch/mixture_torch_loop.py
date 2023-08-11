@@ -46,7 +46,8 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init='no',
                 else:
                     if loglik[-1]-loglik[-10]<tol:
                         break
-            print('Done with iteration '+str(iter))
+            if iter % 10:
+                print(['Done with iteration '+str(iter)])
         
         if loglik[-1]>best_loglik:
             best_loglik = loglik[-1]

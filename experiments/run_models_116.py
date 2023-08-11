@@ -51,11 +51,11 @@ def run_experiment(modelname,LR,init0,GSR):
             logliks[0,rep] = train_loglik
             logliks[1,rep] = test_loglik
             logliks[2,rep] = test_loglik2
-            np.savetxt(outfolder+'/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',logliks)
+            np.savetxt(outfolder+'/'+modelname+'_'+expname+'_traintestlikelihood.csv',logliks)
 
 
 if __name__=="__main__":
-    # run_experiment(modelname='ACG',LR=float(0.1),init0='uniform',GSR=1)
+    run_experiment(modelname='Watson',LR=float(0),init0='uniform',GSR=1)
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:

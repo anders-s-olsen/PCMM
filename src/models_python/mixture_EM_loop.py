@@ -30,7 +30,8 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None):
 
             # M-step
             model.M_step(X=data,tol=tol)
-            print(['Done with iteration '+str(iter)])
+            if iter % 10:
+                print(['Done with iteration '+str(iter)])
             iter +=1
     
     return params_final,beta_final,loglik_final,num_iter_final
