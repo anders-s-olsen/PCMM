@@ -36,9 +36,9 @@ class MACG(nn.Module):
         
         self.LogSoftmax = nn.LogSoftmax(dim=0)
 
-        self.tril_mask = torch.tril_indices(self.p,self.p)
-        self.diag_mask = ((torch.arange(1,self.p+1)**2+torch.arange(1,self.p+1))/2-1).type(torch.LongTensor)
-        self.num_params = int(self.p*(self.p-1)/2+self.p)
+        # self.tril_mask = torch.tril_indices(self.p,self.p)
+        # self.diag_mask = ((torch.arange(1,self.p+1)**2+torch.arange(1,self.p+1))/2-1).type(torch.LongTensor)
+        # self.num_params = int(self.p*(self.p-1)/2+self.p)
         
         if params is not None: # for evaluating likelihood with already-learned parameters
             if torch.is_tensor(params['pi']):
@@ -88,6 +88,11 @@ class MACG(nn.Module):
                 params,_,_,_ = mixture_EM_loop(W,X[:,:,0],init='dc')
                 mu = params['mu']
                 self.pi = nn.Parameter(params['pi'])
+            elif init == 'test':
+                M1 = torch.tensor(np.loadtxt('data/test116M.txt'))
+                M2 = torch.tensor(np.loadtxt('data/test116M2.txt'))
+                self.M = nn.Parameter(torch.stack([M1,M2],axis=0))
+                return
             # if self.fullrank is True:
             #     self.S_vec = torch.zeros((self.K,self.num_params)).to(self.device)
             #     for k in range(self.K):
@@ -116,6 +121,12 @@ class MACG(nn.Module):
         B = torch.swapaxes(X,-2,-1)[None,:,:,:]@self.M[:,None,:,:]
         C = B@torch.linalg.inv(Sigma)[:,None,:,:]@torch.swapaxes(B,-2,-1)
         pdf = 1-torch.sum(torch.diagonal(C,dim1=-2,dim2=-1),dim=-1)+torch.linalg.det(C) #diagonal stuff is the trace
+
+        # Sigma2 = torch.eye(self.p)+self.M@torch.swapaxes(self.M,-2,-1)
+        # # log_det_S2 = torch.logdet(Sigma2)
+        # pdf2 = torch.det(torch.swapaxes(X,-2,-1)[None,:,:,:]@torch.linalg.inv(Sigma2)[:,None,:,:]@X)
+
+
 
         return self.logSA_Stiefel - self.q/2 * log_det_S[:,None] - self.c * torch.log(pdf)
     

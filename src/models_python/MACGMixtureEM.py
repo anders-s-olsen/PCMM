@@ -33,8 +33,9 @@ class MACG():
             mu = np.random.uniform(size=(self.p,self.K))
             mu = mu/np.linalg.norm(mu,axis=0)
         elif init == "test":
-            mu = np.vstack((np.array([1,1,1]),np.array([1,1,-1]))).T
-            mu = mu/np.linalg.norm(mu,axis=0)
+            A1 = np.loadtxt('data/test116mat.txt')
+            A2 = np.loadtxt('data/test116mat2.txt')
+            self.Sigma = np.stack([A1,A2],axis=0)
         elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
             mu = diametrical_clustering_plusplus(X=X[:,:,0],K=self.K)
         elif init == 'dc' or init == 'diametrical_clustering':
@@ -90,12 +91,37 @@ class MACG():
             
             # this has been tested in the "Naive" version below
             XtLX = np.swapaxes(X,-2,-1)@np.linalg.inv(Sigma)@X
-            XtLX_trace = np.sum(1/np.linalg.eigh(XtLX)[0],axis=1)
+            XtLX_trace = np.sum(1/np.linalg.eigh(XtLX)[0],axis=1) #trace of inverse is sum of inverse eigenvalues
             
             Sigma = p*np.sum(Q@np.linalg.inv(XtLX)@np.swapaxes(Q,-2,-1),axis=0) \
                 /(np.sum(weights*XtLX_trace))
             j +=1
         return Sigma
+    
+    # def Sigma_MLE2(self,Sigma2,X,weights = None,tol=1e-10,max_iter=10000):
+    #     n,p,q = X.shape
+    #     if n<(p*(p-1)*q):
+    #         print("Too high dimensionality compared to number of observations. Sigma cannot be calculated")
+    #         return
+    #     weights = None
+    #     if weights is None:
+    #         weights = np.ones(n)
+    #     Sigma_old = np.eye(self.p)
+    #     Q = np.sqrt(weights)[:,None,None]*X
+        
+    #     j = 0
+    #     while np.linalg.norm(Sigma_old-Sigma2) > tol and (j < max_iter):
+    #         Sigma_old = Sigma2
+            
+    #         # this has been tested in the "Naive" version below
+    #         XtLX2 = np.linalg.inv(np.swapaxes(X,-2,-1)@np.linalg.inv(Sigma2)@X)
+    #         # XtLX_trace = np.sum(1/np.linalg.eigh(XtLX)[0],axis=1)
+            
+    #         # Sigma = p*np.sum(Q@np.linalg.inv(XtLX)@np.swapaxes(Q,-2,-1),axis=0) \
+    #         #     /(np.sum(weights*XtLX_trace))
+    #         Sigma2 = p*np.sum(X@XtLX2@np.swapaxes(X,-2,-1),0) / np.sum(np.sum(np.diagonal(XtLX2,axis1=-2,axis2=-1),axis=1))
+    #         j +=1
+    #     return Sigma2
 
 
 ############# M-step #################
@@ -105,7 +131,10 @@ class MACG():
         self.pi = np.sum(Beta,axis=0)/n
 
         for k in range(self.K):
-            self.Sigma[k] = self.Sigma_MLE(self.Sigma[k],X,weights=Beta[:,k],tol=tol)
+            # self.Sigma[k] = self.Sigma_MLE(self.Sigma[k],X,weights=Beta[:,k],tol=tol)
+            a = self.Sigma_MLE(self.Sigma[k],X,weights=Beta[:,k],tol=tol)
+            b = self.Sigma_MLE2(self.Sigma[k],X,weights=Beta[:,k],tol=tol)
+            s = 0
 
 
 if __name__=='__main__':

@@ -29,10 +29,9 @@ def run_experiment(modelname,LR,init0,GSR):
         outfolder = 'experiments/116GSR_outputs'
     if modelname=='Watson' or modelname=='ACG':
         data_train,data_test,data_test2 = load_data(type=type,num_subjects=num_subjects,num_eigs=1,LR=LR)
-        p = data_train.shape[1]
     elif modelname=='MACG':
         data_train,data_test,data_test2 = load_data(type=type,num_subjects=num_subjects,num_eigs=2,LR=LR)
-        p = data_train.shape[2]
+    p = data_train.shape[1]
     
     os.makedirs(outfolder,exist_ok=True)
     
@@ -55,7 +54,7 @@ def run_experiment(modelname,LR,init0,GSR):
 
 
 if __name__=="__main__":
-    run_experiment(modelname='Watson',LR=float(0),init0='uniform',GSR=1)
+    # run_experiment(modelname='MACG',LR=float(0.1),init0='test',GSR=1)
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:
