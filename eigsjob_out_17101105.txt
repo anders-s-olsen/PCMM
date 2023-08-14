@@ -1,0 +1,2917 @@
+Working on subject 429040 session 1
+Data eig done in 125.96 seconds
+Working on subject 429040 session 2
+Data eig done in 126.9115 seconds
+Working on subject 322224 session 1
+Data eig done in 127.1956 seconds
+Working on subject 322224 session 2
+Data eig done in 128.7291 seconds
+Working on subject 177241 session 1
+Data eig done in 126.2161 seconds
+Working on subject 177241 session 2
+Data eig done in 125.311 seconds
+Working on subject 599671 session 1
+Data eig done in 128.5508 seconds
+Working on subject 599671 session 2
+Data eig done in 126.4923 seconds
+Working on subject 203923 session 1
+Data eig done in 126.4872 seconds
+Working on subject 203923 session 2
+Data eig done in 126.6124 seconds
+Working on subject 810439 session 1
+Data eig done in 126.0305 seconds
+Working on subject 461743 session 1
+Data eig done in 127.6076 seconds
+Working on subject 461743 session 2
+Data eig done in 125.0226 seconds
+Working on subject 205826 session 1
+Data eig done in 125.0469 seconds
+Working on subject 205826 session 2
+Data eig done in 125.5895 seconds
+Working on subject 123521 session 1
+Data eig done in 125.0692 seconds
+Working on subject 123521 session 2
+Data eig done in 126.132 seconds
+Working on subject 567961 session 1
+Data eig done in 126.0893 seconds
+Working on subject 567961 session 2
+Data eig done in 125.8339 seconds
+Working on subject 576255 session 1
+Data eig done in 125.6847 seconds
+Working on subject 576255 session 2
+Data eig done in 125.9539 seconds
+Working on subject 120717 session 1
+Data eig done in 124.4038 seconds
+Working on subject 120717 session 2
+Data eig done in 129.1211 seconds
+Working on subject 180230 session 1
+Data eig done in 125.6316 seconds
+Working on subject 180230 session 2
+Data eig done in 126.9217 seconds
+Working on subject 206323 session 1
+Data eig done in 125.0412 seconds
+Working on subject 206323 session 2
+Data eig done in 126.1349 seconds
+Working on subject 127832 session 1
+Data eig done in 124.8791 seconds
+Working on subject 127832 session 2
+Data eig done in 125.6957 seconds
+Working on subject 138534 session 1
+Data eig done in 124.4832 seconds
+Working on subject 138534 session 2
+Data eig done in 125.4917 seconds
+Working on subject 856968 session 1
+Data eig done in 124.7304 seconds
+Working on subject 856968 session 2
+Data eig done in 125.2495 seconds
+Working on subject 130518 session 1
+Data eig done in 125.3323 seconds
+Working on subject 130518 session 2
+Data eig done in 126.0051 seconds
+Working on subject 128632 session 1
+Data eig done in 124.9414 seconds
+Working on subject 128632 session 2
+Data eig done in 125.4051 seconds
+continue
+continue
+continue
+continue
+Working on subject 598568 session 1
+Data eig done in 124.998 seconds
+Working on subject 598568 session 2
+Data eig done in 125.2197 seconds
+Working on subject 289555 session 1
+Data eig done in 127.4455 seconds
+Working on subject 289555 session 2
+Data eig done in 128.4718 seconds
+continue
+continue
+Working on subject 947668 session 1
+Data eig done in 125.8683 seconds
+Working on subject 947668 session 2
+Data eig done in 128.4057 seconds
+Working on subject 120414 session 1
+Data eig done in 125.8618 seconds
+Working on subject 120414 session 2
+Data eig done in 125.8088 seconds
+Working on subject 130316 session 1
+Data eig done in 125.5896 seconds
+Working on subject 130316 session 2
+Data eig done in 125.1747 seconds
+Working on subject 480141 session 1
+Data eig done in 126.0635 seconds
+Working on subject 480141 session 2
+Data eig done in 125.9395 seconds
+Working on subject 531536 session 1
+Data eig done in 126.7419 seconds
+Working on subject 531536 session 2
+Data eig done in 125.6009 seconds
+Working on subject 200311 session 1
+Data eig done in 128.3964 seconds
+Working on subject 200311 session 2
+Data eig done in 125.2342 seconds
+continue
+continue
+Working on subject 368753 session 1
+Data eig done in 126.1323 seconds
+Working on subject 368753 session 2
+Data eig done in 124.9441 seconds
+Working on subject 167743 session 1
+Data eig done in 125.4643 seconds
+Working on subject 167743 session 2
+Data eig done in 127.0303 seconds
+Working on subject 131823 session 1
+Data eig done in 127.9884 seconds
+Working on subject 131823 session 2
+Data eig done in 130.1167 seconds
+Working on subject 885975 session 1
+Data eig done in 128.1995 seconds
+Working on subject 885975 session 2
+Data eig done in 126.1337 seconds
+Working on subject 325129 session 1
+Data eig done in 128.8574 seconds
+Working on subject 325129 session 2
+Data eig done in 128.5953 seconds
+Working on subject 898176 session 1
+Data eig done in 127.5325 seconds
+Working on subject 898176 session 2
+Data eig done in 127.3956 seconds
+continue
+continue
+continue
+continue
+Working on subject 208125 session 1
+Data eig done in 127.8817 seconds
+Working on subject 208125 session 2
+Data eig done in 129.0839 seconds
+Working on subject 524135 session 1
+Data eig done in 127.872 seconds
+Working on subject 524135 session 2
+Data eig done in 127.7153 seconds
+Working on subject 169444 session 1
+Data eig done in 128.1477 seconds
+Working on subject 169444 session 2
+Data eig done in 127.2151 seconds
+Working on subject 376247 session 1
+Data eig done in 126.5709 seconds
+Working on subject 376247 session 2
+Data eig done in 127.6132 seconds
+Working on subject 869472 session 1
+Data eig done in 125.7383 seconds
+Working on subject 869472 session 2
+Data eig done in 127.385 seconds
+Working on subject 246133 session 1
+Data eig done in 129.8688 seconds
+Working on subject 246133 session 2
+Data eig done in 140.7809 seconds
+Working on subject 256540 session 1
+Data eig done in 128.9819 seconds
+Working on subject 256540 session 2
+Data eig done in 126.2021 seconds
+continue
+continue
+Working on subject 623844 session 1
+Data eig done in 126.691 seconds
+Working on subject 623844 session 2
+Data eig done in 133.9986 seconds
+continue
+continue
+continue
+continue
+Working on subject 200513 session 1
+Data eig done in 127.7392 seconds
+Working on subject 200513 session 2
+Data eig done in 126.6108 seconds
+Working on subject 151526 session 1
+Data eig done in 127.3253 seconds
+Working on subject 151526 session 2
+Data eig done in 126.5795 seconds
+Working on subject 540436 session 1
+Data eig done in 127.6021 seconds
+Working on subject 540436 session 2
+Data eig done in 126.3789 seconds
+Working on subject 180937 session 1
+Data eig done in 127.7944 seconds
+Working on subject 180937 session 2
+Data eig done in 128.2017 seconds
+Working on subject 788674 session 1
+Data eig done in 126.7202 seconds
+Working on subject 788674 session 2
+Data eig done in 126.6924 seconds
+Working on subject 965771 session 1
+Data eig done in 128.6577 seconds
+Working on subject 965771 session 2
+Data eig done in 140.2606 seconds
+Working on subject 930449 session 1
+Data eig done in 127.8822 seconds
+Working on subject 930449 session 2
+Data eig done in 127.3689 seconds
+Working on subject 706040 session 1
+Data eig done in 135.7487 seconds
+Working on subject 706040 session 2
+Data eig done in 126.7857 seconds
+Working on subject 125525 session 1
+Data eig done in 126.4987 seconds
+Working on subject 125525 session 2
+Data eig done in 126.6785 seconds
+Working on subject 145632 session 1
+Data eig done in 131.7751 seconds
+Working on subject 145632 session 2
+Data eig done in 127.8429 seconds
+Working on subject 774663 session 1
+Data eig done in 126.9583 seconds
+Working on subject 774663 session 2
+Data eig done in 126.4573 seconds
+Working on subject 350330 session 1
+Data eig done in 130.1112 seconds
+Working on subject 350330 session 2
+Data eig done in 128.4178 seconds
+Working on subject 604537 session 1
+Data eig done in 128.1855 seconds
+Working on subject 604537 session 2
+Data eig done in 128.9137 seconds
+Working on subject 481951 session 1
+Data eig done in 127.7906 seconds
+Working on subject 481951 session 2
+Data eig done in 126.5488 seconds
+Working on subject 211821 session 1
+Data eig done in 126.6279 seconds
+Working on subject 211821 session 2
+Data eig done in 128.2861 seconds
+Working on subject 756055 session 1
+Data eig done in 128.2966 seconds
+Working on subject 756055 session 2
+Data eig done in 127.0619 seconds
+Working on subject 211922 session 1
+Data eig done in 127.3285 seconds
+Working on subject 211922 session 2
+Data eig done in 127.5333 seconds
+Working on subject 154734 session 1
+Data eig done in 127.2081 seconds
+Working on subject 154734 session 2
+Data eig done in 127.9427 seconds
+Working on subject 182840 session 1
+Data eig done in 129.7172 seconds
+Working on subject 182840 session 2
+Data eig done in 132.0081 seconds
+Working on subject 239136 session 1
+Data eig done in 131.984 seconds
+Working on subject 239136 session 2
+Data eig done in 129.5907 seconds
+continue
+continue
+continue
+continue
+Working on subject 688569 session 1
+Data eig done in 129.5621 seconds
+Working on subject 131419 session 1
+Data eig done in 128.1895 seconds
+Working on subject 131419 session 2
+Data eig done in 135.6548 seconds
+Working on subject 182739 session 1
+Data eig done in 128.5468 seconds
+Working on subject 182739 session 2
+Data eig done in 128.436 seconds
+Working on subject 188751 session 1
+Data eig done in 127.4327 seconds
+Working on subject 188751 session 2
+Data eig done in 132.7021 seconds
+continue
+continue
+Working on subject 130619 session 1
+Data eig done in 126.4741 seconds
+Working on subject 130619 session 2
+Data eig done in 127.4724 seconds
+Working on subject 620434 session 1
+Data eig done in 126.8621 seconds
+Working on subject 620434 session 2
+Data eig done in 127.0696 seconds
+Working on subject 580044 session 1
+Data eig done in 128.617 seconds
+Working on subject 580044 session 2
+Data eig done in 126.5195 seconds
+Working on subject 136732 session 1
+Data eig done in 128.3763 seconds
+Working on subject 136732 session 2
+Data eig done in 133.2339 seconds
+continue
+continue
+Working on subject 128329 session 1
+Data eig done in 127.1125 seconds
+Working on subject 565452 session 1
+Data eig done in 127.1852 seconds
+Working on subject 565452 session 2
+Data eig done in 127.9766 seconds
+Working on subject 106521 session 1
+Data eig done in 133.9144 seconds
+Working on subject 106521 session 2
+Data eig done in 127.4144 seconds
+Working on subject 833249 session 1
+Data eig done in 127.4458 seconds
+Working on subject 833249 session 2
+Data eig done in 127.043 seconds
+Working on subject 164939 session 1
+Data eig done in 129.7952 seconds
+Working on subject 164939 session 2
+Data eig done in 126.6017 seconds
+Working on subject 191942 session 1
+Data eig done in 126.8172 seconds
+Working on subject 191942 session 2
+Data eig done in 126.7965 seconds
+Working on subject 894067 session 1
+Data eig done in 126.2991 seconds
+Working on subject 894067 session 2
+Data eig done in 127.0926 seconds
+Working on subject 917558 session 1
+Data eig done in 128.5868 seconds
+Working on subject 917558 session 2
+Data eig done in 126.9678 seconds
+Working on subject 468050 session 1
+Data eig done in 126.9342 seconds
+Working on subject 468050 session 2
+Data eig done in 130.7879 seconds
+Working on subject 204622 session 1
+Data eig done in 125.648 seconds
+Working on subject 204622 session 2
+Data eig done in 127.0703 seconds
+continue
+continue
+Working on subject 298455 session 1
+Data eig done in 126.7846 seconds
+Working on subject 298455 session 2
+Data eig done in 127.9604 seconds
+Working on subject 250427 session 1
+Data eig done in 128.4504 seconds
+Working on subject 250427 session 2
+Data eig done in 127.67 seconds
+Working on subject 820745 session 1
+Data eig done in 126.307 seconds
+Working on subject 820745 session 2
+Data eig done in 126.2709 seconds
+continue
+continue
+Working on subject 103010 session 1
+Data eig done in 127.7972 seconds
+Working on subject 103010 session 2
+Data eig done in 127.8818 seconds
+Working on subject 656657 session 1
+Data eig done in 126.1397 seconds
+Working on subject 656657 session 2
+Data eig done in 128.767 seconds
+Working on subject 884064 session 1
+Data eig done in 126.2184 seconds
+Working on subject 884064 session 2
+Data eig done in 126.7174 seconds
+Working on subject 171431 session 1
+Data eig done in 127.461 seconds
+Working on subject 171431 session 2
+Data eig done in 88.0343 seconds
+Working on subject 512835 session 1
+Data eig done in 128.4248 seconds
+Working on subject 512835 session 2
+Data eig done in 149.948 seconds
+Working on subject 197348 session 1
+Data eig done in 127.1812 seconds
+Working on subject 197348 session 2
+Data eig done in 127.7483 seconds
+Working on subject 316835 session 1
+Data eig done in 127.0588 seconds
+Working on subject 316835 session 2
+Data eig done in 128.1044 seconds
+Working on subject 187345 session 1
+Data eig done in 127.2671 seconds
+Working on subject 187345 session 2
+Data eig done in 126.9374 seconds
+Working on subject 378857 session 1
+Data eig done in 127.8839 seconds
+Working on subject 378857 session 2
+Data eig done in 128.2265 seconds
+continue
+continue
+Working on subject 298051 session 1
+Data eig done in 127.3311 seconds
+Working on subject 298051 session 2
+Data eig done in 128.7623 seconds
+Working on subject 209531 session 1
+Data eig done in 127.5341 seconds
+Working on subject 233326 session 1
+Data eig done in 128.1917 seconds
+Working on subject 233326 session 2
+Data eig done in 127.8138 seconds
+continue
+continue
+Working on subject 111312 session 1
+Data eig done in 126.0052 seconds
+Working on subject 111312 session 2
+Data eig done in 129.2237 seconds
+Working on subject 195041 session 1
+Data eig done in 128.3669 seconds
+Working on subject 195041 session 2
+Data eig done in 126.6789 seconds
+Working on subject 547046 session 1
+Data eig done in 127.3968 seconds
+Working on subject 547046 session 2
+Data eig done in 126.3071 seconds
+continue
+continue
+Working on subject 152831 session 1
+Data eig done in 134.3234 seconds
+Working on subject 152831 session 2
+Data eig done in 127.3412 seconds
+Working on subject 114419 session 1
+Data eig done in 127.7968 seconds
+Working on subject 114419 session 2
+Data eig done in 132.2206 seconds
+Working on subject 519647 session 1
+Data eig done in 126.4786 seconds
+Working on subject 519647 session 2
+Data eig done in 127.7746 seconds
+Working on subject 899885 session 1
+Data eig done in 126.3655 seconds
+Working on subject 899885 session 2
+Data eig done in 127.4988 seconds
+Working on subject 134324 session 1
+Data eig done in 125.9528 seconds
+Working on subject 134324 session 2
+Data eig done in 128.6381 seconds
+Working on subject 962058 session 1
+Data eig done in 125.8386 seconds
+Working on subject 962058 session 2
+Data eig done in 127.657 seconds
+Working on subject 788876 session 1
+Data eig done in 129.7826 seconds
+Working on subject 788876 session 2
+Data eig done in 127.7376 seconds
+continue
+continue
+continue
+continue
+Working on subject 695768 session 1
+Data eig done in 127.4475 seconds
+Working on subject 695768 session 2
+Data eig done in 132.3178 seconds
+Working on subject 107422 session 1
+Data eig done in 127.8484 seconds
+Working on subject 107422 session 2
+Data eig done in 128.1925 seconds
+Working on subject 113619 session 1
+Data eig done in 128.0658 seconds
+Working on subject 113619 session 2
+Data eig done in 127.5577 seconds
+Working on subject 139435 session 1
+Data eig done in 127.3606 seconds
+Working on subject 139435 session 2
+Data eig done in 128.2563 seconds
+Working on subject 134425 session 1
+Data eig done in 127.235 seconds
+Working on subject 134425 session 2
+Data eig done in 128.4479 seconds
+Working on subject 720337 session 1
+Data eig done in 128.5665 seconds
+Working on subject 720337 session 2
+Data eig done in 128.2118 seconds
+Working on subject 561949 session 1
+Data eig done in 126.9782 seconds
+Working on subject 561949 session 2
+Data eig done in 126.7661 seconds
+Working on subject 973770 session 1
+Data eig done in 125.7093 seconds
+Working on subject 175742 session 1
+Data eig done in 127.1066 seconds
+Working on subject 175742 session 2
+Data eig done in 128.4551 seconds
+Working on subject 441939 session 1
+Data eig done in 129.0914 seconds
+Working on subject 441939 session 2
+Data eig done in 126.5858 seconds
+continue
+continue
+Working on subject 114924 session 1
+Data eig done in 128.1663 seconds
+Working on subject 114924 session 2
+Data eig done in 128.4466 seconds
+Working on subject 172433 session 1
+Data eig done in 129.2071 seconds
+Working on subject 172433 session 2
+Data eig done in 129.6663 seconds
+Working on subject 989987 session 1
+Data eig done in 129.0086 seconds
+Working on subject 989987 session 2
+Data eig done in 126.192 seconds
+Working on subject 213421 session 1
+Data eig done in 133.9234 seconds
+Working on subject 213421 session 2
+Data eig done in 127.7383 seconds
+Working on subject 227533 session 1
+Data eig done in 126.9117 seconds
+Working on subject 227533 session 2
+Data eig done in 127.6758 seconds
+continue
+continue
+Working on subject 142828 session 1
+Data eig done in 128.0452 seconds
+Working on subject 142828 session 2
+Data eig done in 127.447 seconds
+Working on subject 317332 session 1
+Data eig done in 127.4407 seconds
+Working on subject 317332 session 2
+Data eig done in 130.4927 seconds
+continue
+continue
+Working on subject 148133 session 1
+Data eig done in 126.992 seconds
+Working on subject 148133 session 2
+Data eig done in 126.2175 seconds
+Working on subject 852455 session 1
+Data eig done in 126.8093 seconds
+Working on subject 852455 session 2
+Data eig done in 127.7743 seconds
+continue
+continue
+Working on subject 634748 session 1
+Data eig done in 127.1021 seconds
+Working on subject 634748 session 2
+Data eig done in 127.4527 seconds
+Working on subject 737960 session 1
+Data eig done in 127.7961 seconds
+Working on subject 737960 session 2
+Data eig done in 127.2473 seconds
+Working on subject 132118 session 1
+Data eig done in 127.2491 seconds
+Working on subject 132118 session 2
+Data eig done in 127.6645 seconds
+Working on subject 173132 session 1
+Data eig done in 126.7313 seconds
+Working on subject 467351 session 1
+Data eig done in 128.9959 seconds
+Working on subject 467351 session 2
+Data eig done in 126.1145 seconds
+Working on subject 454140 session 1
+Data eig done in 135.9182 seconds
+Working on subject 454140 session 2
+Data eig done in 128.5181 seconds
+Working on subject 529549 session 1
+Data eig done in 127.2379 seconds
+Working on subject 529549 session 2
+Data eig done in 128.9836 seconds
+Working on subject 140117 session 1
+Data eig done in 128.8226 seconds
+Working on subject 140117 session 2
+Data eig done in 137.488 seconds
+Working on subject 825654 session 1
+Data eig done in 136.7016 seconds
+Working on subject 825654 session 2
+Data eig done in 126.703 seconds
+Working on subject 160123 session 1
+Data eig done in 129.7584 seconds
+Working on subject 160123 session 2
+Data eig done in 128.5488 seconds
+Working on subject 713239 session 1
+Data eig done in 127.7017 seconds
+Working on subject 713239 session 2
+Data eig done in 125.5347 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 159744 session 1
+Data eig done in 127.2665 seconds
+Working on subject 159744 session 2
+Data eig done in 127.5891 seconds
+Working on subject 248339 session 1
+Data eig done in 127.8196 seconds
+Working on subject 248339 session 2
+Data eig done in 139.7097 seconds
+Working on subject 192540 session 1
+Data eig done in 126.9804 seconds
+Working on subject 192540 session 2
+Data eig done in 126.7141 seconds
+continue
+continue
+continue
+continue
+Working on subject 186848 session 1
+Data eig done in 126.3698 seconds
+Working on subject 186848 session 2
+Data eig done in 127.962 seconds
+continue
+continue
+continue
+continue
+Working on subject 136631 session 1
+Data eig done in 127.0808 seconds
+Working on subject 136631 session 2
+Data eig done in 125.3973 seconds
+Working on subject 645551 session 1
+Data eig done in 130.9935 seconds
+Working on subject 645551 session 2
+Data eig done in 128.3215 seconds
+Working on subject 995174 session 1
+Data eig done in 128.4974 seconds
+Working on subject 995174 session 2
+Data eig done in 129.6062 seconds
+Working on subject 178748 session 1
+Data eig done in 127.6558 seconds
+Working on subject 178748 session 2
+Data eig done in 128.3349 seconds
+Working on subject 395958 session 1
+Data eig done in 125.2985 seconds
+Working on subject 395958 session 2
+Data eig done in 127.4237 seconds
+continue
+continue
+Working on subject 149842 session 1
+Data eig done in 125.533 seconds
+Working on subject 149842 session 2
+Data eig done in 126.4903 seconds
+Working on subject 268850 session 1
+Data eig done in 135.9784 seconds
+Working on subject 268850 session 2
+Data eig done in 127.0095 seconds
+Working on subject 613538 session 1
+Data eig done in 127.9622 seconds
+Working on subject 613538 session 2
+Data eig done in 126.6469 seconds
+continue
+continue
+Working on subject 158035 session 1
+Data eig done in 126.5545 seconds
+Working on subject 158035 session 2
+Data eig done in 128.775 seconds
+Working on subject 155231 session 1
+Data eig done in 127.9023 seconds
+continue
+continue
+Working on subject 144731 session 1
+Data eig done in 127.9976 seconds
+Working on subject 144731 session 2
+Data eig done in 128.1871 seconds
+Working on subject 111413 session 1
+Data eig done in 126.6895 seconds
+Working on subject 111413 session 2
+Data eig done in 126.1211 seconds
+continue
+continue
+Working on subject 164636 session 1
+Data eig done in 126.0454 seconds
+Working on subject 164636 session 2
+Data eig done in 128.2219 seconds
+Working on subject 128935 session 1
+Data eig done in 128.6445 seconds
+Working on subject 128935 session 2
+Data eig done in 129.7401 seconds
+Working on subject 175439 session 1
+Data eig done in 128.0853 seconds
+Working on subject 175439 session 2
+Data eig done in 137.4133 seconds
+Working on subject 153934 session 1
+Data eig done in 126.2346 seconds
+Working on subject 153934 session 2
+Data eig done in 126.8118 seconds
+Working on subject 140319 session 1
+Data eig done in 126.7611 seconds
+Working on subject 140319 session 2
+Data eig done in 125.3199 seconds
+Working on subject 179245 session 1
+Data eig done in 126.7336 seconds
+Working on subject 179245 session 2
+Data eig done in 127.9882 seconds
+Working on subject 597869 session 1
+Data eig done in 126.6387 seconds
+Working on subject 597869 session 2
+Data eig done in 127.3651 seconds
+continue
+continue
+Working on subject 901139 session 1
+Data eig done in 125.3832 seconds
+Working on subject 901139 session 2
+Data eig done in 126.4746 seconds
+Working on subject 153126 session 1
+Data eig done in 126.6162 seconds
+Working on subject 153126 session 2
+Data eig done in 126.6249 seconds
+continue
+Working on subject 186141 session 1
+Data eig done in 127.2847 seconds
+Working on subject 186141 session 2
+Data eig done in 127.4331 seconds
+continue
+continue
+Working on subject 209127 session 1
+Data eig done in 127.3408 seconds
+Working on subject 209127 session 2
+Data eig done in 126.1185 seconds
+Working on subject 401422 session 1
+Data eig done in 126.1116 seconds
+Working on subject 401422 session 2
+Data eig done in 135.6662 seconds
+Working on subject 748258 session 1
+Data eig done in 129.188 seconds
+Working on subject 748258 session 2
+Data eig done in 124.9043 seconds
+Working on subject 701535 session 1
+Data eig done in 127.0834 seconds
+continue
+continue
+Working on subject 589567 session 1
+Data eig done in 128.2764 seconds
+Working on subject 589567 session 2
+Data eig done in 126.9383 seconds
+Working on subject 208226 session 1
+Data eig done in 127.9815 seconds
+Working on subject 208226 session 2
+Data eig done in 127.7644 seconds
+continue
+continue
+Working on subject 195950 session 1
+Data eig done in 129.1814 seconds
+Working on subject 195950 session 2
+Data eig done in 126.7952 seconds
+Working on subject 153429 session 1
+Data eig done in 127.1665 seconds
+Working on subject 153429 session 2
+Data eig done in 127.2585 seconds
+Working on subject 802844 session 1
+Data eig done in 126.0643 seconds
+Working on subject 802844 session 2
+Data eig done in 127.2856 seconds
+continue
+continue
+Working on subject 573249 session 1
+Data eig done in 127.3344 seconds
+Working on subject 573249 session 2
+Data eig done in 126.8283 seconds
+Working on subject 185038 session 1
+Data eig done in 126.456 seconds
+Working on subject 185038 session 2
+Data eig done in 128.1051 seconds
+Working on subject 118831 session 1
+Data eig done in 127.698 seconds
+Working on subject 118831 session 2
+Data eig done in 132.202 seconds
+Working on subject 849264 session 1
+Data eig done in 127.3365 seconds
+Working on subject 849264 session 2
+Data eig done in 127.4225 seconds
+continue
+continue
+Working on subject 168341 session 1
+Data eig done in 128.0136 seconds
+Working on subject 168341 session 2
+Data eig done in 126.7077 seconds
+Working on subject 145834 session 1
+Data eig done in 127.1413 seconds
+Working on subject 145834 session 2
+Data eig done in 126.4731 seconds
+Working on subject 104820 session 1
+Data eig done in 128.5948 seconds
+Working on subject 104820 session 2
+Data eig done in 128.597 seconds
+continue
+continue
+continue
+continue
+Working on subject 397861 session 1
+Data eig done in 128.7441 seconds
+Working on subject 397861 session 2
+Data eig done in 126.742 seconds
+Working on subject 141119 session 1
+Data eig done in 126.2783 seconds
+Working on subject 141119 session 2
+Data eig done in 127.8296 seconds
+Working on subject 129028 session 1
+Data eig done in 126.529 seconds
+Working on subject 129028 session 2
+Data eig done in 126.9842 seconds
+Working on subject 161731 session 1
+Data eig done in 126.8244 seconds
+Working on subject 161731 session 2
+Data eig done in 127.3533 seconds
+Working on subject 205119 session 1
+Data eig done in 127.533 seconds
+Working on subject 205119 session 2
+Data eig done in 126.8625 seconds
+Working on subject 857263 session 1
+Data eig done in 128.3423 seconds
+Working on subject 857263 session 2
+Data eig done in 126.9769 seconds
+continue
+continue
+continue
+continue
+Working on subject 749058 session 1
+Data eig done in 126.7306 seconds
+Working on subject 749058 session 2
+Data eig done in 128.0686 seconds
+Working on subject 191841 session 1
+Data eig done in 126.2602 seconds
+Working on subject 191841 session 2
+Data eig done in 127.7315 seconds
+Working on subject 169949 session 1
+Data eig done in 126.2958 seconds
+Working on subject 169949 session 2
+Data eig done in 127.6695 seconds
+Working on subject 145531 session 1
+Data eig done in 127.0336 seconds
+continue
+continue
+Working on subject 227432 session 1
+Data eig done in 128.082 seconds
+Working on subject 227432 session 2
+Data eig done in 129.0933 seconds
+continue
+continue
+Working on subject 169545 session 1
+Data eig done in 126.9303 seconds
+Working on subject 169545 session 2
+Data eig done in 126.1633 seconds
+continue
+continue
+Working on subject 919966 session 1
+Data eig done in 134.5098 seconds
+Working on subject 919966 session 2
+Data eig done in 126.6305 seconds
+continue
+continue
+Working on subject 209228 session 1
+Data eig done in 127.8083 seconds
+Working on subject 209228 session 2
+Data eig done in 126.8972 seconds
+continue
+continue
+continue
+continue
+Working on subject 569965 session 1
+Data eig done in 127.5354 seconds
+Working on subject 569965 session 2
+Data eig done in 128.4606 seconds
+continue
+continue
+Working on subject 818455 session 1
+Data eig done in 128.1796 seconds
+Working on subject 818455 session 2
+Data eig done in 129.0756 seconds
+continue
+continue
+Working on subject 314225 session 1
+Data eig done in 132.3941 seconds
+Working on subject 314225 session 2
+Data eig done in 129.0316 seconds
+Working on subject 135730 session 1
+Data eig done in 128.8304 seconds
+Working on subject 135730 session 2
+Data eig done in 128.5042 seconds
+Working on subject 135225 session 1
+Data eig done in 128.4526 seconds
+Working on subject 135225 session 2
+Data eig done in 127.5127 seconds
+Working on subject 202820 session 1
+Data eig done in 88.5775 seconds
+Working on subject 202820 session 2
+Data eig done in 128.5256 seconds
+Working on subject 127327 session 1
+Data eig done in 134.797 seconds
+Working on subject 127327 session 2
+Data eig done in 127.9355 seconds
+Working on subject 365343 session 1
+Data eig done in 128.6274 seconds
+Working on subject 365343 session 2
+Data eig done in 128.9805 seconds
+Working on subject 352132 session 1
+Data eig done in 127.7097 seconds
+Working on subject 352132 session 2
+Data eig done in 128.9761 seconds
+Working on subject 677968 session 1
+Data eig done in 128.3772 seconds
+Working on subject 677968 session 2
+Data eig done in 128.8181 seconds
+Working on subject 109123 session 1
+Data eig done in 127.2315 seconds
+Working on subject 109123 session 2
+Data eig done in 126.8274 seconds
+continue
+continue
+Working on subject 647858 session 1
+Data eig done in 128.1763 seconds
+Working on subject 647858 session 2
+Data eig done in 126.9525 seconds
+Working on subject 110411 session 1
+Data eig done in 127.8492 seconds
+Working on subject 110411 session 2
+Data eig done in 127.6975 seconds
+continue
+continue
+Working on subject 207123 session 1
+Data eig done in 128.2142 seconds
+Working on subject 207123 session 2
+Data eig done in 126.0736 seconds
+continue
+continue
+Working on subject 156031 session 1
+Data eig done in 129.672 seconds
+Working on subject 156031 session 2
+Data eig done in 127.1722 seconds
+Working on subject 156536 session 1
+Data eig done in 127.31 seconds
+Working on subject 156536 session 2
+Data eig done in 127.4793 seconds
+Working on subject 154431 session 1
+Data eig done in 127.1734 seconds
+Working on subject 154431 session 2
+Data eig done in 127.7418 seconds
+continue
+continue
+continue
+Working on subject 214625 session 1
+Data eig done in 128.0078 seconds
+Working on subject 214625 session 2
+Data eig done in 126.7048 seconds
+Working on subject 185947 session 1
+Data eig done in 126.6965 seconds
+Working on subject 185947 session 2
+Data eig done in 129.9298 seconds
+continue
+continue
+Working on subject 183337 session 1
+Data eig done in 127.1203 seconds
+Working on subject 183337 session 2
+Data eig done in 98.9024 seconds
+Working on subject 590047 session 1
+Data eig done in 128.9169 seconds
+Working on subject 590047 session 2
+Data eig done in 128.3059 seconds
+continue
+continue
+Working on subject 114823 session 1
+Data eig done in 127.0598 seconds
+Working on subject 114823 session 2
+Data eig done in 128.9296 seconds
+continue
+continue
+Working on subject 585862 session 1
+Data eig done in 126.4513 seconds
+Working on subject 585862 session 2
+Data eig done in 126.7647 seconds
+continue
+continue
+Working on subject 102715 session 1
+Data eig done in 128.8982 seconds
+Working on subject 102715 session 2
+Data eig done in 127.0194 seconds
+continue
+continue
+Working on subject 101006 session 1
+Data eig done in 125.4806 seconds
+Working on subject 101006 session 2
+Data eig done in 127.256 seconds
+continue
+continue
+continue
+continue
+Working on subject 186949 session 1
+Data eig done in 127.1316 seconds
+Working on subject 970764 session 1
+Data eig done in 127.5962 seconds
+Working on subject 970764 session 2
+Data eig done in 127.4629 seconds
+continue
+continue
+continue
+continue
+Working on subject 156637 session 1
+Data eig done in 127.1723 seconds
+Working on subject 156637 session 2
+Data eig done in 127.3815 seconds
+Working on subject 812746 session 1
+Data eig done in 126.7386 seconds
+Working on subject 812746 session 2
+Data eig done in 127.6245 seconds
+continue
+continue
+Working on subject 151627 session 1
+Data eig done in 126.8855 seconds
+Working on subject 151627 session 2
+Data eig done in 127.7598 seconds
+continue
+Working on subject 102513 session 1
+Data eig done in 126.4762 seconds
+Working on subject 102513 session 2
+Data eig done in 131.6129 seconds
+continue
+continue
+Working on subject 966975 session 1
+Data eig done in 127.1484 seconds
+Working on subject 966975 session 2
+Data eig done in 128.251 seconds
+Working on subject 122620 session 1
+Data eig done in 128.2369 seconds
+Working on subject 122620 session 2
+Data eig done in 126.4051 seconds
+Working on subject 138231 session 1
+Data eig done in 130.4754 seconds
+Working on subject 138231 session 2
+Data eig done in 126.8626 seconds
+Working on subject 479762 session 1
+Data eig done in 127.1459 seconds
+Working on subject 479762 session 2
+Data eig done in 125.5949 seconds
+continue
+continue
+Working on subject 911849 session 1
+Data eig done in 127.2161 seconds
+Working on subject 911849 session 2
+Data eig done in 126.582 seconds
+Working on subject 124826 session 1
+Data eig done in 126.507 seconds
+Working on subject 124826 session 2
+Data eig done in 127.9403 seconds
+Working on subject 159441 session 1
+Data eig done in 128.3776 seconds
+Working on subject 159441 session 2
+Data eig done in 127.194 seconds
+Working on subject 432332 session 1
+Data eig done in 126.892 seconds
+Working on subject 432332 session 2
+Data eig done in 126.9536 seconds
+Working on subject 626648 session 1
+Data eig done in 127.3539 seconds
+Working on subject 626648 session 2
+Data eig done in 127.319 seconds
+Working on subject 548250 session 1
+Data eig done in 127.0581 seconds
+Working on subject 548250 session 2
+Data eig done in 127.8436 seconds
+Working on subject 453441 session 1
+Data eig done in 126.7565 seconds
+Working on subject 453441 session 2
+Data eig done in 125.8316 seconds
+Working on subject 155938 session 1
+Data eig done in 127.4581 seconds
+Working on subject 155938 session 2
+Data eig done in 127.2702 seconds
+Working on subject 877269 session 1
+Data eig done in 126.8162 seconds
+Working on subject 877269 session 2
+Data eig done in 126.5901 seconds
+Working on subject 856463 session 1
+Data eig done in 127.4504 seconds
+Working on subject 856463 session 2
+Data eig done in 126.2242 seconds
+Working on subject 201111 session 1
+Data eig done in 132.4529 seconds
+Working on subject 201111 session 2
+Data eig done in 127.5128 seconds
+Working on subject 190132 session 1
+Data eig done in 126.274 seconds
+continue
+continue
+Working on subject 180735 session 1
+Data eig done in 126.7512 seconds
+Working on subject 180735 session 2
+Data eig done in 126.5589 seconds
+Working on subject 880157 session 1
+Data eig done in 126.5475 seconds
+Working on subject 880157 session 2
+Data eig done in 126.6382 seconds
+Working on subject 137229 session 1
+Data eig done in 126.3941 seconds
+Working on subject 137229 session 2
+Data eig done in 126.4027 seconds
+Working on subject 567052 session 1
+Data eig done in 127.6627 seconds
+Working on subject 567052 session 2
+Data eig done in 127.2413 seconds
+Working on subject 522434 session 1
+Data eig done in 128.1941 seconds
+Working on subject 522434 session 2
+Data eig done in 127.3192 seconds
+Working on subject 421226 session 1
+Data eig done in 126.9159 seconds
+Working on subject 421226 session 2
+Data eig done in 127.4664 seconds
+continue
+continue
+Working on subject 585256 session 1
+Data eig done in 126.8775 seconds
+Working on subject 585256 session 2
+Data eig done in 126.5873 seconds
+continue
+continue
+Working on subject 623137 session 1
+Data eig done in 127.964 seconds
+Working on subject 149337 session 1
+Data eig done in 127.154 seconds
+Working on subject 149337 session 2
+Data eig done in 126.9464 seconds
+continue
+continue
+Working on subject 213017 session 1
+Data eig done in 126.9099 seconds
+Working on subject 213017 session 2
+Data eig done in 127.9803 seconds
+Working on subject 654350 session 1
+Data eig done in 127.452 seconds
+Working on subject 654350 session 2
+Data eig done in 126.4633 seconds
+Working on subject 692964 session 1
+Data eig done in 131.5524 seconds
+Working on subject 692964 session 2
+Data eig done in 127.8786 seconds
+Working on subject 108222 session 1
+Data eig done in 128.8518 seconds
+Working on subject 108222 session 2
+Data eig done in 126.2448 seconds
+continue
+continue
+Working on subject 751348 session 1
+Data eig done in 129.7422 seconds
+Working on subject 751348 session 2
+Data eig done in 125.416 seconds
+Working on subject 580650 session 1
+Data eig done in 126.8433 seconds
+Working on subject 580650 session 2
+Data eig done in 126.3497 seconds
+continue
+Working on subject 122317 session 2
+Data eig done in 129.0293 seconds
+continue
+continue
+continue
+continue
+Working on subject 771354 session 1
+Data eig done in 126.926 seconds
+Working on subject 771354 session 2
+Data eig done in 127.2207 seconds
+Working on subject 888678 session 1
+Data eig done in 130.0935 seconds
+Working on subject 888678 session 2
+Data eig done in 128.5571 seconds
+Working on subject 680250 session 1
+Data eig done in 127.659 seconds
+Working on subject 680250 session 2
+Data eig done in 126.8812 seconds
+Working on subject 167036 session 1
+Data eig done in 128.9822 seconds
+Working on subject 167036 session 2
+Data eig done in 128.0578 seconds
+Working on subject 127226 session 1
+Data eig done in 127.2459 seconds
+Working on subject 127226 session 2
+Data eig done in 136.1614 seconds
+continue
+Working on subject 183741 session 1
+Data eig done in 126.5433 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 588565 session 1
+Data eig done in 126.2381 seconds
+Working on subject 588565 session 2
+Data eig done in 127.5237 seconds
+Working on subject 773257 session 1
+Data eig done in 133.744 seconds
+Working on subject 773257 session 2
+Data eig done in 126.3418 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 125222 session 1
+Data eig done in 126.6468 seconds
+Working on subject 125222 session 2
+Data eig done in 127.2943 seconds
+Working on subject 136126 session 1
+Data eig done in 126.6275 seconds
+Working on subject 136126 session 2
+Data eig done in 127.9736 seconds
+continue
+continue
+Working on subject 107321 session 1
+Data eig done in 125.686 seconds
+Working on subject 107321 session 2
+Data eig done in 127.3828 seconds
+continue
+continue
+continue
+continue
+continue
+Working on subject 204218 session 1
+Data eig done in 127.033 seconds
+Working on subject 204218 session 2
+Data eig done in 125.8752 seconds
+Working on subject 725751 session 1
+Data eig done in 126.1757 seconds
+Working on subject 725751 session 2
+Data eig done in 126.4006 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 154229 session 1
+Data eig done in 126.5018 seconds
+Working on subject 154229 session 2
+Data eig done in 128.0623 seconds
+Working on subject 169747 session 1
+Data eig done in 128.4156 seconds
+Working on subject 169747 session 2
+Data eig done in 95.5388 seconds
+continue
+continue
+Working on subject 257542 session 1
+Data eig done in 127.6139 seconds
+Working on subject 257542 session 2
+Data eig done in 127.5974 seconds
+Working on subject 130922 session 1
+Data eig done in 128.5609 seconds
+Working on subject 130922 session 2
+Data eig done in 127.4532 seconds
+Working on subject 212015 session 1
+Data eig done in 127.4907 seconds
+Working on subject 212015 session 2
+Data eig done in 128.4202 seconds
+Working on subject 123420 session 1
+Data eig done in 127.341 seconds
+Working on subject 123420 session 2
+Data eig done in 129.7877 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 171532 session 1
+Data eig done in 127.4443 seconds
+Working on subject 171532 session 2
+Data eig done in 127.5245 seconds
+Working on subject 151223 session 1
+Data eig done in 126.9145 seconds
+Working on subject 151223 session 2
+Data eig done in 125.961 seconds
+Working on subject 616645 session 1
+Data eig done in 127.0955 seconds
+Working on subject 616645 session 2
+Data eig done in 128.3315 seconds
+Working on subject 134728 session 1
+Data eig done in 126.0461 seconds
+Working on subject 134728 session 2
+Data eig done in 125.7215 seconds
+Working on subject 395251 session 1
+Data eig done in 126.7973 seconds
+Working on subject 395251 session 2
+Data eig done in 126.4544 seconds
+continue
+continue
+Working on subject 757764 session 1
+Data eig done in 130.8776 seconds
+Working on subject 757764 session 2
+Data eig done in 126.2268 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 173839 session 1
+Data eig done in 127.7751 seconds
+Working on subject 173839 session 2
+Data eig done in 126.0522 seconds
+continue
+continue
+continue
+continue
+Working on subject 103111 session 1
+Data eig done in 127.9598 seconds
+Working on subject 103111 session 2
+Data eig done in 127.1102 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 140824 session 1
+Data eig done in 126.8093 seconds
+Working on subject 140824 session 2
+Data eig done in 127.9685 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 827052 session 1
+Data eig done in 128.0929 seconds
+Working on subject 827052 session 2
+Data eig done in 126.1419 seconds
+Working on subject 559053 session 1
+Data eig done in 126.4584 seconds
+Working on subject 559053 session 2
+Data eig done in 126.6952 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 657659 session 1
+Data eig done in 128.7995 seconds
+Working on subject 657659 session 2
+Data eig done in 127.7088 seconds
+Working on subject 161630 session 1
+Data eig done in 127.9311 seconds
+Working on subject 161630 session 2
+Data eig done in 129.1887 seconds
+Working on subject 152427 session 1
+Data eig done in 130.8438 seconds
+Working on subject 152427 session 2
+Data eig done in 126.7116 seconds
+continue
+continue
+Working on subject 152225 session 1
+Data eig done in 129.5706 seconds
+Working on subject 152225 session 2
+Data eig done in 128.7607 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 101915 session 1
+Data eig done in 127.1942 seconds
+Working on subject 101915 session 2
+Data eig done in 127.9012 seconds
+continue
+continue
+continue
+continue
+Working on subject 186040 session 1
+Data eig done in 129.5401 seconds
+Working on subject 186040 session 2
+Data eig done in 128.6587 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 818859 session 1
+Data eig done in 127.9383 seconds
+Working on subject 818859 session 2
+Data eig done in 127.3384 seconds
+continue
+continue
+continue
+continue
+Working on subject 419239 session 1
+Data eig done in 126.5407 seconds
+Working on subject 419239 session 2
+Data eig done in 127.8546 seconds
+continue
+Working on subject 137431 session 1
+Data eig done in 128.2219 seconds
+Working on subject 137431 session 2
+Data eig done in 127.6305 seconds
+continue
+continue
+Working on subject 761957 session 1
+Data eig done in 128.7047 seconds
+Working on subject 761957 session 2
+Data eig done in 127.2079 seconds
+continue
+continue
+Working on subject 126426 session 1
+Data eig done in 127.8433 seconds
+Working on subject 126426 session 2
+Data eig done in 130.4496 seconds
+continue
+continue
+continue
+continue
+Working on subject 113417 session 1
+Data eig done in 127.8396 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 705341 session 1
+Data eig done in 127.7684 seconds
+Working on subject 705341 session 2
+Data eig done in 131.2404 seconds
+continue
+continue
+continue
+continue
+Working on subject 638049 session 1
+Data eig done in 134.7342 seconds
+Working on subject 638049 session 2
+Data eig done in 127.5405 seconds
+continue
+continue
+Working on subject 530635 session 1
+Data eig done in 127.5665 seconds
+Working on subject 530635 session 2
+Data eig done in 128.5905 seconds
+continue
+continue
+Working on subject 209329 session 1
+Data eig done in 126.3601 seconds
+Working on subject 209329 session 2
+Data eig done in 126.8175 seconds
+Working on subject 150524 session 1
+Data eig done in 126.3642 seconds
+Working on subject 380036 session 1
+Data eig done in 130.3539 seconds
+Working on subject 380036 session 2
+Data eig done in 138.5442 seconds
+continue
+continue
+Working on subject 141422 session 1
+Data eig done in 129.2509 seconds
+Working on subject 141422 session 2
+Data eig done in 127.9462 seconds
+continue
+continue
+Working on subject 188448 session 1
+Data eig done in 127.6593 seconds
+Working on subject 188448 session 2
+Data eig done in 127.563 seconds
+continue
+continue
+Working on subject 926862 session 1
+Data eig done in 131.5922 seconds
+Working on subject 926862 session 2
+Data eig done in 125.6751 seconds
+Working on subject 728454 session 1
+Data eig done in 127.866 seconds
+Working on subject 728454 session 2
+Data eig done in 126.7254 seconds
+Working on subject 107018 session 1
+Data eig done in 127.5258 seconds
+Working on subject 107018 session 2
+Data eig done in 127.2108 seconds
+Working on subject 693764 session 1
+Data eig done in 126.2805 seconds
+Working on subject 693764 session 2
+Data eig done in 126.7063 seconds
+continue
+continue
+continue
+continue
+Working on subject 208024 session 1
+Data eig done in 127.7645 seconds
+Working on subject 208024 session 2
+Data eig done in 127.5258 seconds
+Working on subject 186545 session 1
+Data eig done in 125.3432 seconds
+Working on subject 186545 session 2
+Data eig done in 128.1098 seconds
+continue
+continue
+continue
+continue
+Working on subject 912447 session 1
+Data eig done in 126.7689 seconds
+Working on subject 912447 session 2
+Data eig done in 128.3145 seconds
+Working on subject 130821 session 1
+Data eig done in 127.6861 seconds
+Working on subject 130821 session 2
+Data eig done in 129.2952 seconds
+Working on subject 195849 session 1
+Data eig done in 127.1373 seconds
+Working on subject 195849 session 2
+Data eig done in 127.4765 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 175136 session 1
+Data eig done in 127.3204 seconds
+Working on subject 175136 session 2
+Data eig done in 126.684 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 310621 session 1
+Data eig done in 131.6603 seconds
+Working on subject 310621 session 2
+Data eig done in 129.1341 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 843151 session 1
+Data eig done in 127.7549 seconds
+Working on subject 843151 session 2
+Data eig done in 126.4863 seconds
+continue
+continue
+continue
+continue
+continue
+Working on subject 499566 session 1
+Data eig done in 128.3972 seconds
+Working on subject 499566 session 2
+Data eig done in 126.7077 seconds
+Working on subject 102311 session 1
+Data eig done in 126.2457 seconds
+Working on subject 102311 session 2
+Data eig done in 128.0695 seconds
+Working on subject 680452 session 1
+Data eig done in 126.8842 seconds
+Working on subject 680452 session 2
+Data eig done in 125.8299 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 381038 session 1
+Data eig done in 138.5581 seconds
+Working on subject 381038 session 2
+Data eig done in 128.4838 seconds
+continue
+continue
+Working on subject 555954 session 1
+Data eig done in 126.4122 seconds
+Working on subject 555954 session 2
+Data eig done in 126.504 seconds
+continue
+continue
+Working on subject 727654 session 1
+Data eig done in 126.1951 seconds
+Working on subject 727654 session 2
+Data eig done in 127.1247 seconds
+continue
+continue
+Working on subject 173940 session 1
+Data eig done in 127.4336 seconds
+Working on subject 173940 session 2
+Data eig done in 126.8171 seconds
+Working on subject 635245 session 1
+Data eig done in 126.9401 seconds
+Working on subject 635245 session 2
+Data eig done in 127.8265 seconds
+continue
+continue
+Working on subject 992673 session 1
+Data eig done in 127.6335 seconds
+Working on subject 992673 session 2
+Data eig done in 126.0785 seconds
+continue
+continue
+continue
+continue
+Working on subject 732243 session 1
+Data eig done in 126.2593 seconds
+Working on subject 732243 session 2
+Data eig done in 127.1402 seconds
+Working on subject 194140 session 1
+Data eig done in 127.5281 seconds
+Working on subject 194140 session 2
+Data eig done in 126.1722 seconds
+continue
+continue
+Working on subject 171330 session 1
+Data eig done in 126.9245 seconds
+Working on subject 171330 session 2
+Data eig done in 127.2569 seconds
+continue
+continue
+Working on subject 198855 session 1
+Data eig done in 143.2306 seconds
+Working on subject 198855 session 2
+Data eig done in 126.4739 seconds
+Working on subject 679770 session 1
+Data eig done in 127.9203 seconds
+Working on subject 679770 session 2
+Data eig done in 127.3734 seconds
+Working on subject 286650 session 1
+Data eig done in 128.4504 seconds
+Working on subject 286650 session 2
+Data eig done in 127.9806 seconds
+Working on subject 127933 session 1
+Data eig done in 127.1345 seconds
+Working on subject 127933 session 2
+Data eig done in 128.1944 seconds
+continue
+continue
+Working on subject 173637 session 1
+Data eig done in 134.5337 seconds
+Working on subject 173637 session 2
+Data eig done in 126.7414 seconds
+continue
+continue
+continue
+continue
+Working on subject 212116 session 1
+Data eig done in 127.8217 seconds
+Working on subject 212116 session 2
+Data eig done in 125.8573 seconds
+continue
+continue
+Working on subject 555348 session 1
+Data eig done in 127.6247 seconds
+Working on subject 555348 session 2
+Data eig done in 127.9565 seconds
+continue
+continue
+continue
+continue
+Working on subject 251833 session 1
+Data eig done in 127.995 seconds
+Working on subject 251833 session 2
+Data eig done in 127.0038 seconds
+Working on subject 173233 session 1
+Data eig done in 98.5212 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 111514 session 1
+Data eig done in 127.1249 seconds
+Working on subject 111514 session 2
+Data eig done in 133.2514 seconds
+Working on subject 731140 session 1
+Data eig done in 126.6854 seconds
+Working on subject 731140 session 2
+Data eig done in 128.2076 seconds
+continue
+continue
+continue
+continue
+Working on subject 143224 session 1
+Data eig done in 142.4491 seconds
+Working on subject 143224 session 2
+Data eig done in 135.0771 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 571144 session 1
+Data eig done in 126.8392 seconds
+Working on subject 571144 session 2
+Data eig done in 129.1361 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 185442 session 1
+Data eig done in 127.9772 seconds
+Working on subject 185442 session 2
+Data eig done in 127.8865 seconds
+continue
+continue
+continue
+continue
+Working on subject 176744 session 1
+Data eig done in 126.4608 seconds
+Working on subject 176744 session 2
+Data eig done in 127.39 seconds
+continue
+continue
+Working on subject 793465 session 1
+Data eig done in 127.4175 seconds
+Working on subject 793465 session 2
+Data eig done in 127.03 seconds
+Working on subject 295146 session 1
+Data eig done in 128.1601 seconds
+Working on subject 295146 session 2
+Data eig done in 127.0473 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 203418 session 1
+Data eig done in 128.1903 seconds
+Working on subject 203418 session 2
+Data eig done in 127.1922 seconds
+continue
+continue
+continue
+continue
+continue
+Working on subject 352738 session 1
+Data eig done in 129.5966 seconds
+Working on subject 352738 session 2
+Data eig done in 128.1175 seconds
+Working on subject 146331 session 1
+Data eig done in 134.9516 seconds
+Working on subject 146331 session 2
+Data eig done in 128.377 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 151930 session 1
+Data eig done in 127.1255 seconds
+Working on subject 151930 session 2
+Data eig done in 126.8487 seconds
+continue
+continue
+Working on subject 965367 session 1
+Data eig done in 126.4298 seconds
+Working on subject 965367 session 2
+Data eig done in 127.3798 seconds
+Working on subject 200210 session 1
+Data eig done in 127.689 seconds
+Working on subject 212217 session 1
+Data eig done in 126.0094 seconds
+Working on subject 212217 session 2
+Data eig done in 128.2977 seconds
+continue
+continue
+continue
+Working on subject 557857 session 1
+Data eig done in 127.1344 seconds
+Working on subject 557857 session 2
+Data eig done in 133.0384 seconds
+continue
+continue
+Working on subject 125424 session 1
+Data eig done in 126.783 seconds
+Working on subject 125424 session 2
+Data eig done in 127.6881 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 570243 session 1
+Data eig done in 128.8652 seconds
+Working on subject 570243 session 2
+Data eig done in 127.6118 seconds
+continue
+continue
+Working on subject 168947 session 1
+Data eig done in 127.4486 seconds
+Working on subject 168947 session 2
+Data eig done in 126.671 seconds
+Working on subject 172029 session 1
+Data eig done in 126.2022 seconds
+Working on subject 172029 session 2
+Data eig done in 127.3944 seconds
+continue
+continue
+Working on subject 353740 session 1
+Data eig done in 126.5047 seconds
+Working on subject 353740 session 2
+Data eig done in 125.4554 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 506234 session 1
+Data eig done in 126.231 seconds
+Working on subject 506234 session 2
+Data eig done in 124.6921 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 124624 session 1
+Data eig done in 125.4439 seconds
+Working on subject 124624 session 2
+Data eig done in 137.4186 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 536647 session 1
+Data eig done in 136.7023 seconds
+Working on subject 536647 session 2
+Data eig done in 133.7011 seconds
+continue
+continue
+Working on subject 541640 session 1
+Data eig done in 142.8274 seconds
+Working on subject 541640 session 2
+Data eig done in 126.7078 seconds
+continue
+continue
+Working on subject 803240 session 1
+Data eig done in 127.4381 seconds
+Working on subject 803240 session 2
+Data eig done in 135.435 seconds
+Working on subject 148941 session 1
+Data eig done in 138.3533 seconds
+Working on subject 148941 session 2
+Data eig done in 140.2496 seconds
+Working on subject 245333 session 1
+Data eig done in 131.7944 seconds
+Working on subject 245333 session 2
+Data eig done in 127.4991 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 753251 session 1
+Data eig done in 129.1391 seconds
+Working on subject 753251 session 2
+Data eig done in 125.5881 seconds
+continue
+Working on subject 318637 session 1
+Data eig done in 125.3835 seconds
+Working on subject 318637 session 2
+Data eig done in 124.8664 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 153732 session 1
+Data eig done in 125.7302 seconds
+Working on subject 153732 session 2
+Data eig done in 125.6944 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 255639 session 1
+Data eig done in 126.4188 seconds
+Working on subject 255639 session 2
+Data eig done in 125.6048 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 212823 session 1
+Data eig done in 125.1174 seconds
+Working on subject 212823 session 2
+Data eig done in 125.7551 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 214019 session 1
+Data eig done in 125.1726 seconds
+Working on subject 214019 session 2
+Data eig done in 125.6072 seconds
+continue
+continue
+continue
+continue
+Working on subject 119833 session 1
+Data eig done in 125.192 seconds
+Working on subject 119833 session 2
+Data eig done in 125.6897 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 297655 session 1
+Data eig done in 125.8667 seconds
+Working on subject 297655 session 2
+Data eig done in 125.6683 seconds
+Working on subject 393550 session 1
+Data eig done in 126.6471 seconds
+Working on subject 393550 session 2
+Data eig done in 126.0152 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 436239 session 1
+Data eig done in 124.2881 seconds
+Working on subject 436239 session 2
+Data eig done in 123.4126 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 174437 session 1
+Data eig done in 125.0108 seconds
+Working on subject 174437 session 2
+Data eig done in 125.2439 seconds
+continue
+continue
+Working on subject 734045 session 1
+Data eig done in 125.1269 seconds
+Working on subject 734045 session 2
+Data eig done in 125.3688 seconds
+Working on subject 141826 session 1
+Data eig done in 125.4295 seconds
+Working on subject 141826 session 2
+Data eig done in 124.5074 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 304020 session 1
+Data eig done in 143.2185 seconds
+Working on subject 304020 session 2
+Data eig done in 137.6577 seconds
+Working on subject 971160 session 1
+Data eig done in 142.4664 seconds
+Working on subject 971160 session 2
+Data eig done in 139.6483 seconds
+Working on subject 614439 session 1
+Data eig done in 137.1315 seconds
+Working on subject 614439 session 2
+Data eig done in 139.0928 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 118730 session 1
+Data eig done in 136.4009 seconds
+Working on subject 118730 session 2
+Data eig done in 137.6642 seconds
+continue
+continue
+continue
+continue
+Working on subject 668361 session 1
+Data eig done in 138.6472 seconds
+Working on subject 668361 session 2
+Data eig done in 141.6252 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 121820 session 1
+Data eig done in 124.5768 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 166640 session 1
+Data eig done in 124.9508 seconds
+Working on subject 166640 session 2
+Data eig done in 125.1093 seconds
+continue
+continue
+Working on subject 146432 session 1
+Data eig done in 125.7059 seconds
+Working on subject 146432 session 2
+Data eig done in 127.0518 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 311320 session 1
+Data eig done in 127.4015 seconds
+Working on subject 311320 session 2
+Data eig done in 125.8907 seconds
+continue
+continue
+Working on subject 121315 session 1
+Data eig done in 126.4721 seconds
+continue
+continue
+continue
+continue
+Working on subject 280739 session 1
+Data eig done in 126.4447 seconds
+Working on subject 280739 session 2
+Data eig done in 126.526 seconds
+continue
+continue
+continue
+continue
+Working on subject 108020 session 1
+Data eig done in 126.8411 seconds
+Working on subject 108020 session 2
+Data eig done in 127.7667 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 744553 session 1
+Data eig done in 128.0755 seconds
+Working on subject 744553 session 2
+Data eig done in 126.7701 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 150726 session 1
+Data eig done in 127.5005 seconds
+Working on subject 150726 session 2
+Data eig done in 127.2567 seconds
+Working on subject 157336 session 1
+Data eig done in 126.8198 seconds
+Working on subject 157336 session 2
+Data eig done in 126.8834 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 186444 session 1
+Data eig done in 134.2713 seconds
+Working on subject 186444 session 2
+Data eig done in 126.1488 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 208428 session 1
+Data eig done in 127.4096 seconds
+continue
+continue
+continue
+continue
+Working on subject 663755 session 1
+Data eig done in 126.9723 seconds
+Working on subject 663755 session 2
+Data eig done in 128.0362 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 100408 session 1
+Data eig done in 125.9085 seconds
+Working on subject 100408 session 2
+Data eig done in 128.1654 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 414229 session 1
+Data eig done in 130.1249 seconds
+Working on subject 414229 session 2
+Data eig done in 127.2721 seconds
+Working on subject 165638 session 1
+Data eig done in 129.9159 seconds
+Working on subject 165638 session 2
+Data eig done in 127.5758 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 117324 session 1
+Data eig done in 127.5493 seconds
+Working on subject 117324 session 2
+Data eig done in 124.6937 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 164131 session 1
+Data eig done in 125.9376 seconds
+Working on subject 164131 session 2
+Data eig done in 125.1973 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 168745 session 1
+Data eig done in 125.1417 seconds
+Working on subject 168745 session 2
+Data eig done in 125.9484 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 521331 session 1
+Data eig done in 125.8243 seconds
+continue
+continue
+continue
+Working on subject 214423 session 2
+Data eig done in 124.2646 seconds
+Working on subject 208327 session 1
+Data eig done in 125.4968 seconds
+Working on subject 208327 session 2
+Data eig done in 125.1029 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 201515 session 1
+Data eig done in 125.4624 seconds
+Working on subject 201515 session 2
+Data eig done in 125.6456 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 844961 session 1
+Data eig done in 124.773 seconds
+Working on subject 844961 session 2
+Data eig done in 125.4362 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 932554 session 1
+Data eig done in 125.038 seconds
+Working on subject 932554 session 2
+Data eig done in 125.496 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 391748 session 2
+Data eig done in 124.4639 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 163331 session 1
+Data eig done in 125.244 seconds
+Working on subject 163331 session 2
+Data eig done in 125.9512 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+Working on subject 878776 session 1
+Data eig done in 124.8876 seconds
+Working on subject 878776 session 2
+Data eig done in 125.9104 seconds
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
+continue
