@@ -25,14 +25,14 @@ class ACG(nn.Module):
         #     self.fullrank = True
         # else:
         #     self.fullrank = False
-        self.c = torch.tensor(p / 2)
-        self.logSA = torch.lgamma(self.c) - torch.log(torch.tensor(2)) -self.c* torch.log(torch.tensor(np.pi))
+        self.half_p = torch.tensor(p / 2)
+        self.logSA = torch.lgamma(self.half_p) - torch.log(torch.tensor(2)) -self.half_p* torch.log(torch.tensor(np.pi))
 
         self.LogSoftmax = nn.LogSoftmax(dim=0)
 
-        self.tril_mask = torch.tril_indices(self.p,self.p)
-        self.diag_mask = ((torch.arange(1,self.p+1)**2+torch.arange(1,self.p+1))/2-1).type(torch.LongTensor)
-        self.num_params = int(self.p*(self.p-1)/2+self.p)
+        # self.tril_mask = torch.tril_indices(self.p,self.p)
+        # self.diag_mask = ((torch.arange(1,self.p+1)**2+torch.arange(1,self.p+1))/2-1).type(torch.LongTensor)
+        # self.num_params = int(self.p*(self.p-1)/2+self.p)
         
         if params is not None: # for evaluating likelihood with already-learned parameters
             if torch.is_tensor(params['pi']):
@@ -116,7 +116,7 @@ class ACG(nn.Module):
         pdf = 1-torch.sum(B@torch.linalg.inv(Lambda)*B,dim=2) #check
 
         # minus log_det_L instead of + log_det_A_inv
-        log_acg_pdf = self.logSA - 0.5 * log_det_L[:,None] - self.c * torch.log(pdf)
+        log_acg_pdf = self.logSA - 0.5 * log_det_L[:,None] - self.half_p * torch.log(pdf)
         return log_acg_pdf
     
     def log_density(self,X):

@@ -76,7 +76,7 @@ class MACG():
         return np.exp(density-logsum_density)    
 
     def Sigma_MLE(self,Sigma,X,weights = None,tol=1e-10,max_iter=10000):
-        n,p,q = X.shape
+        n,q,p = X.shape
         if n<(p*(p-1)*q):
             print("Too high dimensionality compared to number of observations. Sigma cannot be calculated")
             return
@@ -90,7 +90,7 @@ class MACG():
             Sigma_old = Sigma
             
             # this has been tested in the "Naive" version below
-            XtLX = np.swapaxes(X,-2,-1)@np.linalg.inv(Sigma)@X
+            XtLX = X@np.linalg.inv(Sigma)@np.swapaxes(X,-2,-1)
             XtLX_trace = np.sum(1/np.linalg.eigh(XtLX)[0],axis=1) #trace of inverse is sum of inverse eigenvalues
             
             Sigma = p*np.sum(Q@np.linalg.inv(XtLX)@np.swapaxes(Q,-2,-1),axis=0) \
@@ -126,7 +126,7 @@ class MACG():
 
 ############# M-step #################
     def M_step(self,X,tol=1e-10):
-        n,p,q = X.shape
+        n,q,p = X.shape
         Beta = np.exp(self.density-self.logsum_density).T
         self.pi = np.sum(Beta,axis=0)/n
 

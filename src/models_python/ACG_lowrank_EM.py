@@ -3,54 +3,71 @@ from scipy.special import loggamma
 from src.models_python.diametrical_clustering import diametrical_clustering, diametrical_clustering_plusplus
 from src.models_python.WatsonMixtureEM import Watson
 from src.models_python.mixture_EM_loop import mixture_EM_loop
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 class ACG():
     """
     Mixture model class
     """
-    def __init__(self, K: int, p: int,params=None):
+    def __init__(self, K: int, p: int,rank=None,params=None):
         super().__init__()
         self.K = K
         self.p = p
         self.half_p = self.p/2
+        self.r = rank
+        self.d = 1
         self.logSA = loggamma(self.half_p) - np.log(2) -self.half_p* np.log(np.pi)
 
         if params is not None: # for evaluating likelihood with already-learned parameters
-            self.Lambda = np.array(params['Lambda'])
             self.pi = np.array(params['pi'])
+            M_init = params['M']
+            if M_init.dim()!=3 or M_init.shape[2]!=self.r: # add extra columns
+                if M_init.dim()==2:
+                    num_missing = self.r-1
+                else:
+                    num_missing = self.r-M_init.shape[2]
+
+                M_extra = np.random.uniform(size=(self.K,self.p,num_missing))
+                self.M = np.concatenate([M_init,M_extra],axis=2)
+            else: 
+                self.M = M_init
 
     def get_params(self):
-        return {'Lambda': self.Lambda,'pi':self.pi}
+        return {'M': self.M,'pi':self.pi}
     
     def initialize(self,X=None,init=None,tol=None):
         self.pi = np.repeat(1/self.K,repeats=self.K)
-        if init is None or init=='uniform' or init=='unif':
-            mu = np.random.uniform(size=(self.p,self.K))
-            mu = mu/np.linalg.norm(mu,axis=0)
-        elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
-            mu = diametrical_clustering_plusplus(X=X,K=self.K)
-        elif init == 'dc' or init == 'diametrical_clustering':
-            mu = diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
-        elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
-            W = Watson(K=self.K,p=self.p)
-            params,_,_,_ = mixture_EM_loop(W,X,init='dc')
-            mu = params['mu']
-            self.pi = params['pi']
+        if init is not None and init!='uniform' and init!='unif':
+            if init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
+                mu = diametrical_clustering_plusplus(X=X,K=self.K)
+            elif init == 'dc' or init == 'diametrical_clustering':
+                mu = diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
+            elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
+                W = Watson(K=self.K,p=self.p)
+                params,_,_,_ = mixture_EM_loop(W,X,init='dc')
+                mu = params['mu']
+                self.pi = params['pi']
             
-        self.Lambda = np.zeros((self.K,self.p,self.p))    
-        for k in range(self.K):
-            self.Lambda[k] = 10e6*np.outer(mu[:,k],mu[:,k])+np.eye(self.p)
+            self.M = np.random.uniform(size=(self.K,self.p,self.r))
+            for k in range(self.K):
+                self.M[k,:,0] = mu[:,k] #initialize only the first of the rank D columns this way, the rest uniform
+        elif init =='unif' or init=='uniform' or init is None:
+            self.M = np.random.uniform(size=(self.K,self.p,self.r))
         
 ################ E-step ###################
     
-    def log_norm_constant(self):
-        logdetsign,logdet = np.linalg.slogdet(self.Lambda)
+    def log_norm_constant(self,Lambda):
+        logdetsign,logdet = np.linalg.slogdet(Lambda)
         return self.logSA - 0.5*logdetsign*logdet
 
     def log_pdf(self,X):
-        pdf = np.sum(X@np.linalg.inv(self.Lambda)*X,axis=2)
-        return self.log_norm_constant()[:,None] -self.half_p*np.log(pdf)
+        Lambda = self.d*np.eye(self.r) + np.swapaxes(self.M,-2,-1)@self.M
+        B = X[None,:,:]@self.M
+        pdf = 1-np.sum(B@np.linalg.inv(Lambda)*B,axis=2) #check
+
+        # minus log_det_L instead of + log_det_A_inv
+        log_acg_pdf = self.log_norm_constant(Lambda)[:,None] - self.half_p * np.log(pdf)
+        return log_acg_pdf
 
     def log_density(self,X):
         return self.log_pdf(X)+np.log(self.pi)[:,None]
@@ -65,44 +82,60 @@ class ACG():
         density = self.log_density(X)
         logsum_density = np.logaddexp.reduce(density)
         return np.exp(density-logsum_density)
-
-    def Lambda_MLE(self,Lambda,X,weights = None,tol=1e-10,max_iter=10000):
+    
+    def M_MLE_lowrank(self,M,X,weights = None,tol=1e-10,max_iter=10000):
         n,p = X.shape
         if n<p*(p-1):
             print("Too high dimensionality compared to number of observations. Lambda cannot be calculated")
             return
+        weights = None
         if weights is None:
             weights = np.ones(n)
-        Lambda_old = np.eye(self.p)
+        M_old = np.ones((self.p,self.r))
         Q = np.sqrt(weights)[:,None]*X
 
         j = 0
-        a = []
-        while np.linalg.norm(Lambda_old-Lambda) > tol and (j < max_iter):
-            # plt.figure(),plt.imshow(Lambda),plt.colorbar(),
+        loss = []
+        c = d = 1
+
+        # not woodbury
+        
+
+        # Woodbury
+        q = np.linalg.norm(M,'fro')**2
+        b = 1/(c+q/p)
+        M = np.sqrt(b)*M
+        c = b*c
+        D = np.eye(self.r)+1/c*M.T@M
+        Lambda2 = c*np.eye(self.p)+M@M.T
+
+        Lambda=Lambda2
+        Lambda_old = 100000*Lambda.copy()
+        
+        while (j < max_iter) and np.linalg.norm(Lambda_old-Lambda) > tol:
+            # plt.figure(),plt.imshow(M@M.T+np.eye(self.p)),plt.colorbar()
             Lambda_old = Lambda
+
+            # Woodbury scaled
+            D_inv = np.linalg.inv(np.eye(self.r)+1/c*M.T@M)
+            XM = X@M
+            XMLMtX = 1/c-1/c**2*np.sum(XM@D_inv*XM,axis=1) #denominator
+            M = c**-1*p/np.sum(weights)*Q.T/XMLMtX@Q@M@D_inv
+            q = np.linalg.norm(M,'fro')**2
+            b = 1/(c+q/p)
+            M = np.sqrt(b)*M
+            c = b*c
+
+            # only used for convergence check, could be avoided using M instead....
+            Lambda= c*np.eye(self.p)+M@M.T
             
-            # The following has been tested against a for-loop implementing Tyler1987 (3)
-            # and also an implementation of Tyler1987 (2) where (2) has been evaluated and
-            # Lambda=p/trace(Lambda)*Lambda for each iteration. All give the same result, 
-            # at least before implementing weights
-
-            # Lambda_inv = np.linalg.inv(Lambda)
-            # Lambda2 = 0
-            # Lambda3 = np.zeros(n)
-            # for i in range(n):
-            #     Lambda2 += weights[i]*np.outer(X[i],X[i])/(X[i]@Lambda_inv@X[i])
-            #     Lambda3[i]= weights[i]/(X[i]@Lambda_inv@X[i])
-            
-            # Lambda4 = p/np.sum(Lambda3)*Lambda2
-
-            XtLX = np.sum(X@np.linalg.inv(Lambda)*X,axis=1)
-            # Lambda3 same as weights/XtLX
-            Lambda = p/np.sum(weights/XtLX)*(Q.T/XtLX)@Q
-
             j +=1
-            a.append(np.linalg.norm(Lambda_old-Lambda))
-        return Lambda
+            if j>1:
+                loss.append(np.linalg.norm(Lambda_old-Lambda))
+        self.d = d
+        return M
+    
+
     
 
 ############# M-step #################
@@ -112,7 +145,7 @@ class ACG():
         self.pi = np.sum(Beta,axis=0)/n
 
         for k in range(self.K):
-            self.Lambda[k] = self.Lambda_MLE(self.Lambda[k],X,weights=Beta[:,k],tol=tol)
+            self.M[k] = self.M_MLE_lowrank(self.M[k],X,weights=Beta[:,k],tol=tol)
 
 
 if __name__=='__main__':

@@ -118,13 +118,13 @@ class MACG(nn.Module):
         # else:
         Sigma = torch.eye(self.r) + torch.swapaxes(self.M,-2,-1)@self.M
         log_det_S = torch.logdet(Sigma)
-        B = torch.swapaxes(X,-2,-1)[None,:,:,:]@self.M[:,None,:,:]
+        B = X@self.M[:,None,:,:]
         C = B@torch.linalg.inv(Sigma)[:,None,:,:]@torch.swapaxes(B,-2,-1)
         pdf = 1-torch.sum(torch.diagonal(C,dim1=-2,dim2=-1),dim=-1)+torch.linalg.det(C) #diagonal stuff is the trace
 
-        # Sigma2 = torch.eye(self.p)+self.M@torch.swapaxes(self.M,-2,-1)
-        # # log_det_S2 = torch.logdet(Sigma2)
-        # pdf2 = torch.det(torch.swapaxes(X,-2,-1)[None,:,:,:]@torch.linalg.inv(Sigma2)[:,None,:,:]@X)
+        Sigma2 = torch.eye(self.p)+self.M@torch.swapaxes(self.M,-2,-1)
+        # log_det_S2 = torch.logdet(Sigma2)
+        pdf2 = torch.det(X[None,:,:,:]@torch.linalg.inv(Sigma2)[:,None,:,:]@torch.swapaxes(X,-2,-1))
 
 
 

@@ -1,6 +1,0 @@
-Loaded module: matlab/R2020a
-{Cannot find an exact (case-sensitive) match for 'fMRI_compute_eigs_full'
-
-The closest match is: fmri_compute_eigs_full in
-/dtu-compute/HCP_dFC/2023/hcp_dfc/src/data/fmri_compute_eigs_full.m
-} 

@@ -13,7 +13,7 @@ view(-29,-13)
 % smaller sphere to show lines on
 [x2,y2,z2] = sphere(20); %30
 sh(2) = surf(x2,y2,z2, 'EdgeAlpha', .5,'FaceColor','none','EdgeColor',[0,0,0]);
-set(gca,'XColor', 'none','YColor','none','ZColor','none')
+% set(gca,'XColor', 'none','YColor','none','ZColor','none')
 grid off
 view(-29,-13)
 

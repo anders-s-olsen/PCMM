@@ -2,6 +2,7 @@ import numpy as np
 import h5py
 import torch
 from src.models_python.ACGMixtureEM import ACG as ACG_EM
+from src.models_python.ACG_lowrank_EM import ACG as ACG_lowrank_EM
 from src.models_python.MACGMixtureEM import MACG as MACG_EM
 from src.models_python.WatsonMixtureEM import Watson as Watson_EM
 from src.models_python.mixture_EM_loop import mixture_EM_loop
@@ -74,12 +75,20 @@ def train_model(modelname,K,data_train,rank,init,LR,num_repl_inner,num_iter,tol,
             model = ACG_EM(K=K,p=p,params=params)
         else:
             model = ACG_torch(K=K,p=p,rank=rank,params=params) #cholesky formulation when full rank
+    elif modelname == 'ACG_lowrank':
+        if LR==0:
+            model = ACG_lowrank_EM(K=K,p=p,rank=rank,params=params)
+        else:
+            model = ACG_torch(K=K,p=p,rank=rank,params=params) #cholesky formulation when full rank            
     elif modelname == 'MACG':
         if LR==0:
             model = MACG_EM(K=K,p=p,q=2,params=params)
+            data_train = np.swapaxes(data_train,-2,-1)
         else:
             model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params)
-
+            data_train = torch.swapaxes(data_train,-2,-1)
+        
+    
     if LR==0: #EM
         params,_,loglik,_ = mixture_EM_loop(model,data_train,tol=tol,max_iter=num_iter,
                                                 num_repl=num_repl_inner,init=init)
@@ -96,8 +105,11 @@ def test_model(modelname,K,data_test,params,LR,rank):
             model = Watson_EM(K=K,p=p,params=params)
         elif modelname == 'ACG':
             model = ACG_EM(K=K,p=p,params=params)
+        elif modelname == 'ACG_lowrank':
+            model = ACG_EM(K=K,p=p,rank=rank,params=params)
         elif modelname == 'MACG':
             model = MACG_EM(K=K,p=p,q=2,params=params)
+            data_test = np.swapaxes(data_test,-2,-1)
         test_loglik = model.log_likelihood(X=data_test)
         params_transformed = model.get_params()
     else:
@@ -133,5 +145,6 @@ def test_model(modelname,K,data_test,params,LR,rank):
                 model = ACG_torch(K=K,p=p,rank=rank,params=params_transformed) #cholesky formulation when full rank
             elif modelname == 'MACG':
                 model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params_transformed) #cholesky formulation when full rank
+                data_test = torch.swapaxes(data_test,-2,-1)
             test_loglik = model.test_log_likelihood(X=data_test)  
     return test_loglik,params_transformed
