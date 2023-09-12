@@ -55,10 +55,4 @@ def run_experiment(modelname,LR,init0,GSR):
 
 if __name__=="__main__":
     run_experiment(modelname='ACG_lowrank',LR=float(0),init0='unif',GSR=1)
-    # inits = ['unif','++','dc']
-    # LRs = [0,0.01,0.1,1]
-    # for init in inits:
-    #     for LR in LRs:
-    #         for m in range(2):
-    #             run_experiment(mod=int(m),LR=LR,init=init)
-    run_experiment(modelname=sys.argv[1],LR=float(sys.argv[2]),init0=sys.argv[3],GSR=int(sys.argv[4]))
+    # run_experiment(modelname=sys.argv[1],LR=float(sys.argv[2]),init0=sys.argv[3],GSR=int(sys.argv[4]))
