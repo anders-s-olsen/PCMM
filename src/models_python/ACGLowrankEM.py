@@ -107,18 +107,18 @@ class ACG():
         # c = 0.537
         # M = np.sqrt(52)/np.linalg.norm(M,'fro')*M
         c_all = [c]
-        q = np.linalg.norm(M,'fro')**2
-        b = 1/(c+q/p)
+        o = np.linalg.norm(M,'fro')**2
+        b = 1/(c+o/p)
         M = np.sqrt(b)*M
         c = b*c
         c_all.append(c)
-        q_all = [q]
+        o_all = [o]
         trMMtMMt_old = np.trace(M.T@M@M.T@M)
 
         for j in range(max_iter):
             M_old = M
             b_old = b
-            q_old = q
+            o_old = o
             c_old = c
 
             # Woodbury scaled
@@ -127,20 +127,20 @@ class ACG():
             XMD_inv = XM@D_inv
             v = c**(-1)-c**(-2)*np.sum(XMD_inv*XM,axis=1) #denominator
             M = p/np.sum(weights)*c**(-1)*Q.T/v@XMD_inv
-            q = np.linalg.norm(M,'fro')**2
-            b = 1/(c+q/p)
+            o = np.linalg.norm(M,'fro')**2
+            b = 1/(c+o/p)
             M = np.sqrt(b)*M
             c = b*c
             c_all.append(c)
-            q_all.append(q)
+            o_all.append(o)
 
             trMMtMMt = np.trace(M.T@M@M.T@M)
 
             #Svarende til loss.append(np.linalg.norm(Z_old-Z)**2)
             # Kan man virkelig ikke reducere np.trace(M.T@M@M.T@M)??
-            loss.append(p*c**2+2*c*b*q+trMMtMMt\
-                        +p*c_old**2+2*c_old*b_old*q_old+trMMtMMt_old\
-                            -2*(p*c*c_old+c_old*b*q+c*b_old*q_old+np.trace(M@M.T@M_old@M_old.T)))
+            loss.append(p*c**2+2*c*b*o+trMMtMMt\
+                        +p*c_old**2+2*c_old*b_old*o_old+trMMtMMt_old\
+                            -2*(p*c*c_old+c_old*b*o+c*b_old*o_old+np.trace(M@M.T@M_old@M_old.T)))
             
             if j>0:
                 if loss[-1]<tol:

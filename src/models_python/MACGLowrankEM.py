@@ -113,15 +113,17 @@ class MACG():
         Q = weights[:,None,None]*X
 
         loss = []
-
-        # Woodbury, initialize with proper trace-normalization before looping on M
         c_all = [c]
         o = np.linalg.norm(M,'fro')**2
-        b = 1/(c+o/p)
-        M = np.sqrt(b)*M
-        c = b*c
-        c_all.append(c)
         o_all = [o]
+        b = 1/(c+o/p)
+        # Woodbury, initialize with proper trace-normalization before looping on M
+        if c==1:
+            M = np.sqrt(b)*M
+            c = b*c
+            c_all.append(c)
+            o_all.append(o)
+
         trMMtMMt_old = np.trace(M.T@M@M.T@M)
         
         for j in range(max_iter):
@@ -144,9 +146,11 @@ class MACG():
             #     M_loop2+= p/(q*sum(weights))*weights[i]*X[i]@U1@np.linalg.inv(-np.diag(L1)+c**-1*np.eye(q))@U1.T@X[i].T@M@(c**-1*np.eye(self.r)-c**-2*D_inv@M.T@M)
 
             # And then matrix
+            start_time = time.time()
             MtM = M.T@M
             D_inv = np.linalg.inv(np.eye(self.r)+c**(-1)*MtM)
             XtM = np.swapaxes(X,-2,-1)@M
+            end1 = time.time()
 
             # # this works but is slow, should be instant with einsum...
             # L,U = np.linalg.eigh(c**(-2)*XtM@D_inv@np.swapaxes(XtM,-2,-1))
@@ -155,10 +159,10 @@ class MACG():
 
             # This is okay, because the matrices to be inverted are only 2x2
             V_inv = np.linalg.inv(-c**(-2)*XtM@D_inv@np.swapaxes(XtM,-2,-1)+c**-1*np.eye(q))
-            
+            end2 = time.time()
             # Works, think it's okay in terms of speed bco precomputation of XtM
             M = p/(q*np.sum(weights))*np.sum(Q@V_inv@XtM,axis=0)@(c**(-1)*np.eye(self.r)-c**(-2)*D_inv@MtM)
-            
+            end3 = time.time()
             o = np.linalg.norm(M,'fro')**2
             b = 1/(c+o/p)
             M = np.sqrt(b)*M
