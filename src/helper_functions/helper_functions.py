@@ -2,8 +2,9 @@ import numpy as np
 import h5py
 import torch
 from src.models_python.ACGMixtureEM import ACG as ACG_EM
-from src.models_python.ACG_lowrank_EM import ACG as ACG_lowrank_EM
+from src.models_python.ACGLowrankEM import ACG as ACG_lowrank_EM
 from src.models_python.MACGMixtureEM import MACG as MACG_EM
+from src.models_python.MACGLowrankEM import MACG as MACG_lowrank_EM
 from src.models_python.WatsonMixtureEM import Watson as Watson_EM
 from src.models_python.mixture_EM_loop import mixture_EM_loop
 from src.models_pytorch.ACG_lowrank_torch import ACG as ACG_torch
@@ -83,10 +84,13 @@ def train_model(modelname,K,data_train,rank,init,LR,num_repl_inner,num_iter,tol,
     elif modelname == 'MACG':
         if LR==0:
             model = MACG_EM(K=K,p=p,q=2,params=params)
-            data_train = np.swapaxes(data_train,-2,-1)
         else:
             model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params)
-            data_train = torch.swapaxes(data_train,-2,-1)
+    elif modelname == 'MACG_lowrank':
+        if LR==0:
+            model = MACG_lowrank_EM(K=K,p=p,q=2,rank=rank,params=params)
+        else:
+            model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params)   
         
     
     if LR==0: #EM

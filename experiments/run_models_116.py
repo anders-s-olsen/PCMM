@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from src.helper_functions.helper_functions import load_data,train_model,test_model
 
+
 torch.set_default_dtype(torch.float64)
 torch.set_num_threads(8)
 import sys
@@ -11,7 +12,7 @@ tol = 1e-3
 num_iter = 1000000
 num_repl_outer = 10
 num_repl_inner = 1
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 
 def run_experiment(modelname,LR,init0,GSR):
@@ -20,7 +21,7 @@ def run_experiment(modelname,LR,init0,GSR):
             return
         
     ## load data, only the first 100 subjects (each with 1200 data points)
-    num_subjects = 15
+    num_subjects = 25
     if GSR==0:
         type = 'fMRI_SchaeferTian116'
         outfolder = 'experiments/116_outputs'
@@ -29,7 +30,7 @@ def run_experiment(modelname,LR,init0,GSR):
         outfolder = 'experiments/116GSR_outputs'
     if modelname=='Watson' or modelname=='ACG' or modelname=='ACG_lowrank':
         data_train,data_test,data_test2 = load_data(type=type,num_subjects=num_subjects,num_eigs=1,LR=LR)
-    elif modelname=='MACG':
+    elif modelname=='MACG' or modelname=='MACG_lowrank':
         data_train,data_test,data_test2 = load_data(type=type,num_subjects=num_subjects,num_eigs=2,LR=LR)
     p = data_train.shape[1]
     
@@ -54,5 +55,5 @@ def run_experiment(modelname,LR,init0,GSR):
 
 
 if __name__=="__main__":
-    run_experiment(modelname='ACG_lowrank',LR=float(0),init0='unif',GSR=1)
+    run_experiment(modelname='MACG_lowrank',LR=float(0),init0='unif',GSR=1)
     # run_experiment(modelname=sys.argv[1],LR=float(sys.argv[2]),init0=sys.argv[3],GSR=int(sys.argv[4]))

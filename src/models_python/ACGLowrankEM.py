@@ -15,7 +15,8 @@ class ACG():
         self.p = p
         self.half_p = self.p/2
         self.r = rank
-        self.d = 1
+        self.c = np.ones(self.K)
+        # self.Z = np.zeros((self.K,self.p,self.p))
         self.logSA = loggamma(self.half_p) - np.log(2) -self.half_p* np.log(np.pi)
 
         if params is not None: # for evaluating likelihood with already-learned parameters
@@ -33,7 +34,7 @@ class ACG():
                 self.M = M_init
 
     def get_params(self):
-        return {'M': self.M,'pi':self.pi}
+        return {'M': self.M,'pi':self.pi,'c':self.c}
     
     def initialize(self,X=None,init=None,tol=None):
         self.pi = np.repeat(1/self.K,repeats=self.K)
@@ -56,17 +57,25 @@ class ACG():
         
 ################ E-step ###################
     
-    def log_norm_constant(self,Lambda):
-        logdetsign,logdet = np.linalg.slogdet(Lambda)
-        return self.logSA - 0.5*logdetsign*logdet
+    # def log_norm_constant(self,Z):
+    #     logdetsign,logdet = np.linalg.slogdet(Z)
+    #     return self.logSA - 0.5*logdetsign*logdet
+    
+    def log_norm_constant_matrixdeterminantlemma(self,D):
+        logdetsign,logdet = np.linalg.slogdet(D)
+        return self.logSA - 0.5*(self.p*np.log(self.c)+logdetsign*logdet)
 
     def log_pdf(self,X):
-        Lambda = self.d*np.eye(self.r) + np.swapaxes(self.M,-2,-1)@self.M
-        B = X[None,:,:]@self.M
-        pdf = 1-np.sum(B@np.linalg.inv(Lambda)*B,axis=2) #check
+        D = np.eye(self.r)+1/self.c[:,None,None]*np.swapaxes(self.M,-2,-1)@self.M
+        XM = X[None,:,:]@self.M
+        v = self.c[:,None]**(-1)-self.c[:,None]**(-2)*np.sum(XM@np.linalg.inv(D)*XM,axis=2) #check
 
-        # minus log_det_L instead of + log_det_A_inv
-        log_acg_pdf = self.log_norm_constant(Lambda)[:,None] - self.half_p * np.log(pdf)
+        # for checking
+        # Z = np.array([self.c[k]*np.eye(self.p) for k in range(self.K)]) + self.M@np.swapaxes(self.M,-2,-1)
+        # v2 = np.sum(X@np.linalg.inv(Z)*X,axis=2)
+        # log_acg_pdf2 = self.log_norm_constant(Z)[:,None] - self.half_p * np.log(v2)
+
+        log_acg_pdf = self.log_norm_constant_matrixdeterminantlemma(D)[:,None] - self.half_p * np.log(v)
         return log_acg_pdf
 
     def log_density(self,X):
@@ -83,57 +92,64 @@ class ACG():
         logsum_density = np.logaddexp.reduce(density)
         return np.exp(density-logsum_density)
     
-    def M_MLE_lowrank(self,M,X,weights = None,tol=1e-10,max_iter=10000):
+    def M_MLE_lowrank(self,M,X,weights = None,c=10e-6,tol=1e-10,max_iter=10000):
         n,p = X.shape
         if n<p*(p-1):
             print("Too high dimensionality compared to number of observations. Lambda cannot be calculated")
             return
-        weights = None
         if weights is None:
             weights = np.ones(n)
-        M_old = np.ones((self.p,self.r))
-        Q = np.sqrt(weights)[:,None]*X
+        Q = weights[:,None]*X
 
-        j = 0
         loss = []
-        c = d = 1
 
-        # not woodbury
-        
-
-        # Woodbury
+        # Woodbury, initialize with proper trace-normalization before looping on M
+        # c = 0.537
+        # M = np.sqrt(52)/np.linalg.norm(M,'fro')*M
+        c_all = [c]
         q = np.linalg.norm(M,'fro')**2
         b = 1/(c+q/p)
         M = np.sqrt(b)*M
         c = b*c
-        D = np.eye(self.r)+1/c*M.T@M
-        Lambda2 = c*np.eye(self.p)+M@M.T
+        c_all.append(c)
+        q_all = [q]
+        trMMtMMt_old = np.trace(M.T@M@M.T@M)
 
-        Lambda=Lambda2
-        Lambda_old = 100000*Lambda.copy()
-        
-        while (j < max_iter) and np.linalg.norm(Lambda_old-Lambda) > tol:
-            # plt.figure(),plt.imshow(M@M.T+np.eye(self.p)),plt.colorbar()
-            Lambda_old = Lambda
+        for j in range(max_iter):
+            M_old = M
+            b_old = b
+            q_old = q
+            c_old = c
 
             # Woodbury scaled
             D_inv = np.linalg.inv(np.eye(self.r)+1/c*M.T@M)
             XM = X@M
-            XMLMtX = 1/c-1/c**2*np.sum(XM@D_inv*XM,axis=1) #denominator
-            M = c**-1*p/np.sum(weights)*Q.T/XMLMtX@Q@M@D_inv
+            XMD_inv = XM@D_inv
+            v = c**(-1)-c**(-2)*np.sum(XMD_inv*XM,axis=1) #denominator
+            M = p/np.sum(weights)*c**(-1)*Q.T/v@XMD_inv
             q = np.linalg.norm(M,'fro')**2
             b = 1/(c+q/p)
             M = np.sqrt(b)*M
             c = b*c
+            c_all.append(c)
+            q_all.append(q)
 
-            # only used for convergence check, could be avoided using M instead....
-            Lambda= c*np.eye(self.p)+M@M.T
+            trMMtMMt = np.trace(M.T@M@M.T@M)
+
+            #Svarende til loss.append(np.linalg.norm(Z_old-Z)**2)
+            # Kan man virkelig ikke reducere np.trace(M.T@M@M.T@M)??
+            loss.append(p*c**2+2*c*b*q+trMMtMMt\
+                        +p*c_old**2+2*c_old*b_old*q_old+trMMtMMt_old\
+                            -2*(p*c*c_old+c_old*b*q+c*b_old*q_old+np.trace(M@M.T@M_old@M_old.T)))
             
-            j +=1
-            if j>1:
-                loss.append(np.linalg.norm(Lambda_old-Lambda))
-        self.d = d
-        return M
+            if j>0:
+                if loss[-1]<tol:
+                    break
+            
+            trMMtMMt_old = trMMtMMt
+
+
+        return M,c
     
 
     
@@ -145,7 +161,8 @@ class ACG():
         self.pi = np.sum(Beta,axis=0)/n
 
         for k in range(self.K):
-            self.M[k] = self.M_MLE_lowrank(self.M[k],X,weights=Beta[:,k],tol=tol)
+            self.M[k],self.c[k] = self.M_MLE_lowrank(self.M[k],X,weights=Beta[:,k],c=self.c[k],tol=tol)
+            
 
 
 if __name__=='__main__':

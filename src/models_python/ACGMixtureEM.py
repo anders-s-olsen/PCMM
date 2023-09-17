@@ -74,7 +74,7 @@ class ACG():
         if weights is None:
             weights = np.ones(n)
         Lambda_old = np.eye(self.p)
-        Q = np.sqrt(weights)[:,None]*X
+        Q = weights[:,None]*X
 
         j = 0
         a = []
@@ -98,7 +98,7 @@ class ACG():
 
             XtLX = np.sum(X@np.linalg.inv(Lambda)*X,axis=1)
             # Lambda3 same as weights/XtLX
-            Lambda = p/np.sum(weights/XtLX)*(Q.T/XtLX)@Q
+            Lambda = p/np.sum(weights/XtLX)*(Q.T/XtLX)@X
 
             j +=1
             a.append(np.linalg.norm(Lambda_old-Lambda))

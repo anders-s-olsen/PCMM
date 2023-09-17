@@ -15,9 +15,9 @@ class MACG():
         self.K = K
         self.q = q
         self.p = p
-        self.c = self.p/2
-        loggamma_k = (self.q*(self.q-1)/4)*np.log(np.pi)+np.sum(loggamma(self.c-np.arange(self.q)/2))
-        self.logSA_Stiefel = loggamma_k-self.q*np.log(2)-self.q*self.c*np.log(np.pi)
+        self.half_p = self.p/2
+        loggamma_k = (self.q*(self.q-1)/4)*np.log(np.pi)+np.sum(loggamma(self.half_p-np.arange(self.q)/2))
+        self.logSA_Stiefel = loggamma_k-self.q*np.log(2)-self.q*self.half_p*np.log(np.pi)
 
         if params is not None: # for evaluating likelihood with already-learned parameters
             self.Sigma = np.array(params['Sigma'])
@@ -59,7 +59,7 @@ class MACG():
 
     def log_pdf(self,X):
         pdf = np.linalg.det(np.swapaxes(X,-2,-1)[None,:,:,:]@np.linalg.inv(self.Sigma)[:,None,:,:]@X)
-        return self.log_norm_constant()[:,None] -self.c*np.log(pdf)
+        return self.log_norm_constant()[:,None] -self.half_p*np.log(pdf)
 
     def log_density(self,X):
         return self.log_pdf(X)+np.log(self.pi)[:,None]
@@ -76,24 +76,24 @@ class MACG():
         return np.exp(density-logsum_density)    
 
     def Sigma_MLE(self,Sigma,X,weights = None,tol=1e-10,max_iter=10000):
-        n,q,p = X.shape
+        n,p,q = X.shape
         if n<(p*(p-1)*q):
             print("Too high dimensionality compared to number of observations. Sigma cannot be calculated")
             return
         if weights is None:
             weights = np.ones(n)
         Sigma_old = np.eye(self.p)
-        Q = np.sqrt(weights)[:,None,None]*X
+        Q = weights[:,None,None]*X
         
         j = 0
         while np.linalg.norm(Sigma_old-Sigma) > tol and (j < max_iter):
             Sigma_old = Sigma
             
             # this has been tested in the "Naive" version below
-            XtLX = X@np.linalg.inv(Sigma)@np.swapaxes(X,-2,-1)
+            XtLX = np.swapaxes(X,-2,-1)@np.linalg.inv(Sigma)@X
             XtLX_trace = np.sum(1/np.linalg.eigh(XtLX)[0],axis=1) #trace of inverse is sum of inverse eigenvalues
             
-            Sigma = p*np.sum(Q@np.linalg.inv(XtLX)@np.swapaxes(Q,-2,-1),axis=0) \
+            Sigma = p*np.sum(Q@np.linalg.inv(XtLX)@np.swapaxes(X,-2,-1),axis=0) \
                 /(np.sum(weights*XtLX_trace))
             j +=1
         return Sigma
