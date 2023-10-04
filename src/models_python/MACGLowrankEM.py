@@ -113,76 +113,50 @@ class MACG():
         Q = weights[:,None,None]*X
 
         loss = []
-        c_all = [c]
         o = np.linalg.norm(M,'fro')**2
-        o_all = [o]
-        b = 1/(c+o/p)
-        # Woodbury, initialize with proper trace-normalization before looping on M
-        if c==1:
-            M = np.sqrt(b)*M
-            c = b*c
-            c_all.append(c)
-            o_all.append(o)
-
+        b = 1/(1+o/p)
+        M = np.sqrt(b)*M
+        
         trMMtMMt_old = np.trace(M.T@M@M.T@M)
+        M_old = M
+        o_all = [o]
+        diagL = np.zeros((n,q,q))
         
         for j in range(max_iter):
-            M_old = M
-            b_old = b
-            o_old = o
-            c_old = c
-
-            # # naive solution with for-loop
-            # M_loop = np.zeros((p,self.r))
-            # Z_inv = np.linalg.inv(M@M.T+c*np.eye(self.p))
-            # for i in range(n):
-            #     M_loop += p/(q*sum(weights))*weights[i]*X[i]@np.linalg.inv(X[i].T@Z_inv@X[i])@X[i].T@Z_inv@M
             
-            # # hopefully slightly faster solution with woodbury
-            # M_loop2 = np.zeros((p,self.r))
-            # D_inv = np.linalg.inv(c**-1*M.T@M+np.eye(self.r))
-            # for i in range(n):
-            #     L1,U1 = np.linalg.eigh(c**-2*X[i].T@M@D_inv@M.T@X[i])
-            #     M_loop2+= p/(q*sum(weights))*weights[i]*X[i]@U1@np.linalg.inv(-np.diag(L1)+c**-1*np.eye(q))@U1.T@X[i].T@M@(c**-1*np.eye(self.r)-c**-2*D_inv@M.T@M)
-
             # And then matrix
-            start_time = time.time()
             MtM = M.T@M
             D_inv = np.linalg.inv(np.eye(self.r)+c**(-1)*MtM)
             XtM = np.swapaxes(X,-2,-1)@M
-            end1 = time.time()
 
             # # this works but is slow, should be instant with einsum...
             # L,U = np.linalg.eigh(c**(-2)*XtM@D_inv@np.swapaxes(XtM,-2,-1))
-            # diagL = np.stack([np.diag(1/(-L[i]+c**(-1))) for i in range(n)])
+            # diagL[:,0,0] = 1/(1-L[:,0])
+            # diagL[:,1,1] = 1/(1-L[:,1])
             # V_inv = U@diagL@np.swapaxes(U,-2,-1)
-
+            
             # This is okay, because the matrices to be inverted are only 2x2
-            V_inv = np.linalg.inv(-c**(-2)*XtM@D_inv@np.swapaxes(XtM,-2,-1)+c**-1*np.eye(q))
-            end2 = time.time()
+            V_inv = np.linalg.inv(np.eye(q)-XtM@D_inv@np.swapaxes(XtM,-2,-1))
+            
             # Works, think it's okay in terms of speed bco precomputation of XtM
-            M = p/(q*np.sum(weights))*np.sum(Q@V_inv@XtM,axis=0)@(c**(-1)*np.eye(self.r)-c**(-2)*D_inv@MtM)
-            end3 = time.time()
+            M = p/(q*np.sum(weights))*np.sum(Q@V_inv@XtM,axis=0)@(np.eye(self.r)-D_inv@MtM)
             o = np.linalg.norm(M,'fro')**2
-            b = 1/(c+o/p)
+            b = 1/(1+o/p)
             M = np.sqrt(b)*M
-            c = b*c
-            c_all.append(c)
             o_all.append(o)
 
             trMMtMMt = np.trace(M.T@M@M.T@M)
 
             #Svarende til loss.append(np.linalg.norm(Z_old-Z)**2)
             # Kan man virkelig ikke reducere np.trace(M.T@M@M.T@M)??
-            loss.append(p*c**2+2*c*b*o+trMMtMMt\
-                        +p*c_old**2+2*c_old*b_old*o_old+trMMtMMt_old\
-                            -2*(p*c*c_old+c_old*b*o+c*b_old*o_old+np.trace(M@M.T@M_old@M_old.T)))
+            loss.append(trMMtMMt+trMMtMMt_old-2*np.trace(M@M.T@M_old@M_old.T))
             
             if j>0:
                 if loss[-1]<tol:
                     break
             
             trMMtMMt_old = trMMtMMt
+            M_old = M
 
 
         return M,c

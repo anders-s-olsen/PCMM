@@ -102,54 +102,44 @@ class ACG():
         Q = weights[:,None]*X
 
         loss = []
+        
 
-        # Woodbury, initialize with proper trace-normalization before looping on M
-        # c = 0.537
-        # M = np.sqrt(52)/np.linalg.norm(M,'fro')*M
-        c_all = [c]
         o = np.linalg.norm(M,'fro')**2
-        b = 1/(c+o/p)
+        b = 1/(1+o/p)
         M = np.sqrt(b)*M
-        c = b*c
-        c_all.append(c)
-        o_all = [o]
+        
         trMMtMMt_old = np.trace(M.T@M@M.T@M)
+        M_old = M
+        o_all = [o]
 
         for j in range(max_iter):
-            M_old = M
-            b_old = b
-            o_old = o
-            c_old = c
 
             # Woodbury scaled
-            D_inv = np.linalg.inv(np.eye(self.r)+1/c*M.T@M)
+            D_inv = np.linalg.inv(np.eye(self.r)+M.T@M)
             XM = X@M
             XMD_inv = XM@D_inv
-            v = c**(-1)-c**(-2)*np.sum(XMD_inv*XM,axis=1) #denominator
-            M = p/np.sum(weights)*c**(-1)*Q.T/v@XMD_inv
+            v = 1-np.sum(XMD_inv*XM,axis=1) #denominator
+            M = p/np.sum(weights)*Q.T/v@XMD_inv
             o = np.linalg.norm(M,'fro')**2
-            b = 1/(c+o/p)
+            b = 1/(1+o/p)
             M = np.sqrt(b)*M
-            c = b*c
-            c_all.append(c)
-            o_all.append(o)
 
             trMMtMMt = np.trace(M.T@M@M.T@M)
 
             #Svarende til loss.append(np.linalg.norm(Z_old-Z)**2)
             # Kan man virkelig ikke reducere np.trace(M.T@M@M.T@M)??
-            loss.append(p*c**2+2*c*b*o+trMMtMMt\
-                        +p*c_old**2+2*c_old*b_old*o_old+trMMtMMt_old\
-                            -2*(p*c*c_old+c_old*b*o+c*b_old*o_old+np.trace(M@M.T@M_old@M_old.T)))
+            loss.append(trMMtMMt+trMMtMMt_old-2*np.trace(M@M.T@M_old@M_old.T))
             
             if j>0:
                 if loss[-1]<tol:
                     break
             
             trMMtMMt_old = trMMtMMt
+            M_old = M
+            o_all.append(o)
 
 
-        return M,c
+        return M
     
 
     
