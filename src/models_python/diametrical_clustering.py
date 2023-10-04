@@ -10,7 +10,7 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,call=0,tol=1e
     for _ in range(num_repl):
         if init is None or init=='++' or init=='plusplus' or init == 'diametrical_clustering_plusplus':
             C = diametrical_clustering_plusplus(X,K)
-        else:
+        elif init=='uniform' or init=='unif':
             C = np.random.uniform(size=(p,K))
             C = C/np.linalg.norm(C,axis=0)
         
