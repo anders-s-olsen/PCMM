@@ -1,5 +1,4 @@
 from src.helper_functions import load_data,run_model_reps_and_save_logliks,parse_input_args
-import sys
 
 # options pertaining to current experiment
 options = {}
@@ -35,5 +34,7 @@ if __name__=="__main__":
     # run_experiment(options)
 
     import sys
+    print(sys.argv)
     options=parse_input_args(sys.argv)
-    run_experiment(options)
+    print(options)
+    run_experiment(extraoptions=options)
