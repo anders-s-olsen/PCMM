@@ -15,4 +15,4 @@
 source /dtu-compute/macaroni/miniconda3/bin/activate
 conda activate hcp
 
-python3 experiments/experiment_torchvsEM_synthetic.py MACG 1 dc
+python3 experiments/experiment_rank_vs_K_vs_reps_116.py MACG 0 ++
