@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from src.helper_functions.helper_functions import load_data,train_model,test_model
+from src.helper_functions import load_data,train_model,test_model
 
 torch.set_default_dtype(torch.float64)
 torch.set_num_threads(8)

@@ -70,7 +70,7 @@ class MACG():
         XtM = np.swapaxes(X,-2,-1)[None,:,:,:]@self.M[:,None,:,:]
 
         # utilizing matrix determinant lemma
-        v = self.logdet(D[:,None]-np.swapaxes(XtM,-2,-1)@XtM)-log_det_D
+        v = self.logdet(D[:,None]-np.swapaxes(XtM,-2,-1)@XtM)-log_det_D[:,None]
 
         # Z = np.array([np.eye(self.p)+self.M[k]@self.M[k].T for k in range(self.K)])
         # pdf = np.log(np.linalg.det(np.swapaxes(X,-2,-1)[None,:,:,:]@np.linalg.inv(Z)[:,None,:,:]@X))

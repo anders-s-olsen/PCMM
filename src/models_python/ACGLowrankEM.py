@@ -59,7 +59,7 @@ class ACG():
         return logdetsign*logdet
 
     def log_pdf(self,X):
-        D = np.eye(self.r)+1/self.c[:,None,None]*np.swapaxes(self.M,-2,-1)@self.M
+        D = np.eye(self.r)+np.swapaxes(self.M,-2,-1)@self.M
         XM = X[None,:,:]@self.M
         v = 1-np.sum(XM@np.linalg.inv(D)*XM,axis=2) #check
 
