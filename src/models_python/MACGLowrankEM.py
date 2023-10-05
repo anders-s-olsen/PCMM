@@ -1,9 +1,6 @@
 import numpy as np
-from scipy.special import loggamma, gamma
-from src.models_python.diametrical_clustering import diametrical_clustering, diametrical_clustering_plusplus
-from src.models_python.WatsonMixtureEM import Watson
-from src.models_python.mixture_EM_loop import mixture_EM_loop
-import time
+from scipy.special import loggamma
+from src.helper_functions import initialize_pi_mu_M
 
 class MACG():
     """
@@ -33,30 +30,12 @@ class MACG():
             else: 
                 self.M = M_init
 
-        
     def get_params(self):
         return {'M': self.M,'pi':self.pi,'c':self.c}
     
     def initialize(self,X=None,init=None,tol=None):
-        self.pi = np.repeat(1/self.K,repeats=self.K)
-        if init is not None and init!='uniform' and init!='unif':
-            if init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
-                mu = diametrical_clustering_plusplus(X=X,K=self.K)
-            elif init == 'dc' or init == 'diametrical_clustering':
-                mu = diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
-            elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
-                W = Watson(K=self.K,p=self.p)
-                params,_,_,_ = mixture_EM_loop(W,X,init='dc')
-                mu = params['mu']
-                self.pi = params['pi']
-            
-            self.M = np.random.uniform(size=(self.K,self.p,self.r))
-            for k in range(self.K):
-                self.M[k,:,0] = mu[:,k] #initialize only the first of the rank D columns this way, the rest uniform
-        elif init =='unif' or init=='uniform' or init is None:
-            self.M = np.random.uniform(size=(self.K,self.p,self.r))
+        self.pi,_,self.M = initialize_pi_mu_M(init=init,K=self.K,p=self.p,X=X,tol=tol,r=self.r,initM=True)
     
-
 ################ E-step ###################
 
     def logdet(self,B):
@@ -158,54 +137,3 @@ class MACG():
 
         for k in range(self.K):
             self.M[k] = self.M_MLE_lowrank(self.M[k],X,weights=Beta[:,k],tol=tol)
-
-if __name__=='__main__':
-    import matplotlib.pyplot as plt
-    from tqdm import tqdm
-    K = np.array(2)
-    
-    p = np.array(3)
-    MACG = MACG(K=K,p=3,q=2)
-    data = np.loadtxt('data/synthetic/synth_data_4.csv',delimiter=',')
-    data2 = np.zeros((1000,p,2))
-    data2[:,:,0] = data[np.arange(2000,step=2),:]
-    data2[:,:,1] = data[np.arange(2000,step=2)+1,:]
-    # data = np.random.normal(loc=0,scale=0.1,size=(10000,100))
-    # data = data[np.arange(2000,step=2),:]
-    MACG.initialize(X=data2,init='uniform')
-
-
-    for iter in tqdm(range(1000)):
-        # E-step
-        MACG.log_likelihood(X=data2)
-        # print(ACG.Lambda_chol)
-        # M-step
-        MACG.M_step(X=data2)
-    stop=7
-
-
-# old way, Z becomes too big
-# c = self.c[0]
-# Z = c*np.eye(self.p)+self.M[0]@self.M[0].T
-# start_time = time.time()
-# a1 = np.linalg.det(np.swapaxes(X,-2,-1)@np.linalg.inv(Z)@X)
-# end_time = time.time()
-# elapsed1 = end_time-start_time
-
-# # new, basic way, equal to old way
-# start_time = time.time()
-# a2 = np.linalg.det(c**(-1)*np.eye(self.q)-c**(-2)*np.swapaxes(X,-2,-1)@self.M[0]@np.linalg.inv(D[0])@self.M[0].T@X)
-# end_time = time.time()
-# elapsed2 = end_time-start_time
-
-# # new, better way using matrix determinant lemma, avoiding inverting D
-# start_time = time.time()
-# a3=np.linalg.det(D[0]-c*self.M[0].T@X@np.swapaxes(X,-2,-1)@self.M[0])/np.linalg.det(D[0])*np.linalg.det(c**(-1)*np.eye(self.q))
-# end_time = time.time()
-# elapsed3 = end_time-start_time
-
-# # Slightly shortened with precomputed XM
-# start_time = time.time()
-# a4=np.linalg.det(D[0]-c*np.swapaxes(XM[0],-2,-1)@XM[0])/np.linalg.det(D[0])*np.linalg.det(c**(-1)*np.eye(self.q))
-# end_time = time.time()
-# elapsed4 = end_time-start_time

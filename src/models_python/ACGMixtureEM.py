@@ -1,9 +1,6 @@
 import numpy as np
 from scipy.special import loggamma
-from src.models_python.diametrical_clustering import diametrical_clustering, diametrical_clustering_plusplus
-from src.models_python.WatsonMixtureEM import Watson
-from src.models_python.mixture_EM_loop import mixture_EM_loop
-# import matplotlib.pyplot as plt
+from src.helper_functions import initialize_pi_mu_M
 
 class ACG():
     """
@@ -24,20 +21,8 @@ class ACG():
         return {'Lambda': self.Lambda,'pi':self.pi}
     
     def initialize(self,X=None,init=None,tol=None):
-        self.pi = np.repeat(1/self.K,repeats=self.K)
-        if init is None or init=='uniform' or init=='unif':
-            mu = np.random.uniform(size=(self.p,self.K))
-            mu = mu/np.linalg.norm(mu,axis=0)
-        elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
-            mu = diametrical_clustering_plusplus(X=X,K=self.K)
-        elif init == 'dc' or init == 'diametrical_clustering':
-            mu = diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
-        elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
-            W = Watson(K=self.K,p=self.p)
-            params,_,_,_ = mixture_EM_loop(W,X,init='dc')
-            mu = params['mu']
-            self.pi = params['pi']
-            
+        self.pi,mu,_ = initialize_pi_mu_M(init=init,K=self.K,p=self.p,X=X) 
+
         self.Lambda = np.zeros((self.K,self.p,self.p))    
         for k in range(self.K):
             self.Lambda[k] = 10e6*np.outer(mu[:,k],mu[:,k])+np.eye(self.p)
@@ -87,15 +72,6 @@ class ACG():
             # Lambda=p/trace(Lambda)*Lambda for each iteration. All give the same result, 
             # at least before implementing weights
 
-            # Lambda_inv = np.linalg.inv(Lambda)
-            # Lambda2 = 0
-            # Lambda3 = np.zeros(n)
-            # for i in range(n):
-            #     Lambda2 += weights[i]*np.outer(X[i],X[i])/(X[i]@Lambda_inv@X[i])
-            #     Lambda3[i]= weights[i]/(X[i]@Lambda_inv@X[i])
-            
-            # Lambda4 = p/np.sum(Lambda3)*Lambda2
-
             XtLX = np.sum(X@np.linalg.inv(Lambda)*X,axis=1)
             # Lambda3 same as weights/XtLX
             Lambda = p/np.sum(weights/XtLX)*(Q.T/XtLX)@X
@@ -113,88 +89,3 @@ class ACG():
 
         for k in range(self.K):
             self.Lambda[k] = self.Lambda_MLE(self.Lambda[k],X,weights=Beta[:,k],tol=tol)
-
-
-if __name__=='__main__':
-    import matplotlib.pyplot as plt
-    from tqdm import tqdm
-    K = np.array(2)
-    
-    p = np.array(3)
-    ACG = ACG(K=K,p=p)
-    data = np.loadtxt('data/synthetic/synth_data_ACG.csv',delimiter=',')
-    # data = np.random.normal(loc=0,scale=0.1,size=(10000,100))
-    # data = data[np.arange(1000,step=2),:]
-    ACG.initialize(X=data,init='uniform')
-    # ACG.Lambda_MLE(X=data)
-
-    # start = time.time()
-    # ACG.log_norm_constant()
-    # stop1 = time.time()-start
-    # start = time.time()
-    # ACG.log_norm_constant2()
-    # stop2 = time.time()-start
-    # print(str(stop1)+"_"+str(stop2))
-
-
-    for iter in tqdm(range(1000)):
-        # E-step
-        ACG.log_likelihood(X=data)
-        # print(ACG.Lambda_chol)
-        # M-step
-        ACG.M_step(X=data)
-    stop=7
-
-    def Lambda_MLE_naive(self,X,weights = None,tol=1e-10,max_iter=10000):
-        n,p = X.shape
-        if weights is None:
-            weights = np.ones(n)
-        Lambda = np.eye(self.p)
-        Lambda_old = Lambda + 10000
-        # Q = np.sqrt(weights)[:,np.newaxis]*X
-        
-        j = 0
-        while np.linalg.norm(Lambda_old-Lambda) > tol and (j < max_iter):
-            Lambda_old = Lambda
-            tmp = np.zeros((p,p))
-            # tmp2 = np.zeros((p,p))
-            # tmp3 = 0
-            Lambda_inv = np.linalg.inv(Lambda)
-            for i in range(n):
-                tmp += p/n*np.outer(X[i],X[i])/(X[i]@Lambda_inv@X[i])
-                # tmp2 += np.outer(X[i],X[i])/(X[i]@np.linalg.inv(Lambda)@X[i])
-                # tmp3 += 1/(X[i]@np.linalg.inv(Lambda)@X[i])
-            # Lambda_iter = p*tmp2/tmp3
-            Lambda = p/np.trace(tmp)*tmp
-            j +=1
-            print(j)
-        return Lambda
-    
-    # def Lambda_MLE_chol(self,X,weights=None,tol=1e-10,max_iter=10000):
-    #     n,p = X.shape
-    #     if weights is None:
-    #         weights = np.ones(n)
-    #     Lambda = np.eye(self.p)
-    #     Lambda_old = Lambda + np.eye(self.p)*10000
-    #     Q = np.sqrt(weights)[:,np.newaxis]*X
-        
-    #     j = 0
-    #     while np.linalg.norm(Lambda_old-Lambda) > tol and (j < max_iter):
-    #         Lambda_old = Lambda
-            
-    #         B = X @ Lambda
-    #         XLXt = np.sum(B * B, axis=1)
-    #         Lambda = np.linalg.cholesky(p*(Q/XLXt[:,np.newaxis]).T@Q/np.sum(weights/XLXt))
-    #         j +=1
-    #     return Lambda
-
-
-    
-    
-    # def log_norm_constant_chol(self):
-    #     # Be sure to check with task code
-    #     logdet = 2*np.log(np.linalg.det(self.Lambda_chol))
-    #     logdet = np.zeros(self.K)
-    #     for k in range(self.K):
-    #         logdet[k] = 2*np.sum(np.log(np.abs(np.diag(self.Lambda_chol[k]))))
-    #     return self.logSA - 0.5*logdet

@@ -1,5 +1,6 @@
 from src.helper_functions import load_data,run_model_reps_and_save_logliks,parse_input_args
 
+# options pertaining to current experiment
 options = {}
 options['tol'] = 1e-8
 options['num_repl_outer'] = 10
@@ -7,7 +8,7 @@ options['num_repl_inner'] = 1
 options['max_iter'] = 100000
 options['num_subjects'] = 100
 options['ACG_rank'] = 25 #for ACG and MACG
-options['outfolder'] = 'experiments/116_GSR_vs_noGSR_outputs'
+options['outfolder'] = 'data/results/116_GSR_vs_noGSR_outputs'
 
 def run_experiment(extraoptions={}):
     options.update(extraoptions) #modelname, LR, init, GSR controlled in shell script

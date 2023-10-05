@@ -1,12 +1,13 @@
 from src.helper_functions import load_data,run_model_reps_and_save_logliks,parse_input_args
 import sys
 
+# options pertaining to current experiment
 options = {}
 options['tol'] = 1e-10
 options['num_repl_outer'] = 10
 options['num_repl_inner'] = 1
 options['max_iter'] = 100000
-options['outfolder'] = 'experiments/synth_outputs'
+options['outfolder'] = 'data/results/synth_outputs'
 options['num_subjects'] = None
 options['ACG_rank'] = 'full' #for ACG and MACG
 options['data_type'] = 'synthetic'

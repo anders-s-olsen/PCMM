@@ -1,15 +1,9 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from src.models_python.WatsonMixtureEM import Watson
-from src.models_python.mixture_EM_loop import mixture_EM_loop
-from src.models_pytorch.diametrical_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch
+from src.helper_functions import initialize_pi_mu_M
 
-from scipy.special import gamma
-torch.set_default_dtype(torch.float64)
-torch.autograd.set_detect_anomaly(False)
 
-#device = 'cpu'
 class MACG(nn.Module):
     """
     Angular-Central-Gaussian spherical distribution:
@@ -54,30 +48,11 @@ class MACG(nn.Module):
         return {'M':self.M.data,'pi':self.pi.data} #should be normalized: L=MM^T+I and then L = p*L/trace(L)
 
     def initialize(self,X=None,init=None,tol=None):
-        self.pi = nn.Parameter(torch.ones(self.K,device=self.device)/self.K)
         if init == 'no':
             return
-        if init is not None and init !='unif' and init!='uniform':
-            if init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
-                mu = diametrical_clustering_plusplus_torch(X=X[:,:,0],K=self.K)
-            elif init == 'dc' or init == 'diametrical_clustering':
-                mu = diametrical_clustering_torch(X=X[:,:,0],K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
-            elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
-                W = Watson(K=self.K,p=self.p)
-                params,_,_,_ = mixture_EM_loop(W,X[:,:,0],init='dc')
-                mu = params['mu']
-                self.pi = nn.Parameter(params['pi'])
-            elif init == 'test':
-                M1 = torch.tensor(np.loadtxt('data/test116M.txt'))
-                M2 = torch.tensor(np.loadtxt('data/test116M2.txt'))
-                self.M = nn.Parameter(torch.stack([M1,M2],axis=0))
-                return
-            self.M = torch.rand((self.K,self.p,self.r)).to(self.device)
-            for k in range(self.K):
-                self.M[k,:,0] = mu[:,k] #initialize only the first of the rank D columns this way, the rest uniform
-            self.M = nn.Parameter(self.M)
-        elif init =='unif' or init=='uniform' or init is None:
-            self.M = nn.Parameter(torch.rand((self.K,self.p,self.r)).to(self.device))
+        pi,_,M = initialize_pi_mu_M(init=init,K=self.K,p=self.p,X=X,tol=tol,r=self.r,initM=True)
+        pi = nn.Parameter(torch.tensor(pi))
+        M = nn.Parameter(torch.tensor(M))
 
     def log_pdf(self,X):
         D = torch.eye(self.r) + torch.swapaxes(self.M,-2,-1)@self.M
@@ -112,38 +87,3 @@ class MACG(nn.Module):
     
     def __repr__(self):
         return 'ACG'
-
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    from tqdm import tqdm
-    K = np.array(2)
-    
-    p = np.array(3)
-    MACG = MACG(K=K,p=3,q=2,rank=p)
-    data = np.loadtxt('data/synthetic/synth_data_MACG.csv',delimiter=',')
-    data2 = np.zeros((1000,p,2))
-    data2[:,:,0] = data[np.arange(2000,step=2),:]
-    data2[:,:,1] = data[np.arange(2000,step=2)+1,:]
-    data2 = torch.tensor(data2)
-    # data = np.random.normal(loc=0,scale=0.1,size=(10000,100))
-    # data = data[np.arange(2000,step=2),:]
-    MACG.initialize(X=data2,init='uniform')
-    # ACG.Lambda_MLE(X=data)
-
-    # start = time.time()
-    # ACG.log_norm_constant()
-    # stop1 = time.time()-start
-    # start = time.time()
-    # ACG.log_norm_constant2()
-    # stop2 = time.time()-start
-    # print(str(stop1)+"_"+str(stop2))
-
-
-    for iter in tqdm(range(1000)):
-        # E-step
-        MACG.log_likelihood(X=data2)
-        # print(ACG.Lambda_chol)
-        # M-step
-        MACG.M_step(X=data2)
-    stop=7

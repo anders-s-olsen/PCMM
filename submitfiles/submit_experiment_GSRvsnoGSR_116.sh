@@ -10,9 +10,9 @@ do
 for m in "${modelnames[@]}"
 do
 
-    sed -i '$ d' submitfiles/pyspheremixtures454_template.sh
-    echo "python3 experiments/run_models_116.py $m $LR $init $GSR" >> submitfiles/pyspheremixtures454_template.sh
-    bsub < submitfiles/pyspheremixtures454_template.sh
+    sed -i '$ d' submitfiles/HPC_template_8threads_8GB.sh
+    echo "python3 experiments/experiment_GSRvsnoGSR_116.py $m $LR $init $GSR" >> submitfiles/HPC_template_8threads_8GB.sh
+    bsub < submitfiles/HPC_template_8threads_8GB.sh
 
 done
 done

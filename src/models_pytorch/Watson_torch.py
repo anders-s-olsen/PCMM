@@ -1,9 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from src.models_pytorch.diametrical_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch
-torch.set_default_dtype(torch.float64)
-torch.autograd.set_detect_anomaly(False)
+from src.helper_functions import initialize_pi_mu_M
 
 class Watson(nn.Module):
     """
@@ -15,10 +13,10 @@ class Watson(nn.Module):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.p = torch.tensor(p,device=self.device)
-        self.c = torch.tensor(p/2,device=self.device)
+        self.half_p = torch.tensor(p/2,device=self.device)
         self.K = torch.tensor(K,device=self.device)
         self.a = torch.tensor(0.5,device=self.device)  # a = 1/2,  !constant
-        self.logSA = torch.lgamma(self.c) - torch.log(torch.tensor(2,device=self.device)) -self.c* torch.log(torch.tensor(np.pi,device=self.device))
+        self.logSA = torch.lgamma(self.half_p) - torch.log(torch.tensor(2,device=self.device)) -self.half_p* torch.log(torch.tensor(np.pi,device=self.device))
 
         if params is not None:
             if torch.is_tensor(params['pi']):
@@ -39,16 +37,9 @@ class Watson(nn.Module):
         return {'mu': self.mu.data,'kappa':self.kappa.data,'pi':self.pi.data}
     
     def initialize(self,X=None,init=None,tol=None):
-        if init is None or init=='uniform' or init=='unif':
-            self.mu = nn.Parameter(nn.functional.normalize(torch.rand(size=(self.p,self.K)),dim=0))
-        elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
-            self.mu = nn.Parameter(diametrical_clustering_plusplus_torch(X=X,K=self.K))
-        elif init == 'dc' or init == 'diametrical_clustering':
-            self.mu = nn.Parameter(diametrical_clustering_torch(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol))
-        elif init=='test':
-            self.mu = nn.Parameter(nn.functional.normalize(torch.tensor([[1,1],[0,1],[0,1]]).double(),dim=0))
-            
-        self.pi = nn.Parameter(torch.ones(self.K,device=self.device)/self.K)
+        pi,mu,_ = initialize_pi_mu_M(init=init,K=self.K,p=self.p,X=X) 
+        pi = nn.Parameter(torch.tensor(pi))
+        mu = nn.Parameter(torch.tensor(mu))
         self.kappa = nn.Parameter(torch.ones(self.K,device=self.device)) 
 
     def kummer_log(self,a, c, kappa, n=1000000,tol=1e-10):
@@ -89,7 +80,7 @@ class Watson(nn.Module):
         return logkum+kappa    
 
     def log_norm_constant(self, kappa):
-        logC = self.logSA - self.kummer_log(self.a, self.c, kappa)[:,None]
+        logC = self.logSA - self.kummer_log(self.a, self.half_p, kappa)[:,None]
         return logC
 
     def log_pdf(self, X):
@@ -136,40 +127,3 @@ class Watson(nn.Module):
         logsum_density = torch.logsumexp(density, dim=0)
         return torch.exp(density-logsum_density)
 
-
-if __name__ == "__main__":
-    # Test that the code works
-    
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
-    import scipy
-    mpl.use('Qt5Agg')
-
-    W = Watson(p=2)
-    print(W.log_kummer(torch.tensor(0.5),torch.tensor(100),torch.tensor(2)))
-    print(W.log_kummer(torch.tensor(0.5),torch.tensor(100),torch.tensor(200)))
-    print(W.log_kummer(torch.tensor(0.5),torch.tensor(100),torch.tensor(2000)))
-
-    W_pdf = lambda phi: float(torch.exp(W(torch.tensor([np.cos(phi), np.sin(phi)], dtype=torch.float))))
-    w_result = scipy.integrate.quad(W_pdf, 0., 2*np.pi)
-
-    # phi = linspace(0, 2 * pi, 320);
-    # x = [cos(phi);sin(phi)];
-    #
-    # _, inner = W.log_kummer(torch.tensor(0.5), torch.tensor(3/2), torch.tensor())
-
-    phi = torch.arange(0, 2 * np.pi, 0.001)
-    phi_arr = np.array(phi)
-    x = torch.column_stack((torch.cos(phi), torch.sin(phi)))
-
-    points = torch.exp(W(x))
-    props = np.array(points.squeeze().detach())
-
-    # props = props/np.max(props)
-
-    ax = plt.axes(projection='3d')
-    ax.plot(np.cos(phi_arr), np.sin(phi_arr), 0, 'gray')
-    ax.scatter(np.cos(phi_arr), np.sin(phi_arr), props, c=props, cmap='viridis', linewidth=0.5)
-
-    ax.view_init(30, 135)
-    plt.show()

@@ -1,11 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from src.models_python.WatsonMixtureEM import Watson
-from src.models_python.mixture_EM_loop import mixture_EM_loop
-from src.models_pytorch.diametrical_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch
-torch.set_default_dtype(torch.float64)
-torch.autograd.set_detect_anomaly(False)
+from src.helper_functions import initialize_pi_mu_M
 
 class ACG(nn.Module):
     """
@@ -49,28 +45,12 @@ class ACG(nn.Module):
         return {'M':self.M.data,'pi':self.pi.data} #should be normalized: L=MM^T+I and then L = p*L/trace(L)
 
     def initialize(self,X=None,init=None,tol=None):
-
-        self.pi = nn.Parameter(torch.ones(self.K,device=self.device)/self.K)
         if init == 'no':
             return
-        if init is not None and init !='unif' and init!='uniform':
-            if init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
-                mu = diametrical_clustering_plusplus_torch(X=X,K=self.K)
-            elif init == 'dc' or init == 'diametrical_clustering':
-                mu = diametrical_clustering_torch(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
-            elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
-                W = Watson(K=self.K,p=self.p)
-                params,_,_,_ = mixture_EM_loop(W,X,init='dc')
-                mu = params['mu']
-                self.pi = nn.Parameter(params['pi'])
-            self.M = torch.rand((self.K,self.p,self.r)).to(self.device)
-            for k in range(self.K):
-                self.M[k,:,0] = mu[:,k] #initialize only the first of the rank D columns this way, the rest uniform
-            self.M = nn.Parameter(self.M)
-        elif init =='unif' or init=='uniform' or init is None:
-            self.M = nn.Parameter(torch.rand((self.K,self.p,self.r)).to(self.device))
-                
-
+        pi,_,M = initialize_pi_mu_M(init=init,K=self.K,p=self.p,X=X,tol=tol,r=self.r,initM=True)
+        pi = nn.Parameter(torch.tensor(pi))
+        M = nn.Parameter(torch.tensor(M))
+        
     def log_pdf(self,X):
         D = torch.eye(self.r) + torch.swapaxes(self.M,-2,-1)@self.M
         log_det_D = torch.logdet(D)
@@ -107,35 +87,3 @@ class ACG(nn.Module):
     def __repr__(self):
         return 'ACG'
 
-
-if __name__ == "__main__":
-    # test that the code works
-    import matplotlib.pyplot as plt
-
-    dim = 3
-    ACG = ACG(p=dim,D=2)
-    
-    #ACG_pdf = lambda phi: float(torch.exp(ACG(torch.tensor([[np.cos(phi), np.sin(phi)]], dtype=torch.float))))
-    #acg_result = scipy.integrate.quad(ACG_pdf, 0., 2*np.pi)
-
-    X = torch.randn(6, dim)
-
-    out = ACG(X)
-    print(out)
-    # # ACG.L_under_diag = nn.Parameter(torch.ones(2,2))
-    # # ACG.L_diag = nn.Parameter(torch.tensor([21.,2.5]))
-    # phi = torch.arange(0, 2*np.pi, 0.001)
-    # phi_arr = np.array(phi)
-    # x = torch.column_stack((torch.cos(phi),torch.sin(phi)))
-    #
-    # points = torch.exp(ACG(x))
-    # props = np.array(points.squeeze().detach())
-    #
-    # ax = plt.axes(projection='3d')
-    # ax.plot(np.cos(phi_arr), np.sin(phi_arr), 0, 'gray') # ground line reference
-    # ax.scatter(np.cos(phi_arr), np.sin(phi_arr), props, c=props, cmap='viridis', linewidth=0.5)
-    #
-    # ax.view_init(30, 135)
-    # plt.show()
-    # plt.scatter(phi,props, s=3)
-    # plt.show()

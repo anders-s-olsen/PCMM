@@ -9,7 +9,7 @@ for m in "${modelnames[@]}"
 do
 
     sed -i '$ d' submitfiles/HPC_template_8threads_100MB.sh
-    echo "python3 experiments/run_models_synth.py $m $LR $init" >> submitfiles/HPC_template_8threads_100MB.sh
+    echo "python3 experiments/experiment_synthetic.py $m $LR $init" >> submitfiles/HPC_template_8threads_100MB.sh
     bsub < submitfiles/HPC_template_8threads_100MB.sh
 
 done

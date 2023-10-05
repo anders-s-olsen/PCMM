@@ -1,9 +1,7 @@
 import numpy as np
-from scipy.special import loggamma,hyp1f1
+from scipy.special import loggamma
 import scipy
-import time
-from src.models_python.diametrical_clustering import diametrical_clustering,diametrical_clustering_plusplus
-# import torch
+from src.helper_functions import initialize_pi_mu_M
 
 class Watson():
     """
@@ -27,19 +25,7 @@ class Watson():
         return {'mu': self.mu,'kappa':self.kappa,'pi':self.pi}
     
     def initialize(self,X=None,init=None,tol=None):
-        if init is None or init=='uniform' or init=='unif':
-            self.mu = np.random.uniform(size=(self.p,self.K))
-            self.mu = self.mu/np.linalg.norm(self.mu,axis=0)
-        elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
-            self.mu = diametrical_clustering_plusplus(X=X,K=self.K)
-        elif init == 'dc' or init == 'diametrical_clustering':
-            self.mu = diametrical_clustering(X=X,K=self.K,max_iter=100000,num_repl=5,init='++',tol=tol)
-        elif init=='test':
-            self.mu = np.array([[1,1],[0,1],[0,1]])
-            self.mu = self.mu/np.linalg.norm(self.mu,axis=0)
-            
-        self.pi = np.repeat(1/self.K,repeats=self.K)
-        # self.kappa = np.random.randint(low=1,high=10,size=self.K)
+        self.pi,self.mu,_ = initialize_pi_mu_M(init=init,K=self.K,p=self.p,X=X) 
         self.kappa = np.ones(self.K)
     
 
@@ -121,26 +107,3 @@ class Watson():
             if np.linalg.norm(self.kappa[k]-LB)<1e-10 or np.linalg.norm(self.kappa[k]-B)<1e-10 or np.linalg.norm(self.kappa[k]-UB)<1e-10:
                 print('Probably a convergence problem for kappa')
                 return
-
-
-if __name__=='__main__':
-    import matplotlib.pyplot as plt
-    K = np.array(2)
-    
-    p = np.array(3)
-    W = Watson(K=K,p=p)
-    data = np.loadtxt('data/synthetic/synth_data_2.csv',delimiter=',')
-    data = data[np.arange(2000,step=2),:]
-    W.initialize(X=data,init='test')
-
-    # data1 = np.random.normal(loc=np.array((1,1,1)),scale=0.02,size=(1000,p))
-    # data2 = np.random.normal(loc=np.array((1,-1,-1)),scale=0.02,size=(1000,p))
-    # data = np.vstack((data1,data2))
-    # data = data/np.linalg.norm(data,axis=1)[:,np.newaxis]
-
-    for iter in range(1000):
-        # E-step
-        W.log_likelihood(X=data)
-        # M-step
-        W.M_step(X=data)
-    stop=7
