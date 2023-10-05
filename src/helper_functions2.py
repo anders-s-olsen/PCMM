@@ -11,11 +11,15 @@ def initialize_pi_mu_M(init,K,p,X=None,tol=1e-8,r=1,init_M=False):
         mu = np.random.uniform(size=(p,K))
         mu = mu/np.linalg.norm(mu,axis=0)
     elif init == '++' or init == 'plusplus' or init == 'diametrical_clustering_plusplus':
+        if X.ndim==2:
+            X = X[:,:,0]
         if torch.is_tensor(X):
             mu = diametrical_clustering_plusplus_torch(X=X,K=K)
         else:
             mu = diametrical_clustering_plusplus(X=X,K=K)
     elif init == 'dc' or init == 'diametrical_clustering':
+        if X.ndim==2:
+            X = X[:,:,0]
         if torch.is_tensor(X):
             mu = diametrical_clustering_torch(X=X,K=K,max_iter=100000,num_repl=5,init='++',tol=tol)
         else:
