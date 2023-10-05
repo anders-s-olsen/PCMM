@@ -41,13 +41,13 @@ def run_experiment(modelname,LR,init):
             np.random.shuffle(rep_order)
             for repl in range(num_repl_outer):
                 rep = rep_order[repl]
-                params,train_loglik,loglikcurve = train_model(modelname,K,data_train,p,init,LR,num_repl_inner,num_iter,tol)
+                params,train_loglik,_ = train_model(modelname,K,data_train,p,init,LR,num_repl_inner,num_iter,tol)
                 test_loglik,_ = test_model(modelname,K,data_test,params,LR,p)
                 allliks[:,repl] = np.array([train_loglik,test_loglik])
                 np.savetxt('experiments/synth_outputs/'+modelname+'_'+expname+'_traintestlikelihood.csv',allliks)
 
 if __name__=="__main__":
-    run_experiment(modelname='ACG',LR=float(0),init='dc')
+    # run_experiment(modelname='ACG',LR=float(0),init='dc')
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:
