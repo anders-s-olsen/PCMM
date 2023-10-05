@@ -27,11 +27,11 @@ def run_experiment(extraoptions={}):
 
 
 if __name__=="__main__":
-    options={}
-    options['modelname'] = 'ACG_lowrank'
-    options['init'] = 'unif'
-    options['LR'] = 0
-    run_experiment(options)
+    # options={}
+    # options['modelname'] = 'ACG_lowrank'
+    # options['init'] = 'unif'
+    # options['LR'] = 0
+    # run_experiment(options)
 
     import sys
     options=parse_input_args(sys.argv)
