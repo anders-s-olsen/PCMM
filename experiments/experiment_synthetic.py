@@ -14,7 +14,7 @@ options['threads'] = 8
 
 def run_experiment(extraoptions={}):
     options.update(extraoptions) #modelname, LR, init controlled in shell script
-
+    print(options)
     ps = [3,10,25]
     Ks = [2,5,10]
     for p in ps:
