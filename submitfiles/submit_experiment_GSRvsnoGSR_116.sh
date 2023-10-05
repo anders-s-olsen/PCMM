@@ -5,7 +5,7 @@ for init in "${inits[@]}"
 do
 for GSR in 0 1
 do
-for LR in 0 0.1 0.01
+for LR in 0 0.1 0.01 0.001
 do
 for m in "${modelnames[@]}"
 do

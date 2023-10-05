@@ -20,8 +20,8 @@ def run_experiment(extraoptions={}):
     data_train,data_test,data_test2 = load_data(options=options)
     p = data_train.shape[1]
     
-    for K in range(2,31):
-        options['expname'] = '116_'+options['init']+'_'+str(options['LR'])+'_p'+str(p)+'_K'+str(K)
+    for K in [2,7]:
+        options['experiment_name'] = '116_'+options['init']+'_'+str(options['LR'])+'_p'+str(p)+'_K'+str(K)
         run_model_reps_and_save_logliks(data_train=data_train,data_test=data_test,data_test2=data_test2,K=K,options=options)
 
 
