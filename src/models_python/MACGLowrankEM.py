@@ -3,7 +3,6 @@ from scipy.special import loggamma, gamma
 from src.models_python.diametrical_clustering import diametrical_clustering, diametrical_clustering_plusplus
 from src.models_python.WatsonMixtureEM import Watson
 from src.models_python.mixture_EM_loop import mixture_EM_loop
-import matplotlib.pyplot as plt
 import time
 
 class MACG():
