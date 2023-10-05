@@ -161,22 +161,24 @@ def run_model_reps_and_save_logliks(data_train,data_test,data_test2,K,options):
     os.makedirs(options['outfolder'],exist_ok=True)
     rep_order = np.arange(options['num_repl_outer'])
     np.random.shuffle(rep_order)
-    logliks = np.zeros((3,options['num_repl_outer']))
+    try:
+        logliks = np.loadtxt(options['outfolder']+'/'+options['modelname']+'_'+options['experiment_name']+'_traintestlikelihood.csv',logliks)
+    except:
+        logliks = np.zeros((3,options['num_repl_outer']))
+            
 
     for repl in range(options['num_repl_outer']):
         rep = rep_order[repl]
-        try:
-            existinglogliks = np.loadtxt(options['outfolder']+'/'+options['modelname']+'_'+options['experiment_name']+'_traintestlikelihood.csv',logliks)
-            if existinglogliks[0,rep]==0:
-                print('starting K='+str(K)+' rep='+str(rep))
-                params,train_loglik,_ = train_model(data_train=data_train,K=K,options=options)
-                test_loglik,_ = test_model(data_test=data_test,params=params,K=K,options=options)
-                test_loglik2,_ = test_model(data_test=data_test2,params=params,K=K,options=options)
-                logliks[0,rep] = train_loglik
-                logliks[1,rep] = test_loglik
-                logliks[2,rep] = test_loglik2
-                np.savetxt(options['outfolder']+'/'+options['modelname']+'_'+options['experiment_name']+'_traintestlikelihood.csv',logliks)
-        except: continue
+        if logliks[0,rep]==0:
+            print('starting K='+str(K)+' rep='+str(rep))
+            params,train_loglik,_ = train_model(data_train=data_train,K=K,options=options)
+            test_loglik,_ = test_model(data_test=data_test,params=params,K=K,options=options)
+            test_loglik2,_ = test_model(data_test=data_test2,params=params,K=K,options=options)
+            logliks[0,rep] = train_loglik
+            logliks[1,rep] = test_loglik
+            logliks[2,rep] = test_loglik2
+            np.savetxt(options['outfolder']+'/'+options['modelname']+'_'+options['experiment_name']+'_traintestlikelihood.csv',logliks)
+        
 def parse_input_args(args):
     options = {}
     options['modelname'] = args[1]
