@@ -10,6 +10,7 @@ def run_experiment(extraoptions={}):
     options['num_subjects'] = 100
     options['ACG_rank'] = 25 #for ACG and MACG
     options['outfolder'] = 'data/results/GSR_vs_noGSR_116_outputs'
+    options['threads'] = 8
     options.update(extraoptions) #modelname, LR, init, GSR controlled in shell script
 
     ## load data, only the first 100 subjects (each with 1200 data points)
