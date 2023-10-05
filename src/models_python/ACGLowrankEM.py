@@ -92,7 +92,7 @@ class ACG():
         logsum_density = np.logaddexp.reduce(density)
         return np.exp(density-logsum_density)
     
-    def M_MLE_lowrank(self,M,X,weights = None,c=10e-6,tol=1e-10,max_iter=10000):
+    def M_MLE_lowrank(self,M,X,weights = None,tol=1e-10,max_iter=10000):
         n,p = X.shape
         if n<p*(p-1):
             print("Too high dimensionality compared to number of observations. Lambda cannot be calculated")
@@ -151,7 +151,7 @@ class ACG():
         self.pi = np.sum(Beta,axis=0)/n
 
         for k in range(self.K):
-            self.M[k],self.c[k] = self.M_MLE_lowrank(self.M[k],X,weights=Beta[:,k],c=self.c[k],tol=tol)
+            self.M[k] = self.M_MLE_lowrank(self.M[k],X,weights=Beta[:,k],tol=tol)
             
 
 

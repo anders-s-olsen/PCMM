@@ -17,7 +17,6 @@ class MACG():
         self.p = p
         self.half_p = self.p/2
         self.r = rank
-        self.c = np.ones(self.K)
         loggamma_k = (self.q*(self.q-1)/4)*np.log(np.pi)+np.sum(loggamma(self.half_p-np.arange(self.q)/2))
         self.logSA_Stiefel = loggamma_k-self.q*np.log(2)-self.q*self.half_p*np.log(np.pi)
 
@@ -71,18 +70,18 @@ class MACG():
     
     def log_norm_constant_matrixdeterminantlemma(self,D):
         logdetsign,logdet = np.linalg.slogdet(D)
-        return self.logSA_Stiefel - (self.q/2)*(self.p*np.log(self.c)+logdetsign*logdet)
+        return self.logSA_Stiefel - (self.q/2)*(logdetsign*logdet)
     
     def log_pdf(self,X):
 
-        D = np.eye(self.r)+1/self.c[:,None,None]*np.swapaxes(self.M,-2,-1)@self.M
-        XM = np.swapaxes(X,-2,-1)[None,:,:,:]@self.M[:,None,:,:]
+        D = np.eye(self.r)+np.swapaxes(self.M,-2,-1)@self.M
+        XtM = np.swapaxes(X,-2,-1)[None,:,:,:]@self.M[:,None,:,:]
 
-        # v = np.linalg.det(D-self.c*np.swapaxes(XM,-2,-1)@XM)/np.linalg.det(D)*np.linalg.det(c**(-1)*np.eye(self.q))
-        v = self.logdet(D[:,None]-self.c*np.swapaxes(XM,-2,-1)@XM)-self.logdet(D)[:,None]+self.q*np.log(self.c)[:,None]
+        # utilizing matrix determinant lemma
+        v = self.logdet(D[:,None]-np.swapaxes(XtM,-2,-1)@XtM)-self.logdet(D)[:,None]
 
-        # Z = np.array([self.c[k]*np.eye(self.p)+self.M[k]@self.M[k].T for k in range(self.K)])
-        # pdf = np.linalg.det(np.swapaxes(X,-2,-1)[None,:,:,:]@np.linalg.inv(Z)[:,None,:,:]@X)
+        # Z = np.array([np.eye(self.p)+self.M[k]@self.M[k].T for k in range(self.K)])
+        # pdf = np.log(np.linalg.det(np.swapaxes(X,-2,-1)[None,:,:,:]@np.linalg.inv(Z)[:,None,:,:]@X))
         return self.log_norm_constant_matrixdeterminantlemma(D)[:,None] -self.half_p*v
 
     def log_density(self,X):
@@ -99,7 +98,7 @@ class MACG():
         logsum_density = np.logaddexp.reduce(density)
         return np.exp(density-logsum_density)    
 
-    def M_MLE_lowrank(self,M,X,weights = None,c=10e-6,tol=1e-10,max_iter=10000):
+    def M_MLE_lowrank(self,M,X,weights = None,tol=1e-10,max_iter=10000):
         n,p,q = X.shape
         
         if n<(p*(p-1)*q):
@@ -120,20 +119,18 @@ class MACG():
         trMMtMMt_old = np.trace(M.T@M@M.T@M)
         M_old = M
         o_all = [o]
-        diagL = np.zeros((n,q,q))
         
         for j in range(max_iter):
             
             # And then matrix
             MtM = M.T@M
-            D_inv = np.linalg.inv(np.eye(self.r)+c**(-1)*MtM)
+            D_inv = np.linalg.inv(np.eye(self.r)+MtM)
             XtM = np.swapaxes(X,-2,-1)@M
 
             # # this works but is slow, should be instant with einsum...
-            # L,U = np.linalg.eigh(c**(-2)*XtM@D_inv@np.swapaxes(XtM,-2,-1))
-            # diagL[:,0,0] = 1/(1-L[:,0])
-            # diagL[:,1,1] = 1/(1-L[:,1])
-            # V_inv = U@diagL@np.swapaxes(U,-2,-1)
+            # L,U = np.linalg.eigh(XtM@D_inv@np.swapaxes(XtM,-2,-1))
+            # Ldiag = 1/L[..., np.newaxis] * np.eye(self.q)
+            # V_inv = U@Ldiag@np.swapaxes(U,-2,-1)
             
             # This is okay, because the matrices to be inverted are only 2x2
             V_inv = np.linalg.inv(np.eye(q)-XtM@D_inv@np.swapaxes(XtM,-2,-1))
@@ -159,7 +156,7 @@ class MACG():
             M_old = M
 
 
-        return M,c
+        return M
 
 ############# M-step #################
     def M_step(self,X,tol=1e-10):
@@ -168,7 +165,7 @@ class MACG():
         self.pi = np.sum(Beta,axis=0)/n
 
         for k in range(self.K):
-            self.M[k],self.c[k] = self.M_MLE_lowrank(self.M[k],X,weights=Beta[:,k],c=self.c[k],tol=tol)
+            self.M[k] = self.M_MLE_lowrank(self.M[k],X,weights=Beta[:,k],tol=tol)
 
 if __name__=='__main__':
     import matplotlib.pyplot as plt

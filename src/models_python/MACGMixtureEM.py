@@ -52,14 +52,13 @@ class MACG():
     
 
 ################ E-step ###################
+    def logdet(self,B):
+        logdetsign,logdet = np.linalg.slogdet(B)
+        return logdetsign*logdet
     
-    def log_norm_constant(self):
-        logdetsign,logdet = np.linalg.slogdet(self.Sigma)
-        return self.logSA_Stiefel - (self.q/2)*logdetsign*logdet
-
     def log_pdf(self,X):
-        pdf = np.linalg.det(np.swapaxes(X,-2,-1)[None,:,:,:]@np.linalg.inv(self.Sigma)[:,None,:,:]@X)
-        return self.log_norm_constant()[:,None] -self.half_p*np.log(pdf)
+        pdf = self.logdet(np.swapaxes(X,-2,-1)[None,:,:,:]@np.linalg.inv(self.Sigma)[:,None,:,:]@X)
+        return self.logSA_Stiefel - (self.q/2)*self.logdet(self.Sigma)[:,None] - self.half_p*pdf
 
     def log_density(self,X):
         return self.log_pdf(X)+np.log(self.pi)[:,None]
@@ -91,10 +90,15 @@ class MACG():
             
             # this has been tested in the "Naive" version below
             XtLX = np.swapaxes(X,-2,-1)@np.linalg.inv(Sigma)@X
-            XtLX_trace = np.sum(1/np.linalg.eigh(XtLX)[0],axis=1) #trace of inverse is sum of inverse eigenvalues
+            L,V = np.linalg.eigh(XtLX)
+            XtLX_trace = np.sum(1/L,axis=1) #trace of inverse is sum of inverse eigenvalues
             
             Sigma = p*np.sum(Q@np.linalg.inv(XtLX)@np.swapaxes(X,-2,-1),axis=0) \
                 /(np.sum(weights*XtLX_trace))
+            
+            # Ldiag = 1/L[..., np.newaxis] * np.eye(self.q)
+            # Sigma = p*np.sum(Q@V@Ldiag@np.swapaxes(V,-2,-1)@np.swapaxes(X,-2,-1),axis=0) \
+            #     /(np.sum(weights*XtLX_trace))
             j +=1
         return Sigma
     
