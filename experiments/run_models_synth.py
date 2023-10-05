@@ -44,7 +44,7 @@ def run_experiment(modelname,LR,init):
                 params,train_loglik,loglikcurve = train_model(modelname,K,data_train,p,init,LR,num_repl_inner,num_iter,tol)
                 test_loglik,_ = test_model(modelname,K,data_test,params,LR,p)
                 allliks[:,repl] = np.array([train_loglik,test_loglik])
-                np.savetxt('experiments/synth_outputs/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',allliks)
+                np.savetxt('experiments/synth_outputs/'+modelname+'_'+expname+'_traintestlikelihood.csv',allliks)
 
 if __name__=="__main__":
     run_experiment(modelname='ACG',LR=float(0),init='dc')
