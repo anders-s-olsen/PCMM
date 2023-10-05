@@ -6,7 +6,7 @@ torch.set_default_dtype(torch.float64)
 import sys
 import os
 
-tol = 1e-6
+tol = 1e-10
 num_repl_outer = 10
 num_repl_inner = 1
 num_iter = 100000
@@ -15,12 +15,10 @@ def run_experiment(modelname,LR,init):
 
     if LR==0:
         os.environ["OMP_NUM_THREADS"] = '8'
-        to_tensor = False
     else:
         os.environ["OMP_NUM_THREADS"] = '1'
         torch.set_num_threads(8)
         torch.set_num_interop_threads(8)
-        to_tensor = True
 
     ps = [3,10,25]
     Ks = [2,5,10]
@@ -29,9 +27,9 @@ def run_experiment(modelname,LR,init):
             if K>p:
                 continue
             if modelname=='Watson' or modelname=='ACG':
-                data_train,data_test = load_data(type='synth',num_subjects=None,num_eigs=1,to_tensor=to_tensor,p=p,K=K)
+                data_train,data_test,_ = load_data(type='synth',num_subjects=None,num_eigs=1,LR=LR,p=p,K=K)
             elif modelname=='MACG':
-                data_train,data_test = load_data(type='synth',num_subjects=None,num_eigs=2,to_tensor=to_tensor,p=p,K=K)
+                data_train,data_test,_ = load_data(type='synth',num_subjects=None,num_eigs=2,LR=LR,p=p,K=K)
     
             expname = '3d_'+init+'_'+str(LR)+'_p'+str(p)+'_K'+str(K)
             os.makedirs('experiments/synth_outputs',exist_ok=True)
@@ -42,13 +40,13 @@ def run_experiment(modelname,LR,init):
             np.random.shuffle(rep_order)
             for repl in range(num_repl_outer):
                 rep = rep_order[repl]
-                params,train_loglik = train_model(modelname,K,data_train,p,init,LR,num_repl_inner,num_iter,tol)
-                test_loglik = test_model(modelname,K,data_test,params,LR,p)
+                params,train_loglik,loglikcurve = train_model(modelname,K,data_train,p,init,LR,num_repl_inner,num_iter,tol)
+                test_loglik,_ = test_model(modelname,K,data_test,params,LR,p)
 
                 np.savetxt('experiments/synth_outputs/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',np.array([train_loglik,test_loglik]))
 
 if __name__=="__main__":
-    run_experiment(modelname='Watson',LR=float(0),init='dc')
+    # run_experiment(modelname='MACG',LR=float(0),init='dc')
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:

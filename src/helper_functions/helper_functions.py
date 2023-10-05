@@ -57,6 +57,7 @@ def load_data(type,num_subjects=200,num_eigs=1,LR=0,p=3,K=2):
             data_test_tmp = np.loadtxt('data/synthetic/synth_data_MACG_p'+str(p)+'K'+str(K)+'_2.csv',delimiter=',')
             data_test[:,:,0] = data_test_tmp[np.arange(2000,step=2),:]
             data_test[:,:,1] = data_test_tmp[np.arange(2000,step=2)+1,:]
+        data_test2 = np.zeros(1)
 
     if LR!=0:
         data_train = torch.tensor(data_train)
@@ -113,7 +114,6 @@ def test_model(modelname,K,data_test,params,LR,rank):
             model = ACG_EM(K=K,p=p,rank=rank,params=params)
         elif modelname == 'MACG':
             model = MACG_EM(K=K,p=p,q=2,params=params)
-            data_test = np.swapaxes(data_test,-2,-1)
         test_loglik = model.log_likelihood(X=data_test)
         params_transformed = model.get_params()
     else:
@@ -124,22 +124,6 @@ def test_model(modelname,K,data_test,params,LR,rank):
             kappa = params['kappa']
             params_transformed={'mu':mu_norm,'kappa':kappa,'pi':pi_soft}
         else:
-            # if rank==p:
-            #     if modelname=='ACG':
-            #         Lambda = torch.zeros(K,p,p)
-            #         for k in range(K):
-            #             L_tri_inv = params['L_tri_inv'][k]
-            #             Lambda[k] = torch.linalg.inv(L_tri_inv@L_tri_inv.T)
-            #             Lambda[k] = p*Lambda[k]/torch.trace(Lambda[k])
-            #         params_transformed={'pi':pi_soft,'Lambda':Lambda}
-            #     elif modelname=='MACG':
-            #         Sigma = torch.zeros(K,p,p)
-            #         for k in range(K):
-            #             S_tri_inv = params['S_tri_inv'][k]
-            #             Sigma[k] = torch.linalg.inv(S_tri_inv@S_tri_inv.T)
-            #             Sigma[k] = p*Sigma[k]/torch.trace(Sigma[k])
-            #         params_transformed={'pi':pi_soft,'Sigma':Sigma}
-            # else:
             M = params['M']
             params_transformed={'M':M,'pi':pi_soft}
         with torch.no_grad():
@@ -149,6 +133,5 @@ def test_model(modelname,K,data_test,params,LR,rank):
                 model = ACG_torch(K=K,p=p,rank=rank,params=params_transformed) #cholesky formulation when full rank
             elif modelname == 'MACG':
                 model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params_transformed) #cholesky formulation when full rank
-                data_test = torch.swapaxes(data_test,-2,-1)
             test_loglik = model.test_log_likelihood(X=data_test)  
     return test_loglik,params_transformed

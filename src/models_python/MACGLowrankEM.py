@@ -64,25 +64,18 @@ class MACG():
         logdetsign,logdet = np.linalg.slogdet(B)
         return logdetsign*logdet
     
-    def log_norm_constant(self,Z):
-        logdetsign,logdet = np.linalg.slogdet(Z)
-        return self.logSA_Stiefel - (self.q/2)*logdetsign*logdet
-    
-    def log_norm_constant_matrixdeterminantlemma(self,D):
-        logdetsign,logdet = np.linalg.slogdet(D)
-        return self.logSA_Stiefel - (self.q/2)*(logdetsign*logdet)
-    
     def log_pdf(self,X):
 
         D = np.eye(self.r)+np.swapaxes(self.M,-2,-1)@self.M
+        log_det_D = self.logdet(D)
         XtM = np.swapaxes(X,-2,-1)[None,:,:,:]@self.M[:,None,:,:]
 
         # utilizing matrix determinant lemma
-        v = self.logdet(D[:,None]-np.swapaxes(XtM,-2,-1)@XtM)-self.logdet(D)[:,None]
+        v = self.logdet(D[:,None]-np.swapaxes(XtM,-2,-1)@XtM)-log_det_D
 
         # Z = np.array([np.eye(self.p)+self.M[k]@self.M[k].T for k in range(self.K)])
         # pdf = np.log(np.linalg.det(np.swapaxes(X,-2,-1)[None,:,:,:]@np.linalg.inv(Z)[:,None,:,:]@X))
-        return self.log_norm_constant_matrixdeterminantlemma(D)[:,None] -self.half_p*v
+        return self.logSA_Stiefel - (self.q/2)*self.logdet(D)[:,None] - self.half_p*v
 
     def log_density(self,X):
         return self.log_pdf(X)+np.log(self.pi)[:,None]

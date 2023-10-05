@@ -21,18 +21,10 @@ class ACG(nn.Module):
         self.K = K
         self.p = torch.tensor(p) #dimensionality
         self.r = rank
-        # if rank is None or self.r == self.p:
-        #     self.fullrank = True
-        # else:
-        #     self.fullrank = False
         self.half_p = torch.tensor(p / 2)
         self.logSA = torch.lgamma(self.half_p) - torch.log(torch.tensor(2)) -self.half_p* torch.log(torch.tensor(np.pi))
 
         self.LogSoftmax = nn.LogSoftmax(dim=0)
-
-        # self.tril_mask = torch.tril_indices(self.p,self.p)
-        # self.diag_mask = ((torch.arange(1,self.p+1)**2+torch.arange(1,self.p+1))/2-1).type(torch.LongTensor)
-        # self.num_params = int(self.p*(self.p-1)/2+self.p)
         
         if params is not None: # for evaluating likelihood with already-learned parameters
             if torch.is_tensor(params['pi']):
@@ -40,13 +32,6 @@ class ACG(nn.Module):
             else:
                 self.pi = nn.Parameter(torch.tensor(params['pi']))
 
-            # if self.fullrank:
-            #     if torch.is_tensor(params['Lambda']):
-            #         self.L_vec = torch.linalg.cholesky(torch.linalg.inv(params['Lambda']))[:,self.tril_mask[0],self.tril_mask[1]]
-            #     else:
-            #         self.L_vec = torch.linalg.cholesky(torch.linalg.inv(torch.tensor(params['Lambda'])))[:,self.tril_mask[0],self.tril_mask[1]]
-            #     self.L_vec = nn.Parameter(self.L_vec)
-            # else:
             M_init = params['M']
             if M_init.dim()!=3 or M_init.shape[2]!=self.r: # add extra columns
                 if M_init.dim()==2:
@@ -61,11 +46,6 @@ class ACG(nn.Module):
             
 
     def get_params(self):
-        # if self.fullrank is True:
-        #     L_tri_inv = torch.zeros(self.K,self.p,self.p,device=self.device)
-        #     L_tri_inv[:,self.tril_mask[0],self.tril_mask[1]] = self.L_vec.data
-        #     return {'L_tri_inv':L_tri_inv,'pi':self.pi.data} # should be L = inv(S_tri_inv@S_tri_inv.T)
-        # else:
         return {'M':self.M.data,'pi':self.pi.data} #should be normalized: L=MM^T+I and then L = p*L/trace(L)
 
     def initialize(self,X=None,init=None,tol=None):
@@ -83,40 +63,22 @@ class ACG(nn.Module):
                 params,_,_,_ = mixture_EM_loop(W,X,init='dc')
                 mu = params['mu']
                 self.pi = nn.Parameter(params['pi'])
-            # if self.fullrank is True:
-            #     self.L_vec = torch.zeros((self.K,self.num_params)).to(self.device)
-            #     for k in range(self.K):
-            #         self.L_vec[k] = torch.linalg.cholesky(torch.outer(mu[:,k],mu[:,k])+torch.eye(self.p))[self.tril_mask[0],self.tril_mask[1]]
-            #     self.L_vec = nn.Parameter(self.L_vec)
-            # else:
             self.M = torch.rand((self.K,self.p,self.r)).to(self.device)
             for k in range(self.K):
                 self.M[k,:,0] = mu[:,k] #initialize only the first of the rank D columns this way, the rest uniform
             self.M = nn.Parameter(self.M)
         elif init =='unif' or init=='uniform' or init is None:
-            # if self.fullrank is True:
-            #     self.L_vec = nn.Parameter(torch.rand((self.K,self.num_params)).to(self.device))
-            # else:
             self.M = nn.Parameter(torch.rand((self.K,self.p,self.r)).to(self.device))
                 
 
     def log_pdf(self,X):
-
-        # if self.fullrank is True:
-        #     L_tri_inv = torch.zeros(self.K,self.p,self.p,device=self.device,dtype=torch.double)
-        #     L_tri_inv[:, self.tril_mask[0], self.tril_mask[1]] = self.L_vec
-        #     B = X[None,:,:] @ L_tri_inv
-        #     pdf = torch.sum(B * B, dim=2)
-        #     log_det_L = -2 * torch.sum(torch.log(torch.abs(self.L_vec[:,self.diag_mask])),dim=1)
-        # else:
-
-        Lambda = torch.eye(self.r) + torch.swapaxes(self.M,-2,-1)@self.M
-        log_det_L = torch.logdet(Lambda)
-        B = X[None,:,:]@self.M
-        pdf = 1-torch.sum(B@torch.linalg.inv(Lambda)*B,dim=2) #check
+        D = torch.eye(self.r) + torch.swapaxes(self.M,-2,-1)@self.M
+        log_det_D = torch.logdet(D)
+        XM = X[None,:,:]@self.M
+        pdf = 1-torch.sum(XM@torch.linalg.inv(D)*XM,dim=2) #check
 
         # minus log_det_L instead of + log_det_A_inv
-        log_acg_pdf = self.logSA - 0.5 * log_det_L[:,None] - self.half_p * torch.log(pdf)
+        log_acg_pdf = self.logSA - 0.5 * log_det_D[:,None] - self.half_p * torch.log(pdf)
         return log_acg_pdf
     
     def log_density(self,X):

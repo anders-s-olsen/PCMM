@@ -118,7 +118,6 @@ class Watson():
                 self.kappa[k] = 0
             else:
                 raise ValueError("kappa could not be optimized")
-                return
             if np.linalg.norm(self.kappa[k]-LB)<1e-10 or np.linalg.norm(self.kappa[k]-B)<1e-10 or np.linalg.norm(self.kappa[k]-UB)<1e-10:
                 print('Probably a convergence problem for kappa')
                 return

@@ -102,31 +102,6 @@ class MACG():
             j +=1
         return Sigma
     
-    # def Sigma_MLE2(self,Sigma2,X,weights = None,tol=1e-10,max_iter=10000):
-    #     n,p,q = X.shape
-    #     if n<(p*(p-1)*q):
-    #         print("Too high dimensionality compared to number of observations. Sigma cannot be calculated")
-    #         return
-    #     weights = None
-    #     if weights is None:
-    #         weights = np.ones(n)
-    #     Sigma_old = np.eye(self.p)
-    #     Q = np.sqrt(weights)[:,None,None]*X
-        
-    #     j = 0
-    #     while np.linalg.norm(Sigma_old-Sigma2) > tol and (j < max_iter):
-    #         Sigma_old = Sigma2
-            
-    #         # this has been tested in the "Naive" version below
-    #         XtLX2 = np.linalg.inv(np.swapaxes(X,-2,-1)@np.linalg.inv(Sigma2)@X)
-    #         # XtLX_trace = np.sum(1/np.linalg.eigh(XtLX)[0],axis=1)
-            
-    #         # Sigma = p*np.sum(Q@np.linalg.inv(XtLX)@np.swapaxes(Q,-2,-1),axis=0) \
-    #         #     /(np.sum(weights*XtLX_trace))
-    #         Sigma2 = p*np.sum(X@XtLX2@np.swapaxes(X,-2,-1),0) / np.sum(np.sum(np.diagonal(XtLX2,axis1=-2,axis2=-1),axis=1))
-    #         j +=1
-    #     return Sigma2
-
 
 ############# M-step #################
     def M_step(self,X,tol=1e-10):
@@ -136,10 +111,6 @@ class MACG():
 
         for k in range(self.K):
             self.Sigma[k] = self.Sigma_MLE(self.Sigma[k],X,weights=Beta[:,k],tol=tol)
-            # a = self.Sigma_MLE(self.Sigma[k],X,weights=Beta[:,k],tol=tol)
-            # b = self.Sigma_MLE2(self.Sigma[k],X,weights=Beta[:,k],tol=tol)
-            # s = 0
-
 
 if __name__=='__main__':
     import matplotlib.pyplot as plt
@@ -173,41 +144,3 @@ if __name__=='__main__':
         # M-step
         MACG.M_step(X=data2)
     stop=7
-
-
-    
-    # def Sigma_MLE_naive(self,X,weights = None,tol=1e-10,max_iter=10000):
-    #     n,p,q = X.shape
-    #     if weights is None:
-    #         weights = np.ones(n)
-    #     Sigma = np.eye(self.p)
-    #     Sigma_old = Sigma + 10000
-    #     # Q = np.sqrt(weights)[:,np.newaxis]*X
-        
-    #     j = 0
-    #     while np.linalg.norm(Sigma_old-Sigma) > tol and (j < max_iter):
-    #         Sigma_old = Sigma
-    #         tmp = np.zeros((p,p))
-    #         tmp2 = np.zeros((p,p))
-    #         tmp3 = 0
-    #         tmp4 = 0
-    #         for i in range(n):
-    #             tmp += p/(n*q)*X[i]@np.linalg.inv(X[i].T@np.linalg.inv(Sigma)@X[i])@X[i].T
-    #             tmp2 += X[i]@np.linalg.inv(X[i].T@np.linalg.inv(Sigma)@X[i])@X[i].T
-    #             # tmp3 += 1/(np.trace(X[i].T@np.linalg.inv(Sigma)@X[i]))
-    #             tmp4 += np.sum(1/np.linalg.eigh(X[i].T@np.linalg.inv(Sigma)@X[i])[0])
-
-
-    #         XtLX = np.swapaxes(X,-2,-1)@np.linalg.inv(Sigma)@X
-    #         XtLX_trace = np.sum(1/np.linalg.eigh(XtLX)[0],axis=1)
-    #         Sigma2 = np.sum(XtLX_trace)
-            
-    #         Sigma1 = np.sum(X@np.linalg.inv(XtLX)@np.swapaxes(X,-2,-1),axis=0)
-            
-    #         Sigma_mat = p*Sigma1/Sigma2
-            
-    #         # known true results
-    #         Sigma_iter = p*tmp2/tmp4
-    #         Sigma = p/np.trace(tmp)*tmp
-    #         j +=1
-    #     return Sigma

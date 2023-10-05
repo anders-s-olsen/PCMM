@@ -15,7 +15,6 @@ class ACG():
         self.p = p
         self.half_p = self.p/2
         self.r = rank
-        self.c = np.ones(self.K)
         # self.Z = np.zeros((self.K,self.p,self.p))
         self.logSA = loggamma(self.half_p) - np.log(2) -self.half_p* np.log(np.pi)
 
@@ -56,26 +55,16 @@ class ACG():
             self.M = np.random.uniform(size=(self.K,self.p,self.r))
         
 ################ E-step ###################
-    
-    # def log_norm_constant(self,Z):
-    #     logdetsign,logdet = np.linalg.slogdet(Z)
-    #     return self.logSA - 0.5*logdetsign*logdet
-    
-    def log_norm_constant_matrixdeterminantlemma(self,D):
-        logdetsign,logdet = np.linalg.slogdet(D)
-        return self.logSA - 0.5*(self.p*np.log(self.c)+logdetsign*logdet)
+    def logdet(self,B):
+        logdetsign,logdet = np.linalg.slogdet(B)
+        return logdetsign*logdet
 
     def log_pdf(self,X):
         D = np.eye(self.r)+1/self.c[:,None,None]*np.swapaxes(self.M,-2,-1)@self.M
         XM = X[None,:,:]@self.M
-        v = self.c[:,None]**(-1)-self.c[:,None]**(-2)*np.sum(XM@np.linalg.inv(D)*XM,axis=2) #check
+        v = 1-np.sum(XM@np.linalg.inv(D)*XM,axis=2) #check
 
-        # for checking
-        # Z = np.array([self.c[k]*np.eye(self.p) for k in range(self.K)]) + self.M@np.swapaxes(self.M,-2,-1)
-        # v2 = np.sum(X@np.linalg.inv(Z)*X,axis=2)
-        # log_acg_pdf2 = self.log_norm_constant(Z)[:,None] - self.half_p * np.log(v2)
-
-        log_acg_pdf = self.log_norm_constant_matrixdeterminantlemma(D)[:,None] - self.half_p * np.log(v)
+        log_acg_pdf = self.logSA - 0.5*(self.logdet(D))[:,None] - self.half_p * np.log(v)
         return log_acg_pdf
 
     def log_density(self,X):

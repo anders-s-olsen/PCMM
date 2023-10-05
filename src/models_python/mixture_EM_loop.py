@@ -19,7 +19,7 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None):
                 raise ValueError("Nan reached")
 
             if iter>10:
-                if np.abs(loglik[-1]-loglik[-10])/loglik[-1]<tol or iter==max_iter:
+                if np.abs(loglik[-10]-loglik[-1])/np.abs(loglik[-1])<tol or iter==max_iter:
                     if loglik[-1]>best_loglik:
                         best_loglik = loglik[-1]
                         loglik_final = loglik
