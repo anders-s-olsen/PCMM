@@ -24,7 +24,8 @@ def run_experiment(modelname,LR,init):
     Ks = [2,5,10]
     for p in ps:
         for K in Ks:
-            if K>p:
+            allliks = np.zeros((2,num_repl_outer))
+            if K>=p:
                 continue
             if modelname=='Watson' or modelname=='ACG':
                 data_train,data_test,_ = load_data(type='synth',num_subjects=None,num_eigs=1,LR=LR,p=p,K=K)
@@ -42,11 +43,11 @@ def run_experiment(modelname,LR,init):
                 rep = rep_order[repl]
                 params,train_loglik,loglikcurve = train_model(modelname,K,data_train,p,init,LR,num_repl_inner,num_iter,tol)
                 test_loglik,_ = test_model(modelname,K,data_test,params,LR,p)
-
-                np.savetxt('experiments/synth_outputs/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',np.array([train_loglik,test_loglik]))
+                allliks[:,repl] = np.array([train_loglik,test_loglik])
+                np.savetxt('experiments/synth_outputs/'+modelname+'_'+expname+'_traintestlikelihood_r'+str(rep)+'.csv',allliks)
 
 if __name__=="__main__":
-    # run_experiment(modelname='MACG',LR=float(0),init='dc')
+    run_experiment(modelname='ACG',LR=float(0),init='dc')
     # inits = ['unif','++','dc']
     # LRs = [0,0.01,0.1,1]
     # for init in inits:
