@@ -73,8 +73,7 @@ class MACG():
         n,p,q = X.shape
         
         if n<(p*(p-1)*q):
-            print("Too high dimensionality compared to number of observations. Sigma cannot be calculated")
-            return
+            Warning("Too high dimensionality compared to number of observations. Sigma cannot be estimated")
         # n = 10
         # X = X[:n,:,:]
         # weights = weights[:n]

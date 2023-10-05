@@ -65,8 +65,7 @@ class ACG():
     def M_MLE_lowrank(self,M,X,weights = None,tol=1e-10,max_iter=10000):
         n,p = X.shape
         if n<p*(p-1):
-            print("Too high dimensionality compared to number of observations. Lambda cannot be calculated")
-            return
+            Warning("Too high dimensionality compared to number of observations. Lambda cannot be estimated")
         if weights is None:
             weights = np.ones(n)
         Q = weights[:,None]*X
