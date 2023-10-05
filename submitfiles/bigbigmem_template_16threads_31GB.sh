@@ -1,5 +1,5 @@
 #!/bin/sh
-#BSUB -J bigjob
+#BSUB -J bigjob_31GB
 #BSUB -q computebigbigmem
 #BSUB -R "rusage[mem=31GB]"
 # #BSUB -B

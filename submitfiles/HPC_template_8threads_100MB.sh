@@ -1,5 +1,5 @@
 #!/bin/sh
-#BSUB -J synthjob
+#BSUB -J HPCjob100MB
 #BSUB -q hpc
 #BSUB -R "rusage[mem=100MB]"
 # #BSUB -B

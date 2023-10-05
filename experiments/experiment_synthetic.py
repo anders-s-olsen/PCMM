@@ -29,10 +29,10 @@ def run_experiment(extraoptions={}):
             run_model_reps_and_save_logliks(data_train=data_train,data_test=data_test,data_test2=data_test2,K=K,options=options)
 
 if __name__=="__main__":
-    options['modelname'] = 'MACG'
-    options['LR'] = 0.1
-    options['init'] = 'unif'
-    run_experiment(options)
+    # options['modelname'] = 'MACG'
+    # options['LR'] = 0.1
+    # options['init'] = 'unif'
+    # run_experiment(options)
 
     import sys
     options=parse_input_args(sys.argv)
