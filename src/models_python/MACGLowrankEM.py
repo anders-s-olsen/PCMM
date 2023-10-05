@@ -34,7 +34,7 @@ class MACG():
         return {'M': self.M,'pi':self.pi,'c':self.c}
     
     def initialize(self,X=None,init=None,tol=None):
-        self.pi,_,self.M = initialize_pi_mu_M(init=init,K=self.K,p=self.p,X=X,tol=tol,r=self.r,initM=True)
+        self.pi,_,self.M = initialize_pi_mu_M(init=init,K=self.K,p=self.p,X=X,tol=tol,r=self.r,init_M=True)
     
 ################ E-step ###################
 

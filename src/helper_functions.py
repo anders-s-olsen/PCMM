@@ -79,7 +79,7 @@ def train_model(data_train,K,options,params=None):
     else:
         os.environ["OMP_NUM_THREADS"] = '1'
         torch.set_num_threads(options['threads'])
-        torch.set_num_interop_threads(options['threads'])
+        # torch.set_num_interop_threads(options['threads'])
 
     p = data_train.shape[1]
     if options['ACG_rank']=='full':

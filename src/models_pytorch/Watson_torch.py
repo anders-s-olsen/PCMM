@@ -38,8 +38,8 @@ class Watson(nn.Module):
     
     def initialize(self,X=None,init=None,tol=None):
         pi,mu,_ = initialize_pi_mu_M(init=init,K=self.K,p=self.p,X=X) 
-        pi = nn.Parameter(torch.tensor(pi))
-        mu = nn.Parameter(torch.tensor(mu))
+        self.pi = nn.Parameter(torch.tensor(pi))
+        self.mu = nn.Parameter(torch.tensor(mu))
         self.kappa = nn.Parameter(torch.ones(self.K,device=self.device)) 
 
     def kummer_log(self,a, c, kappa, n=1000000,tol=1e-10):

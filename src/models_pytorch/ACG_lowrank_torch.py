@@ -47,9 +47,9 @@ class ACG(nn.Module):
     def initialize(self,X=None,init=None,tol=None):
         if init == 'no':
             return
-        pi,_,M = initialize_pi_mu_M(init=init,K=self.K,p=self.p,X=X,tol=tol,r=self.r,initM=True)
-        pi = nn.Parameter(torch.tensor(pi))
-        M = nn.Parameter(torch.tensor(M))
+        pi,_,M = initialize_pi_mu_M(init=init,K=self.K,p=self.p,X=X,tol=tol,r=self.r,init_M=True)
+        self.pi = nn.Parameter(torch.tensor(pi))
+        self.M = nn.Parameter(torch.tensor(M))
         
     def log_pdf(self,X):
         D = torch.eye(self.r) + torch.swapaxes(self.M,-2,-1)@self.M

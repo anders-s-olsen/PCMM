@@ -1,7 +1,7 @@
 import numpy as np
 import torch
-from src.models_python.WatsonMixtureEM import Watson as Watson_EM
-from src.models_python.mixture_EM_loop import mixture_EM_loop
+# from src.models_python.WatsonMixtureEM import Watson as Watson_EM
+# from src.models_python.mixture_EM_loop import mixture_EM_loop
 from src.models_python.diametrical_clustering import diametrical_clustering, diametrical_clustering_plusplus
 from src.models_pytorch.diametrical_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch
 
@@ -20,11 +20,11 @@ def initialize_pi_mu_M(init,K,p,X=None,tol=1e-8,r=1,init_M=False):
             mu = diametrical_clustering_torch(X=X,K=K,max_iter=100000,num_repl=5,init='++',tol=tol)
         else:
             mu = diametrical_clustering(X=X,K=K,max_iter=100000,num_repl=5,init='++',tol=tol)
-    elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
-        W = Watson_EM(K=K,p=p)
-        params,_,_,_ = mixture_EM_loop(W,np.array(X),init='dc')
-        mu = params['mu']
-        pi = params['pi']
+    # elif init == 'WMM' or init == 'Watson' or init == 'W' or init == 'watson':
+    #     W = Watson_EM(K=K,p=p)
+    #     params,_,_,_ = mixture_EM_loop(W,np.array(X),init='dc')
+    #     mu = params['mu']
+    #     pi = params['pi']
     elif init=='test':
         mu = np.array([[1,1],[0,1],[0,1]])
         mu = mu/np.linalg.norm(mu,axis=0)
