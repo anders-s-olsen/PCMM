@@ -5,9 +5,9 @@ do
 for init in "${inits[@]}"
 do
 
-    sed -i '$ d' submitfiles/pyspheremixtures454_template.sh
-    echo "python3 experiments/run_models_454.py Watson $LR $init" >> submitfiles/pyspheremixtures454_template.sh
-    bsub < submitfiles/pyspheremixtures454_template.sh
+    sed -i '$ d' submitfiles/HPC_template_8threads_8GB.sh
+    echo "python3 experiments/experiment_torchvsEM_454Watson.py Watson $LR $init" >> submitfiles/HPC_template_8threads_8GB.sh
+    bsub < submitfiles/HPC_template_8threads_8GB.sh
 
 done
 done

@@ -165,15 +165,18 @@ def run_model_reps_and_save_logliks(data_train,data_test,data_test2,K,options):
 
     for repl in range(options['num_repl_outer']):
         rep = rep_order[repl]
-        print('starting K='+str(K)+' rep='+str(rep))
-        params,train_loglik,_ = train_model(data_train=data_train,K=K,options=options)
-        test_loglik,_ = test_model(data_test=data_test,params=params,K=K,options=options)
-        test_loglik2,_ = test_model(data_test=data_test2,params=params,K=K,options=options)
-        logliks[0,rep] = train_loglik
-        logliks[1,rep] = test_loglik
-        logliks[2,rep] = test_loglik2
-        np.savetxt(options['outfolder']+'/'+options['modelname']+'_'+options['experiment_name']+'_traintestlikelihood.csv',logliks)
-
+        try:
+            existinglogliks = np.loadtxt(options['outfolder']+'/'+options['modelname']+'_'+options['experiment_name']+'_traintestlikelihood.csv',logliks)
+            if existinglogliks[0,rep]==0:
+                print('starting K='+str(K)+' rep='+str(rep))
+                params,train_loglik,_ = train_model(data_train=data_train,K=K,options=options)
+                test_loglik,_ = test_model(data_test=data_test,params=params,K=K,options=options)
+                test_loglik2,_ = test_model(data_test=data_test2,params=params,K=K,options=options)
+                logliks[0,rep] = train_loglik
+                logliks[1,rep] = test_loglik
+                logliks[2,rep] = test_loglik2
+                np.savetxt(options['outfolder']+'/'+options['modelname']+'_'+options['experiment_name']+'_traintestlikelihood.csv',logliks)
+        except: continue
 def parse_input_args(args):
     options = {}
     options['modelname'] = args[1]
