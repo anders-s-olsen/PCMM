@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.special import loggamma
 import scipy
-from src.helper_functions import initialize_pi_mu_M
+from src.helper_functions2 import initialize_pi_mu_M
 
 class Watson():
     """
