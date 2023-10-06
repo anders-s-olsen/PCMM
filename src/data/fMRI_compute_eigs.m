@@ -4,6 +4,7 @@ rng shuffle
 subjects = dir('/dtu-compute/HCP_dFC/2023/hcp_dfc/data/raw');
 
 perform_GSR = true;
+perform_phaserandomization = true;
 
 % Compute eigenvectors
 TR = 0.72;%s
@@ -16,7 +17,7 @@ k=2;                          % 2nd order butterworth filter
 
 % atlas = squeeze(niftiread('/dtu-compute/HCP_dFC/2023/hcp_dfc/data/external/Schaefer2018_400Parcels_7Networks_order_Tian_Subcortex_S4.dlabel.nii'));
 atlas = squeeze(niftiread('/dtu-compute/HCP_dFC/2023/hcp_dfc/data/external/Schaefer2018_100Parcels_7Networks_order_Tian_Subcortex_S1.dlabel.nii'));
-for sub = randperm(numel(subjects))
+for sub = 1:numel(subjects)
     dses = dir([subjects(sub).folder,'/',subjects(sub).name,'/fMRI/rfMRI_REST*_RL*']);
     for ses = 1:numel(dses)
         tic
@@ -38,8 +39,20 @@ for sub = randperm(numel(subjects))
             GS = mean(data(:,1:59412),2);
             data = data-GS.*(data'*GS)'/(GS'*GS);
         end
-        %         disp(['Loaded data in ',num2str(toc),' seconds'])
-        % atlas
+        
+        if perform_phaserandomization
+            data_fft = fft(data);
+            for i = 1:size(data_fft,2)
+                [th,r] = cart2pol(real(data_fft(:,i)),imag(data_fft(:,i)));
+                unif_phase = rand(1200,1)*2*pi;
+                [re,im] = pol2cart(th+unif_phase,r);
+                data_fft(:,i) = re+1i*im;
+            end
+            data = abs(ifft(data_fft));
+        end
+
+
+
         data_roi = nan(size(data,1),max(atlas(:)));
         eigenvectors_roi = nan(size(data,1)*2,max(atlas(:)));
         for roi = 1:max(atlas(:))
@@ -63,7 +76,11 @@ for sub = randperm(numel(subjects))
         end
         disp(['Atlas eig done in ',num2str(toc),' seconds'])
         if perform_GSR
-            parSave(['/dtu-compute/HCP_dFC/2023/hcp_dfc/data/processed/fMRI_SchaeferTian116_GSR/',subjects(sub).name,'_',dses(ses).name(1:end-13),'.mat'],eigenvectors_roi)
+            if perform_phaserandomization
+                parSave(['/dtu-compute/HCP_dFC/2023/hcp_dfc/data/processed/fMRI_SchaeferTian116_GSR_PR/',subjects(sub).name,'_',dses(ses).name(1:end-13),'.mat'],eigenvectors_roi)
+            else
+                parSave(['/dtu-compute/HCP_dFC/2023/hcp_dfc/data/processed/fMRI_SchaeferTian116_GSR/',subjects(sub).name,'_',dses(ses).name(1:end-13),'.mat'],eigenvectors_roi)
+            end
         else
             parSave(['/dtu-compute/HCP_dFC/2023/hcp_dfc/data/processed/fMRI_SchaeferTian116/',subjects(sub).name,'_',dses(ses).name(1:end-13),'.mat'],eigenvectors_roi)
         end

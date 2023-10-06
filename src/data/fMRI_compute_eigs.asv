@@ -4,6 +4,7 @@ rng shuffle
 subjects = dir('/dtu-compute/HCP_dFC/2023/hcp_dfc/data/raw');
 
 perform_GSR = true;
+perform_phaserandomization = true;
 
 % Compute eigenvectors
 TR = 0.72;%s
@@ -38,11 +39,22 @@ for sub = randperm(numel(subjects))
             GS = mean(data(:,1:59412),2);
             data = data-GS.*(data'*GS)'/(GS'*GS);
         end
-        %         disp(['Loaded data in ',num2str(toc),' seconds'])
-        % atlas
+        
+        if perform_phaserandomization
+            data_fft = fft(data);
+            for i = 1:size(data_fft,2)
+                [th,r] = cart2pol(real(data_fft(:,i)),imag(data_fft(:,i)));
+                unif_phase = rand(1200,1)*2*pi;
+                [re,im] = pol2cart(th+unif_phase,r);
+                data_fft(:,i) = re+1i*im;
+            end
+            data_random = ifft(data_fft);
+        end
+
+
+
         data_roi = nan(size(data,1),max(atlas(:)));
         eigenvectors_roi = nan(size(data,1)*2,max(atlas(:)));
-        eigenvalues_roi = nan(size(data,1),2);
         for roi = 1:max(atlas(:))
             data_roi(:,roi) = mean(data(:,atlas==roi),2);
             data_roi(:,roi) = angle(hilbert(filtfilt(bfilt,afilt,data_roi(:,roi))));
@@ -59,14 +71,12 @@ for sub = randperm(numel(subjects))
             y = data_roi(tt,:)';
             X = [cosX',sinX'];
 
-            [U,S,~] = svds(X,2);
+            [U,~,~] = svds(X,2);
             eigenvectors_roi(tt*2-1:tt*2,:) = U';
-            eigenvalues_roi(tt*2-1:tt*2) = diag(S).^2;
         end
         disp(['Atlas eig done in ',num2str(toc),' seconds'])
         if perform_GSR
             parSave(['/dtu-compute/HCP_dFC/2023/hcp_dfc/data/processed/fMRI_SchaeferTian116_GSR/',subjects(sub).name,'_',dses(ses).name(1:end-13),'.mat'],eigenvectors_roi)
-            parSave(['/dtu-compute/HCP_dFC/2023/hcp_dfc/data/processed/fMRI_SchaeferTian116_GSR/',subjects(sub).name,'_',dses(ses).name(1:end-13),'.mat'],eigenvalues_roi)
         else
             parSave(['/dtu-compute/HCP_dFC/2023/hcp_dfc/data/processed/fMRI_SchaeferTian116/',subjects(sub).name,'_',dses(ses).name(1:end-13),'.mat'],eigenvectors_roi)
         end
