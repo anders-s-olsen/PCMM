@@ -95,3 +95,5 @@ target/
 # Other
 submitfiles/**/*.txt
 models/atlas/*.mat
+connectome_agg/
+data/results/

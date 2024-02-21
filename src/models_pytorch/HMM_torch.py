@@ -143,19 +143,19 @@ class HiddenMarkovModel(nn.Module):
         return np.array(subject_Z_path), np.array(subject_Z_path_prob),np.array(subject_emissions)
 
 
-if __name__ == '__main__':
-    # Test that the code works
-    from Watson_torch import Watson
-    from AngularCentralGauss_chol import AngularCentralGaussian as ACG
+# if __name__ == '__main__':
+#     # Test that the code works
+    # from Watson_torch import Watson
+    # from AngularCentralGauss_chol import AngularCentralGaussian as ACG
 
-    torch.manual_seed(5)
-    dim = 3
+    # torch.manual_seed(5)
+    # dim = 3
 
-    HMM = HiddenMarkovModel(num_states=3, observation_dim=dim, emission_dist=ACG)
-    X = torch.randint(1, 8, (2, 8, dim), dtype=torch.float)  # num_subject, seq_max, observation_dim
+    # HMM = HiddenMarkovModel(num_states=3, observation_dim=dim, emission_dist=ACG)
+    # X = torch.randint(1, 8, (2, 8, dim), dtype=torch.float)  # num_subject, seq_max, observation_dim
 
-    out = HMM(X)
-    #seq, probs = HMM.viterbi2(X)
-    #print(X)
-    #print(seq)
-    #print(probs)
+    # out = HMM(X)
+    # #seq, probs = HMM.viterbi2(X)
+    # #print(X)
+    # #print(seq)
+    # #print(probs)

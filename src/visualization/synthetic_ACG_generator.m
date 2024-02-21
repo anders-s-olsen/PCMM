@@ -3,7 +3,8 @@ clear,close all
 %% ACG mixture
 for K = [2,5,10]
     for p = [3,10,25]
-        if K>p
+        disp(['ACG p',num2str(p),' K',num2str(K)])
+        if K>=p
             continue
         end
         
@@ -17,33 +18,33 @@ for K = [2,5,10]
             sig = anisotropic_covariance(p,p-k,p-k+1);
             SIGMAs = cat(3,SIGMAs,sig);
         end
-        idx = repelem(1:K,1000/K);
+        idx = repelem(1:K,10000/K);
 
 
-        % % train data
-        % [X,cluster_id] = syntheticACGMixture(idx,SIGMAs,1000,0);
-        % % pointsspherefig(X,cluster_id);
-        % writetable(array2table(X),['data/synthetic/synth_data_ACG_p',num2str(p),'K',num2str(K),'_1.csv'],'WriteVariableNames',false)
-        % 
-        % % test data
-        % [X,cluster_id] = syntheticACGMixture(idx,SIGMAs,1000,0);
-        % % pointsspherefig(X,cluster_id);
-        % writetable(array2table(X),['data/synthetic/synth_data_ACG_p',num2str(p),'K',num2str(K),'_2.csv'],'WriteVariableNames',false)
+        % train data
+        [X,cluster_id] = syntheticACGMixture(idx,SIGMAs,10000,0);
+        % pointsspherefig(X,cluster_id);
+        writetable(array2table(X),['data/synthetic/synth_data_ACG_p',num2str(p),'K',num2str(K),'_1.csv'],'WriteVariableNames',false)
+        
+        % test data
+        [X,cluster_id] = syntheticACGMixture(idx,SIGMAs,10000,0);
+        % pointsspherefig(X,cluster_id);
+        writetable(array2table(X),['data/synthetic/synth_data_ACG_p',num2str(p),'K',num2str(K),'_2.csv'],'WriteVariableNames',false)
 
         %%%% MACG
-        [X,cluster_id] = syntheticMACGMixture(idx,SIGMAs,1000,2,0);
+        [X,cluster_id] = syntheticMACGMixture(idx,SIGMAs,10000,2,0);
         % pointsspherefig(X(:,:,1),cluster_id);
         % pointsspherefig(X(:,:,2),cluster_id);
-        X2 = zeros(2*size(X,1),p);
-        X2(1:2:2000,:) = X(:,:,1);
-        X2(2:2:2000,:) = X(:,:,2);
+        X2 = zeros(size(X,1),p);
+        X2(1:2:20000,:) = X(:,:,1);
+        X2(2:2:20000,:) = X(:,:,2);
         writetable(array2table(X2),['data/synthetic/synth_data_MACG_p',num2str(p),'K',num2str(K),'_1.csv'],'WriteVariableNames',false)
-        [X,cluster_id] = syntheticMACGMixture(idx,SIGMAs,1000,2,0);
+        [X,cluster_id] = syntheticMACGMixture(idx,SIGMAs,10000,2,0);
         % pointsspherefig(X(:,:,1),cluster_id);
         % pointsspherefig(X(:,:,2),cluster_id);
         X2 = zeros(2*size(X,1),p);
-        X2(1:2:2000,:) = X(:,:,1);
-        X2(2:2:2000,:) = X(:,:,2);
+        X2(1:2:20000,:) = X(:,:,1);
+        X2(2:2:20000,:) = X(:,:,2);
         writetable(array2table(X2),['data/synthetic/synth_data_MACG_p',num2str(p),'K',num2str(K),'_2.csv'],'WriteVariableNames',false)
 
     end

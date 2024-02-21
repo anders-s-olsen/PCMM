@@ -1,7 +1,9 @@
 #!/bin/sh
 inits=("unif" "++" "dc")
 modelnames=("Watson" "ACG" "MACG")
-for LR in 0 0.001 0.01 0.1 1
+# bsub < submitfiles/pipinstall.sh
+# sleep 30
+for LR in 0 0.1
 do
 for init in "${inits[@]}"
 do

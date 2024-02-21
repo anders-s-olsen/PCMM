@@ -1,0 +1,119 @@
+import numpy as np
+from src.DMM_EM.DMMEMBaseModel import DMMEMBaseModel
+from scipy.special import loggamma
+# import multiprocessing as mp
+# import concurrent.futures
+# import numba as nb
+# @nb.njit(nb.float64[:,:,:](nb.float64[:,::1],nb.float64[:,:,:],nb.float64[:,:]),cache=True)
+
+class ACG(DMMEMBaseModel):
+    def __init__(self, p:int, K:int=1, rank=None, params:dict=None):
+        super().__init__()
+
+        self.K = K
+        self.p = p
+        self.half_p = self.p/2
+        if rank is None or rank==0: #rank zero means the fullrank version
+            self.r = p
+            self.distribution = 'ACG_fullrank'
+        else: #the lowrank version can also be full rank
+            self.r = rank
+            self.distribution = 'ACG_lowrank'
+        
+        # precompute log-surface area of the unit hypersphere
+        self.logSA_sphere = loggamma(self.half_p) - np.log(2) -self.half_p* np.log(np.pi)
+
+        # initialize parameters
+        if params is not None:            
+            self.unpack_params(params)
+    
+    def log_pdf_lowrank(self, X):
+        D = np.eye(self.r) + np.swapaxes(self.M,-2,-1)@self.M 
+        XM = X[None,:,:]@self.M
+        v = 1-np.sum(XM@np.linalg.inv(D)*XM,axis=-1) 
+        log_pdf = self.logSA_sphere - 0.5 * self.logdet(D)[:,None] - self.half_p * np.log(v)
+        if np.any(np.isnan(log_pdf)):
+            print('nan')
+        return log_pdf
+    
+    def log_pdf_fullrank(self, X):
+        XtLX = np.sum(X@np.linalg.inv(self.Lambda)*X,axis=2)
+        log_pdf = self.logSA_sphere - 0.5 * self.logdet(self.Lambda)[:,None] -self.half_p*np.log(XtLX)
+        return log_pdf
+
+    def log_pdf(self, X):
+        if self.distribution == 'ACG_lowrank':
+            return self.log_pdf_lowrank(X)
+        elif self.distribution == 'ACG_fullrank':
+            return self.log_pdf_fullrank(X)
+
+    def M_step_lowrank(self,X,max_iter=int(1e5),tol=1e-6):#
+        n,p = X.shape
+        if n<p*(p-1):
+            Warning("Too high dimensionality compared to number of observations. Lambda cannot be estimated")
+        Beta = np.exp(self.log_density-self.logsum_density)
+        self.update_pi(Beta)
+        for k in range(self.K):
+            M = self.M[k]
+            Q = Beta[k,:,None]*X
+
+            loss = []
+            o = np.linalg.norm(M,'fro')**2
+            b = 1/(1+o/p)
+            M = np.sqrt(b)*M
+            
+            trMMtMMt_old = np.trace(M.T@M@M.T@M)
+            M_old = M
+
+            for j in range(max_iter):
+
+                # Woodbury scaled. First we update M
+                D_inv = np.linalg.inv(np.eye(self.r)+M.T@M)
+                XM = X@M
+                XMD_inv = XM@D_inv
+                v = 1-np.sum(XMD_inv*XM,axis=1) #denominator
+                M = p/np.sum(Beta[k])*Q.T/v@XMD_inv
+
+                # Then we trace-normalize M
+                o = np.linalg.norm(M,'fro')**2
+                b = 1/(1+o/p)
+                M = np.sqrt(b)*M
+
+                # To measure convergence, we compute norm(Z-Z_old)**2
+                trMMtMMt = np.trace(M.T@M@M.T@M)
+                loss.append(trMMtMMt+trMMtMMt_old-2*np.trace(M@M.T@M_old@M_old.T))
+                
+                if j>0:
+                    if loss[-1]<tol:
+                        break
+                
+                # To measure convergence
+                trMMtMMt_old = trMMtMMt
+                M_old = M
+            self.M[k] = M
+
+    def M_step_fullrank(self,X,max_iter=int(1e5),tol=1e-6):
+        n,p = X.shape
+        if n<p*(p-1):
+            print("Too high dimensionality compared to number of observations. Lambda cannot be calculated")
+            return
+        Beta = np.exp(self.log_density-self.logsum_density)
+        self.update_pi(Beta)
+        for k in range(self.K):
+            Lambda = self.Lambda[k]
+            Lambda_old = np.eye(self.p)
+            Q = Beta[k,:,None]*X
+            for j in range(max_iter):
+                XtLX = np.sum(X@np.linalg.inv(Lambda)*X,axis=1)
+                Lambda = p/np.sum(Beta[k]/XtLX)*(Q.T/XtLX)@X
+                if j>0:
+                    if np.linalg.norm(Lambda_old-Lambda)<tol:
+                        break
+                Lambda_old = Lambda
+            self.Lambda[k] = Lambda
+
+    def M_step(self,X):
+        if self.distribution == 'ACG_lowrank':
+            self.M_step_lowrank(X)
+        elif self.distribution == 'ACG_fullrank':
+            self.M_step_fullrank(X)

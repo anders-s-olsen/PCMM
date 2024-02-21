@@ -107,7 +107,6 @@ class ACG():
             M_old = M
             o_all.append(o)
 
-
         return M
     
 
