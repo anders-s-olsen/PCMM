@@ -92,35 +92,33 @@ class DMMPyTorchBaseModel(nn.Module):
         log_T = self.LogSoftmax_T(self.T) # size KxK
         log_pi = self.LogSoftmax_pi(self.pi) #size K
 
-        log_alpha = torch.zeros_like(log_pdf)
+        # log_alpha = torch.zeros_like(log_pdf)
+        log_alpha = torch.zeros(N,K)
 
         #initialize the first alpha for time t=0
-        log_alpha[:,0] = log_pdf[:,0]+log_pi
+        log_alpha[0,:] = log_pdf[:,0]+log_pi
 
         #recursion for time t=1 and onwards
         for t in range(1,N):
-            log_alpha[:,t] = log_pdf[:,t]+torch.logsumexp(log_alpha[:,t-1].unsqueeze(1)+log_T,dim=1)
+            log_alpha[t,:] = log_pdf[:,t]+torch.logsumexp(log_alpha[t-1,:]+log_T,dim=-1)
 
         # Logsum for states N for each time t
-        log_t = torch.logsumexp(log_alpha,dim=0)
+        log_t = torch.logsumexp(log_alpha,dim=-1)
 
         # Retrieve alpha for the last time t
         log_probability = log_t[-1]
 
         return log_probability
     
-    def mixture_model_HMM(self, log_pdf):
-        if self.HMM:
-            return self.HMM_log_likelihood(log_pdf)
-        else:
-            return self.MM_log_likelihood(log_pdf)
-    
     def forward(self, X):
         log_pdf = self.log_pdf(X)
         if self.K==1:
             return torch.sum(log_pdf)
         else:
-            return self.mixture_model_HMM(log_pdf)
+            if self.HMM:
+                return self.HMM_log_likelihood(log_pdf)
+            else:
+                return self.MM_log_likelihood(log_pdf)
         
     def test_log_likelihood(self,X):
         with torch.no_grad():
@@ -132,6 +130,35 @@ class DMMPyTorchBaseModel(nn.Module):
         return torch.exp(log_density-logsum_density)
 
     def viterbi(self,log_pdf):
+        K,N = log_pdf.shape
+        log_T = self.LogSoftmax_T(self.T) # size KxK
+        log_pi = self.LogSoftmax_pi(self.pi) #size K
+        
+        log_delta = torch.zeros(N,K)
+        log_psi = torch.zeros(N,K,dtype=torch.int32)
+
+        log_delta[0,:] = log_pdf[:,0]+log_pi
+
+        for t in range(1,N):
+            temp = log_delta[t-1,:]+log_T+log_pdf[:,t]
+            log_delta[t,:],log_psi[t,:] = torch.max(temp,dim=1)
+
+        Z_T_prob, Z_T = torch.max(log_delta[-1,:],dim=0)
+        Z_path = torch.zeros(N,dtype=torch.int32)
+        Z_path[-1] = Z_T
+
+        for t in range(N-2,-1,-1):
+            Z_path[t] = log_psi[t+1,Z_T]
+            Z_T = Z_path[t]
+
+        Z_path2 = torch.zeros(K,N,dtype=torch.bool)
+        for t in range(N):
+            Z_path2[Z_path[t],t] = True
+
+        return Z_path2
+
+
+    def viterbi_multi(self,log_pdf): #for multisubject
         raise NotImplementedError("Viterbi() method not implemented")
         if log_pdf.ndim!=3:
             raise ValueError("log_pdf should be BxKxN")
@@ -166,7 +193,7 @@ class DMMPyTorchBaseModel(nn.Module):
         with torch.no_grad():
             log_pdf = self.log_pdf(X)
             if self.HMM:
-                return self.posterior_MM(log_pdf)#, self.viterbi(X)
+                return self.viterbi(log_pdf)#self.posterior_MM(log_pdf), 
             else:
                 return self.posterior_MM(log_pdf)
     

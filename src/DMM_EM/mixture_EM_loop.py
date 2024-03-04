@@ -5,7 +5,6 @@ import os
 
 def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,suppress_output=False,threads=8):
 
-
     os.environ['OMP_NUM_THREADS'] = str(threads)
     os.environ['OPENBLAS_NUM_THREADS'] = str(threads)
     os.environ['MKL_NUM_THREADS'] = str(threads)
@@ -32,7 +31,7 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
                 latest = np.array(loglik[-5:])
                 maxval = np.max(latest)
                 secondhighest = np.max(latest[latest!=maxval])
-                if np.abs((maxval-secondhighest)/maxval)<tol:
+                if (maxval-secondhighest)/maxval<tol or latest[-1]==np.min(latest):
                     if loglik[-1]>best_loglik:
                         best_loglik = loglik[-1]
                         loglik_final = loglik
@@ -48,6 +47,11 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
             # print('M-step time: '+str(time3-time2))
             # if epoch % 10 == 0:
             #     print(['Done with iteration '+str(epoch)])
+    # if no params_final variable exists
+    if 'params_final' not in locals():
+        params_final = model.get_params()
+        beta_final = model.posterior(X=data)
+        loglik_final = loglik
     
     return params_final,beta_final,loglik_final
 

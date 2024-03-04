@@ -18,6 +18,11 @@ for K = [2,5,10]
             sig = anisotropic_covariance(p,p-k,p-k+1);
             SIGMAs = cat(3,SIGMAs,sig);
         end
+
+        for k = 1:K
+            writetable(array2table(SIGMAs(:,:,k)),['data/synthetic/centroids/synth_cov_p',num2str(p),'K',num2str(K),'_',num2str(k),'.csv'],'WriteVariableNames',false)
+        end
+
         idx = repelem(1:K,10000/K);
 
 

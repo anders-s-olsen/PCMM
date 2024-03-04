@@ -18,4 +18,4 @@ module load pandas
 # h5py/3.10.0-python-3.10.13
 # pip install -e .
 
-python3 experiments/experiment_torchvsEM_synthetic.py MACG 0.1 dc
+python3 experiments/experiment_synthetic_N_vs_r.py MACG 0.1

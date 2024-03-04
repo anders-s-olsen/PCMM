@@ -1,6 +1,4 @@
 import numpy as np
-import torch
-import os
 from src.DMM_EM.mixture_EM_loop import mixture_EM_loop
 from src.DMM_EM.WatsonEM import Watson as Watson_EM
 from src.DMM_EM.ACGEM import ACG as ACG_EM
@@ -89,17 +87,17 @@ def train_model(data_train,K,options,params=None,suppress_output=False):
         if options['LR']==0:
             model = Watson_EM(K=K,p=p,params=params)
         else:
-            model = Watson_torch(K=K,p=p,params=params)
+            model = Watson_torch(K=K,p=p,params=params,HMM=options['HMM'])
     elif options['modelname'] == 'ACG':
         if options['LR']==0:
             model = ACG_EM(K=K,p=p,rank=rank,params=params)
         else:
-            model = ACG_torch(K=K,p=p,rank=rank,params=params) #cholesky formulation when full rank       
+            model = ACG_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM']) #cholesky formulation when full rank       
     elif options['modelname'] == 'MACG':
         if options['LR']==0:
             model = MACG_EM(K=K,p=p,q=2,rank=rank,params=params)
         else:
-            model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params) 
+            model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params,HMM=options['HMM']) 
         
     if options['LR']==0: #EM
         params,posterior,loglik = mixture_EM_loop(model,data_train,tol=options['tol'],max_iter=options['max_iter'],

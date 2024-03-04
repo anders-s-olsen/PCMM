@@ -23,7 +23,8 @@ def weighted_grassmannian_clustering(X,K,X_weight=None,max_iter=10000,num_repl=1
     """
     n,p,q = X.shape
     if X_weight is None:
-        X_weight = np.reshape(np.tile(np.array((p*0.7,p*0.3)),n),(n,q))
+        # X_weight = np.reshape(np.tile(np.array((p*0.7,p*0.3)),n),(n,q))
+        X_weight = np.ones((n,q))
     max_distance = p**2*np.pi/2**2 #to weight the distance measure to be within 0 and 1.
 
     obj_final = [] # objective function collector
@@ -108,7 +109,6 @@ def grassmannian_clustering_gruber2006(X,K,max_iter=10000,num_repl=1,init=None,c
         for k in range(K):
             C[k] = C[k]@scipy.linalg.sqrtm(np.linalg.inv(C[k].T@C[k])) # project onto the Grassmannian
 
-        
         iter = 0
         obj = [] # objective function
         partsum = np.zeros((max_iter,K))
@@ -268,97 +268,46 @@ def diametrical_clustering_plusplus(X,K):
 
 if __name__=='__main__':
     import matplotlib.pyplot as plt
-    import matplotlib
-    experiment = 1 #synthetic data experiment
 
-    if experiment==0:
-        K = np.array(2)
-        p = np.array(3)
+    K = np.array(2)
+    p = np.array(3)
 
-        # load synthetic dataset generated from the MACG model
-        data = np.loadtxt('data/synthetic/synth_data_MACG_p'+str(p)+'K'+str(K)+'_1.csv',delimiter=',')
-        n = data.shape[0]
-        data_gr = np.zeros((int(n/2),p,2))
-        data_gr[:,:,0] = data[np.arange(n,step=2),:] # first frame
-        data_gr[:,:,1] = data[np.arange(n,step=2)+1,:] # second frame
+    centroids = []
+    for k in range(K):
+        centroids.append(np.loadtxt('data/synthetic/centroids/synth_cov_p'+str(p)+'K'+str(K)+'_'+str(k+1)+'.csv',delimiter=','))
 
-        C_wgr,part,obj = weighted_grassmannian_clustering(X=data_gr,K=K,X_weight=None,num_repl=1,init=None)
-        C_gr,part,obj = grassmannian_clustering_gruber2006(X=data_gr,K=K,num_repl=1,init=None)
+    # load synthetic dataset generated from the MACG model
+    data = np.loadtxt('data/synthetic/synth_data_MACG_p'+str(p)+'K'+str(K)+'_1.csv',delimiter=',')
+    n = data.shape[0]
+    data_gr = np.zeros((int(n/2),p,2))
+    data_gr[:,:,0] = data[np.arange(n,step=2),:] # first frame
+    data_gr[:,:,1] = data[np.arange(n,step=2)+1,:] # second frame
 
-        # load synthetic dataset generated from the ACG model with same ground truth as above
-        data_sphere = np.loadtxt('data/synthetic/synth_data_ACG_p'+str(p)+'K'+str(K)+'_1.csv',delimiter=',')
-        # data = data[np.arange(2000,step=2),:]
+    print('Working on the weighted Grassmannian clustering algorithm')
+    # some weights for fun
+    X_weight = np.reshape(np.tile(np.array((p*0.7,p*0.3)),int(n/2)),(int(n/2),2))
+    C_wgr,part,obj = weighted_grassmannian_clustering(X=data_gr,K=K,X_weight=X_weight,num_repl=1,init=None)
+    print('Working on the Grassmannian clustering algorithm')
+    C_gr,part,obj = grassmannian_clustering_gruber2006(X=data_gr,K=K,num_repl=1,init=None)
 
-        C_dm,part,obj = diametrical_clustering(X=data_sphere,K=K,num_repl=1,init=None)
+    # load synthetic dataset generated from the ACG model with same ground truth as above
+    # data_sphere = np.loadtxt('data/synthetic/synth_data_ACG_p'+str(p)+'K'+str(K)+'_1.csv',delimiter=',')
+    data_sphere = data_gr[:,:,0]
+    # data = data[np.arange(2000,step=2),:]
+
+    print('Working on the diametrical clustering algorithm')
+    C_dm,part,obj = diametrical_clustering(X=data_sphere,K=K,num_repl=1,init=None)
         
-    elif experiment == 1:
-        import h5py
-        K=2
-        num_subjects = 25
-        data = np.array(h5py.File('data/processed/fMRI_SchaeferTian116_GSR_RL2.h5', 'r')['Dataset'][:,:num_subjects*1200*2]).T
-        eigenvalues = np.array(h5py.File('data/processed/fMRI_SchaeferTian116_GSR_RL2.h5', 'r')['Eigenvalues'][:,:num_subjects*1200]).T
-        p = data.shape[1]
-
-        n = data.shape[0]
-        data_gr = np.zeros((int(n/2),p,2))
-        data_gr[:,:,0] = data[np.arange(n,step=2),:] # first frame
-        data_gr[:,:,1] = data[np.arange(n,step=2)+1,:] # second frame
-        data_sphere = data_gr[:,:,0]
-
-        C_wgr,part,obj = weighted_grassmannian_clustering(X=data_gr,K=K,X_weight=eigenvalues,num_repl=1,init=None)
-        C_gr,part,obj = grassmannian_clustering_gruber2006(X=data_gr,K=K,num_repl=1,init=None)
-
-        C_dm,part,obj = diametrical_clustering(X=data_sphere,K=K,num_repl=1,init=None)
-
-    # plot the "true" and estimated centroids in a 2,2 subplot
-    import matplotlib
-    matplotlib.rcParams.update({'font.size': 6})
-    fig,ax = plt.subplots(3,4,figsize=(12,8))
-    ax[0,0].barh(np.arange(p),C_dm[:,0])
-    ax[0,0].set_title('Diametrical clustering centroid 1')
-    ax[0,0].set_xlim([-1,1])
-    # ax[0,1].barh(np.arange(p),data_gr[0,:,1])
-    # ax[0,1].set_title('True centroid 1 (frame 2)')
-    ax[0,1].set_xlim([-1,1])
-    ax[0,2].barh(np.arange(p),C_dm[:,-1])
-    ax[0,2].set_title('Diametrical clustering centroid 2')
-    ax[0,2].set_xlim([-1,1])
-    # ax[0,3].barh(np.arange(p),data_gr[-1,:,1])
-    # ax[0,3].set_title('True centroid 2 (frame 2)')
-    ax[0,3].set_xlim([-1,1])
-    ax[1,0].barh(np.arange(p),C_wgr[0,:,0])
-    ax[1,0].set_title('Weighted Grassmann centroid 1 (frame 1)')
-    ax[1,0].set_xlim([-1,1])
-    ax[1,1].barh(np.arange(p),C_wgr[0,:,1])
-    ax[1,1].set_title('Weighted Grassmann centroid 1 (frame 2)')
-    ax[1,1].set_xlim([-1,1])
-    ax[1,2].barh(np.arange(p),C_wgr[1,:,0])
-    ax[1,2].set_title('Weighted Grassmann centroid 2 (frame 1)')
-    ax[1,2].set_xlim([-1,1])
-    ax[1,3].barh(np.arange(p),C_wgr[1,:,1])
-    ax[1,3].set_title('Weighted Grassmann centroid 2 (frame 2)')
-    ax[1,3].set_xlim([-1,1])
-    ax[2,0].barh(np.arange(p),C_gr[0,:,0])
-    ax[2,0].set_title('Grassmann centroid 1 (frame 1)')
-    ax[2,0].set_xlim([-1,1])
-    ax[2,1].barh(np.arange(p),C_gr[0,:,1])
-    ax[2,1].set_title('Grassmann centroid 1 (frame 2)')
-    ax[2,1].set_xlim([-1,1])
-    ax[2,2].barh(np.arange(p),C_gr[1,:,0])
-    ax[2,2].set_title('Grassmann centroid 2 (frame 1)')
-    ax[2,2].set_xlim([-1,1])
-    ax[2,3].barh(np.arange(p),C_gr[1,:,1])
-    ax[2,3].set_title('Grassmann centroid 2 (frame 2)')
-    ax[2,3].set_xlim([-1,1])
-    plt.show()
-
     plt.figure(),
-    plt.subplot(3,2,1),plt.imshow(C_wgr[0]@C_wgr[0].T),plt.colorbar(),plt.title('Weighted Grassmann centroid 1')
-    plt.subplot(3,2,2),plt.imshow(C_wgr[1]@C_wgr[1].T),plt.colorbar(),plt.title('Weighted Grassmann centroid 2')
-    plt.subplot(3,2,3),plt.imshow(C_gr[0]@C_gr[0].T),plt.colorbar(),plt.title('Grassmann centroid 1')
-    plt.subplot(3,2,4),plt.imshow(C_gr[1]@C_gr[1].T),plt.colorbar(),plt.title('Grassmann centroid 2')
-    plt.subplot(3,2,5),plt.imshow(np.outer(C_dm[:,0],C_dm[:,0])),plt.colorbar(),plt.title('Diametrical clustering centroid 1')
-    plt.subplot(3,2,6),plt.imshow(np.outer(C_dm[:,1],C_dm[:,1])),plt.colorbar(),plt.title('Diametrical clustering centroid 2')
+    plt.subplot(4,2,1),plt.imshow(centroids[0]),plt.colorbar(),plt.title('Ground truth centroid 1')
+    plt.subplot(4,2,2),plt.imshow(centroids[1]),plt.colorbar(),plt.title('Ground truth centroid 2')
+    plt.subplot(4,2,3),plt.imshow(C_wgr[0]@C_wgr[0].T),plt.colorbar(),plt.title('Weighted Grassmann centroid 1')
+    plt.subplot(4,2,4),plt.imshow(C_wgr[1]@C_wgr[1].T),plt.colorbar(),plt.title('Weighted Grassmann centroid 2')
+    plt.subplot(4,2,5),plt.imshow(C_gr[0]@C_gr[0].T),plt.colorbar(),plt.title('Grassmann centroid 1')
+    plt.subplot(4,2,6),plt.imshow(C_gr[1]@C_gr[1].T),plt.colorbar(),plt.title('Grassmann centroid 2')
+    plt.subplot(4,2,7),plt.imshow(np.outer(C_dm[:,0],C_dm[:,0])),plt.colorbar(),plt.title('Diametrical clustering centroid 1')
+    plt.subplot(4,2,8),plt.imshow(np.outer(C_dm[:,1],C_dm[:,1])),plt.colorbar(),plt.title('Diametrical clustering centroid 2')
+    plt.savefig('tmp.png',bbox_inches='tight',dpi=300)
     plt.show()
     
     stop=7
