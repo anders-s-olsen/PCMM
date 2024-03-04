@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 from src.DMM_EM.mixture_EM_loop import mixture_EM_loop
 from src.DMM_EM.WatsonEM import Watson as Watson_EM
 from src.DMM_EM.ACGEM import ACG as ACG_EM
@@ -30,6 +31,43 @@ def load_synthetic_data(options,p,K):
         data_train = np.ascontiguousarray(data_train)
         data_test = np.ascontiguousarray(data_test)
     return data_train,data_test
+
+def load_real_data(options,subjectlist,suppress_output=False):
+    try:
+        subjectlist = subjectlist[:options['num_subjects']]
+    except:
+        pass
+    if options['modelname']=='Watson' or options['modelname']=='ACG' or options['modelname']=='ACG_lowrank':
+        num_eigs=1
+        data_train_all = np.zeros((1200*len(subjectlist),116))
+        data_test_all = np.zeros((1200*len(subjectlist),116))
+    elif options['modelname']=='MACG' or options['modelname']=='MACG_lowrank':
+        num_eigs=2    
+        data_train_all = np.zeros((1200*len(subjectlist),116,num_eigs))
+        data_test_all = np.zeros((1200*len(subjectlist),116,num_eigs))
+
+    for s,subject in tqdm(enumerate(subjectlist),disable=suppress_output):
+        data1 = np.loadtxt('data/processed2/fMRI_SchaeferTian116_GSR/'+str(subject)+'_rfMRI_REST1_RL_Atlas_MSMAll_hp2000_clean.csv',delimiter=',')
+        data2 = np.loadtxt('data/processed2/fMRI_SchaeferTian116_GSR/'+str(subject)+'_rfMRI_REST2_RL_Atlas_MSMAll_hp2000_clean.csv',delimiter=',')
+        if num_eigs==1:
+            data_train = data1[::2,:]
+            data_test = data2[::2,:]
+        elif num_eigs == 2:
+            p = data1.shape[1]
+            data_train = np.zeros((data1.shape[0]//2,p,2))
+            data_train[:,:,0] = data1[::2,:]
+            data_train[:,:,1] = data1[1::2,:]
+            data_test = np.zeros((data2.shape[0]//2,p,2))
+            data_test[:,:,0] = data2[::2,:]
+            data_test[:,:,1] = data2[1::2,:]
+        data_train_all[1200*s:1200*(s+1)] = data_train
+        data_test_all[1200*s:1200*(s+1)] = data_test
+
+    if options['LR']==0:
+        data_train_all = np.ascontiguousarray(data_train_all)
+        data_test_all = np.ascontiguousarray(data_test_all)
+
+    return data_train_all,data_test_all
 # def load_data(options,p=3,K=2):
 #     import h5py
 

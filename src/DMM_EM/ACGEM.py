@@ -95,7 +95,7 @@ class ACG(DMMEMBaseModel):
     def M_step_fullrank(self,X,max_iter=int(1e5),tol=1e-6):
         n,p = X.shape
         if n<p*(p-1):
-            print("Too high dimensionality compared to number of observations. Lambda cannot be calculated")
+            Warning("Too high dimensionality compared to number of observations. Lambda cannot be calculated")
             return
         Beta = np.exp(self.log_density-self.logsum_density)
         self.update_pi(Beta)

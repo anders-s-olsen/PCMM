@@ -39,7 +39,7 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                     latest = np.array(loglik[-5:])
                     maxval = np.max(latest)
                     secondhighest = np.max(latest[latest!=maxval])
-                    if np.abs((maxval-secondhighest)/maxval)<tol:
+                    if np.abs((maxval-secondhighest)/maxval)<tol or latest[-1]==np.min(latest):
                         if loglik[-1]>best_loglik:
                             best_loglik = loglik[-1]
                             loglik_final = loglik

@@ -76,12 +76,6 @@ target/
 # Jupyter NB Checkpoints
 .ipynb_checkpoints/
 
-# exclude data from source control by default
-/data/external/
-/data/interim/
-/data/processed/
-/data/raw/
-
 # Mac OS-specific storage files
 .DS_Store
 
@@ -97,3 +91,9 @@ submitfiles/**/*.txt
 models/atlas/*.mat
 connectome_agg/
 data/results/
+data/
+02460/
+models/
+Schaefer_atlases_HCP/
+submitfiles/
+tmp/
