@@ -1,5 +1,6 @@
 import numpy as np
 from tqdm import tqdm
+import h5py as h5
 from src.DMM_EM.mixture_EM_loop import mixture_EM_loop
 from src.DMM_EM.WatsonEM import Watson as Watson_EM
 from src.DMM_EM.ACGEM import ACG as ACG_EM
@@ -32,23 +33,43 @@ def load_synthetic_data(options,p,K):
         data_test = np.ascontiguousarray(data_test)
     return data_train,data_test
 
-def load_real_data(options,subjectlist,suppress_output=False):
+def load_real_data(options,folder,subjectlist,suppress_output=False):
     try:
         subjectlist = subjectlist[:options['num_subjects']]
     except:
         pass
+    if folder=='fMRI_SchaeferTian116_GSR' or folder=='fMRI_SchaeferTian116':
+        tt = 1
+        num_rois = 116
+    elif folder=='fMRI_full_GSR' or folder=='fMRI_full':
+        tt = 2
+        num_rois = 91282
+    else:
+        raise ValueError('Invalid folder')
     if options['modelname']=='Watson' or options['modelname']=='ACG' or options['modelname']=='ACG_lowrank':
         num_eigs=1
-        data_train_all = np.zeros((1200*len(subjectlist),116))
-        data_test_all = np.zeros((1200*len(subjectlist),116))
+        data_train_all = np.zeros((1200*len(subjectlist),num_rois))
+        data_test_all = np.zeros((1200*len(subjectlist),num_rois))
     elif options['modelname']=='MACG' or options['modelname']=='MACG_lowrank':
         num_eigs=2    
-        data_train_all = np.zeros((1200*len(subjectlist),116,num_eigs))
-        data_test_all = np.zeros((1200*len(subjectlist),116,num_eigs))
+        data_train_all = np.zeros((1200*len(subjectlist),num_rois,num_eigs))
+        data_test_all = np.zeros((1200*len(subjectlist),num_rois,num_eigs))
+    else:
+        raise ValueError('Invalid modelname')
 
     for s,subject in tqdm(enumerate(subjectlist),disable=suppress_output):
-        data1 = np.loadtxt('data/processed2/fMRI_SchaeferTian116_GSR/'+str(subject)+'_rfMRI_REST1_RL_Atlas_MSMAll_hp2000_clean.csv',delimiter=',')
-        data2 = np.loadtxt('data/processed2/fMRI_SchaeferTian116_GSR/'+str(subject)+'_rfMRI_REST2_RL_Atlas_MSMAll_hp2000_clean.csv',delimiter=',')
+        if tt==1:
+            data1 = np.loadtxt('data/processed/'+folder+'/'+str(subject)+'_rfMRI_REST1_RL_Atlas_MSMAll_hp2000_clean.csv',delimiter=',')
+            data2 = np.loadtxt('data/processed/'+folder+'/'+str(subject)+'_rfMRI_REST2_RL_Atlas_MSMAll_hp2000_clean.csv',delimiter=',')
+        elif tt==2:
+            file1 = 'data/processed/'+folder+'/'+str(subject)+'_rfMRI_REST1_RL_Atlas_MSMAll_hp2000_clean.h5'
+            file2 = 'data/processed/'+folder+'/'+str(subject)+'_rfMRI_REST2_RL_Atlas_MSMAll_hp2000_clean.h5'
+            with h5.File(file1, 'r') as f:
+                data1 = f['data'][:].T
+            with h5.File(file2, 'r') as f:
+                data2 = f['data'][:].T
+        else:
+            raise ValueError('Invalid folder')
         if num_eigs==1:
             data_train = data1[::2,:]
             data_test = data2[::2,:]

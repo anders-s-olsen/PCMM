@@ -61,13 +61,13 @@ class MACG(DMMEMBaseModel):
             b = 1/(1+o/p)
             M = np.sqrt(b)*M
             
-            trMMtMMt_old = np.trace(M.T@M@M.T@M)
+            MtM = M.T@M
+            trMMtMMt_old = np.trace(MtM@MtM)
             M_old = M
 
             for j in range(max_iter):
 
                 # Woodbury scaled. First we update M
-                MtM = M.T@M
                 D_inv = np.linalg.inv(np.eye(self.r)+MtM)
                 XtM = np.swapaxes(X,-2,-1)@M
                 
@@ -83,8 +83,9 @@ class MACG(DMMEMBaseModel):
                 M = np.sqrt(b)*M
 
                 # To measure convergence, we compute norm(Z-Z_old)**2
-                trMMtMMt = np.trace(M.T@M@M.T@M)
-                loss.append(trMMtMMt+trMMtMMt_old-2*np.trace(M@M.T@M_old@M_old.T))
+                MtM = M.T@M
+                trMMtMMt = np.trace(MtM@MtM)
+                loss.append(trMMtMMt+trMMtMMt_old-2*np.trace(MtM@M_old.T@M_old))
                 
                 if j>0:
                     if loss[-1]<tol:
