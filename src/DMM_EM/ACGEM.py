@@ -1,6 +1,7 @@
 import numpy as np
 from src.DMM_EM.DMMEMBaseModel import DMMEMBaseModel
 from scipy.special import loggamma
+import time
 # import multiprocessing as mp
 # import concurrent.futures
 # import numba as nb
@@ -47,25 +48,23 @@ class ACG(DMMEMBaseModel):
         elif self.distribution == 'ACG_fullrank':
             return self.log_pdf_fullrank(X)
 
-    def M_step_lowrank(self,X,max_iter=int(1e5),tol=1e-6):#
+    def M_step_single_component(self,X,Beta,M=None,Lambda=None,max_iter=int(1e5),tol=1e-6):
         n,p = X.shape
         if n<p*(p-1):
-            Warning("Too high dimensionality compared to number of observations. Lambda cannot be estimated")
-        Beta = np.exp(self.log_density-self.logsum_density)
-        self.update_pi(Beta)
-        for k in range(self.K):
-            M = self.M[k]
-            Q = Beta[k,:,None]*X
+            Warning("Too high dimensionality compared to number of observations. Lambda cannot be calculated")
+        if self.distribution == 'ACG_lowrank':
+            Q = (Beta[:,None]*X).T
 
             loss = []
+            o_all = []
             o = np.linalg.norm(M,'fro')**2
+            o_all.append(o)
             b = 1/(1+o/p)
             M = np.sqrt(b)*M
             
             MtM = M.T@M
-            # trMMtMMt_old = np.trace(M.T@M@M.T@M)
             trMMtMMt_old = np.trace(MtM@MtM)
-            M_old = M
+            MtM_old = MtM
 
             for j in range(max_iter):
 
@@ -74,49 +73,44 @@ class ACG(DMMEMBaseModel):
                 XM = X@M
                 XMD_inv = XM@D_inv
                 v = 1-np.sum(XMD_inv*XM,axis=1) #denominator
-                M = p/np.sum(Beta[k])*Q.T/v@XMD_inv
+                M = p/np.sum(Beta)*Q@(XMD_inv/v[:,None])
 
                 # Then we trace-normalize M
                 o = np.linalg.norm(M,'fro')**2
+                o_all.append(o)
                 b = 1/(1+o/p)
                 M = np.sqrt(b)*M
 
                 # To measure convergence, we compute norm(Z-Z_old)**2
                 MtM = M.T@M
                 trMMtMMt = np.trace(MtM@MtM)
-                loss.append(trMMtMMt+trMMtMMt_old-2*np.trace(MtM@M_old.T@M_old))
-                
+                loss.append(trMMtMMt+trMMtMMt_old-2*np.trace(MtM@MtM_old))
+                # print('iter'+str(j)+', loss='+str(loss[-1]))
                 if j>0:
                     if loss[-1]<tol:
                         break
                 
                 # To measure convergence
                 trMMtMMt_old = trMMtMMt
-                M_old = M
-            self.M[k] = M
-
-    def M_step_fullrank(self,X,max_iter=int(1e5),tol=1e-6):
-        n,p = X.shape
-        if n<p*(p-1):
-            Warning("Too high dimensionality compared to number of observations. Lambda cannot be calculated")
-            return
-        Beta = np.exp(self.log_density-self.logsum_density)
-        self.update_pi(Beta)
-        for k in range(self.K):
-            Lambda = self.Lambda[k]
+                MtM_old = MtM
+            return M
+        elif self.distribution == 'ACG_fullrank':
             Lambda_old = np.eye(self.p)
-            Q = Beta[k,:,None]*X
+            Q = Beta[:,None]*X
             for j in range(max_iter):
                 XtLX = np.sum(X@np.linalg.inv(Lambda)*X,axis=1)
-                Lambda = p/np.sum(Beta[k]/XtLX)*(Q.T/XtLX)@X
+                Lambda = p/np.sum(Beta/XtLX)*(Q.T/XtLX)@X
                 if j>0:
                     if np.linalg.norm(Lambda_old-Lambda)<tol:
                         break
                 Lambda_old = Lambda
-            self.Lambda[k] = Lambda
+            return Lambda
 
     def M_step(self,X):
-        if self.distribution == 'ACG_lowrank':
-            self.M_step_lowrank(X)
-        elif self.distribution == 'ACG_fullrank':
-            self.M_step_fullrank(X)
+        Beta = np.exp(self.log_density-self.logsum_density)
+        self.update_pi(Beta)
+        for k in range(self.K):
+            if self.distribution == 'ACG_lowrank':
+                self.M[k] = self.M_step_single_component(X,Beta[k],self.M[k],None)
+            elif self.distribution == 'ACG_fullrank':
+                self.Lambda[k] = self.M_step_single_component(X,Beta[k],None,self.Lambda[k])

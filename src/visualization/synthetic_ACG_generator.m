@@ -2,7 +2,7 @@ clear,close all
 
 %% ACG mixture
 for K = [2,5,10]
-    for p = [3,10,25]
+    for p = [3,10,25,50,100,500,1000]
         disp(['ACG p',num2str(p),' K',num2str(K)])
         if K>=p
             continue

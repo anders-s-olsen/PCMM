@@ -1,4 +1,5 @@
 import numpy as np
+import scipy
 
 def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,call=0,tol=1e-16):
     n,p = X.shape
@@ -71,6 +72,68 @@ def diametrical_clustering_plusplus(X,K):
         X = np.delete(X,idx,axis=0)
     
     return C
+
+def grassmannian_clustering_gruber2006(X,K,max_iter=10000,num_repl=1,init=None,call=0,tol=1e-16):
+    
+    n,p,q = X.shape
+
+    obj_final = [] # objective function collector
+    part_final = [] # partition collector
+    C_final = [] # cluster center collector
+    XXt = X@np.swapaxes(X,-2,-1)
+
+    # loop over the number of repetitions
+    for _ in range(num_repl):
+        # initialize cluster centers
+        C = np.random.uniform(size=(K,p,q))
+        for k in range(K):
+            C[k] = C[k]@scipy.linalg.sqrtm(np.linalg.inv(C[k].T@C[k])) # project onto the Grassmannian
+
+        iter = 0
+        obj = [] # objective function
+        partsum = np.zeros((max_iter,K))
+        while True:
+            # "E-step" - compute the similarity between each matrix and each cluster center
+            dis = np.zeros((n,K))
+            # S_all = np.zeros((K,n,q))
+            # note this can surely be optimized!! but cba
+            CCt = C@np.swapaxes(C,-2,-1)
+
+            dis = 1/np.sqrt(2)*np.linalg.norm(XXt[:,None]-CCt[None],axis=(-2,-1))
+            sim = 1-dis
+            maxsim = np.max(sim,axis=1) # find the maximum similarity
+            X_part = np.argmax(sim,axis=1) # assign each point to the cluster with the highest similarity
+            obj.append(np.mean(maxsim))
+
+            # check for convergence
+            for k in range(K):
+                partsum[iter,k] = np.sum(X_part==k)
+            
+            if iter>0:
+                if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or abs(obj[-1]-obj[-2])<tol:
+                    C_final.append(C)
+                    obj_final.append(obj[-1])
+                    part_final.append(X_part)             
+                    break
+            
+            # "M-step" - update the cluster centers
+            for k in range(K):
+                idx_k = X_part==k
+                V = np.sum(X[idx_k]@np.swapaxes(X[idx_k],1,2),axis=0)
+                L,U = scipy.sparse.linalg.eigsh(V,k=q,which='LM')
+
+                # U,S,_ = np.linalg.svd(np.reshape(np.swapaxes(X[idx_k],0,1),(p,np.sum(idx_k)*q)),full_matrices=False)
+                C[k] = U
+            iter += 1
+    try:
+        best = np.nanargmax(np.array(obj_final))
+    except: 
+        if call>4:
+            raise ValueError('Diametrical clustering ++ didn''t work for 5 re-calls of the function')
+        print('Weighted Grassmannian clustering returned nan. Repeating')
+        return grassmannian_clustering_gruber2006(X,K,max_iter=max_iter,num_repl=num_repl,init=init,call=call+1)
+    
+    return C_final[best]
 
 if __name__=='__main__':
     import matplotlib.pyplot as plt

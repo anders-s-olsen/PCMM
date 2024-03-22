@@ -1,6 +1,5 @@
 import numpy as np
 from tqdm import tqdm
-import h5py as h5
 from src.DMM_EM.mixture_EM_loop import mixture_EM_loop
 from src.DMM_EM.WatsonEM import Watson as Watson_EM
 from src.DMM_EM.ACGEM import ACG as ACG_EM
@@ -33,62 +32,7 @@ def load_synthetic_data(options,p,K):
         data_test = np.ascontiguousarray(data_test)
     return data_train,data_test
 
-def load_real_data(options,folder,subjectlist,suppress_output=False):
-    try:
-        subjectlist = subjectlist[:options['num_subjects']]
-    except:
-        pass
-    if folder=='fMRI_SchaeferTian116_GSR' or folder=='fMRI_SchaeferTian116':
-        tt = 1
-        num_rois = 116
-    elif folder=='fMRI_full_GSR' or folder=='fMRI_full':
-        tt = 2
-        num_rois = 91282
-    else:
-        raise ValueError('Invalid folder')
-    if options['modelname']=='Watson' or options['modelname']=='ACG' or options['modelname']=='ACG_lowrank':
-        num_eigs=1
-        data_train_all = np.zeros((1200*len(subjectlist),num_rois))
-        data_test_all = np.zeros((1200*len(subjectlist),num_rois))
-    elif options['modelname']=='MACG' or options['modelname']=='MACG_lowrank':
-        num_eigs=2    
-        data_train_all = np.zeros((1200*len(subjectlist),num_rois,num_eigs))
-        data_test_all = np.zeros((1200*len(subjectlist),num_rois,num_eigs))
-    else:
-        raise ValueError('Invalid modelname')
 
-    for s,subject in tqdm(enumerate(subjectlist),disable=suppress_output):
-        if tt==1:
-            data1 = np.loadtxt('data/processed/'+folder+'/'+str(subject)+'_rfMRI_REST1_RL_Atlas_MSMAll_hp2000_clean.csv',delimiter=',')
-            data2 = np.loadtxt('data/processed/'+folder+'/'+str(subject)+'_rfMRI_REST2_RL_Atlas_MSMAll_hp2000_clean.csv',delimiter=',')
-        elif tt==2:
-            file1 = 'data/processed/'+folder+'/'+str(subject)+'_rfMRI_REST1_RL_Atlas_MSMAll_hp2000_clean.h5'
-            file2 = 'data/processed/'+folder+'/'+str(subject)+'_rfMRI_REST2_RL_Atlas_MSMAll_hp2000_clean.h5'
-            with h5.File(file1, 'r') as f:
-                data1 = f['data'][:].T
-            with h5.File(file2, 'r') as f:
-                data2 = f['data'][:].T
-        else:
-            raise ValueError('Invalid folder')
-        if num_eigs==1:
-            data_train = data1[::2,:]
-            data_test = data2[::2,:]
-        elif num_eigs == 2:
-            p = data1.shape[1]
-            data_train = np.zeros((data1.shape[0]//2,p,2))
-            data_train[:,:,0] = data1[::2,:]
-            data_train[:,:,1] = data1[1::2,:]
-            data_test = np.zeros((data2.shape[0]//2,p,2))
-            data_test[:,:,0] = data2[::2,:]
-            data_test[:,:,1] = data2[1::2,:]
-        data_train_all[1200*s:1200*(s+1)] = data_train
-        data_test_all[1200*s:1200*(s+1)] = data_test
-
-    if options['LR']==0:
-        data_train_all = np.ascontiguousarray(data_train_all)
-        data_test_all = np.ascontiguousarray(data_test_all)
-
-    return data_train_all,data_test_all
 # def load_data(options,p=3,K=2):
 #     import h5py
 
@@ -147,23 +91,26 @@ def train_model(data_train,K,options,params=None,suppress_output=False):
             model = Watson_EM(K=K,p=p,params=params)
         else:
             model = Watson_torch(K=K,p=p,params=params,HMM=options['HMM'])
+            model2 = Watson_torch(K=1,p=p,params=params,HMM=options['HMM'])
     elif options['modelname'] == 'ACG':
         if options['LR']==0:
             model = ACG_EM(K=K,p=p,rank=rank,params=params)
         else:
-            model = ACG_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM']) #cholesky formulation when full rank       
+            model = ACG_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'])
+            model2 = ACG_torch(K=1,p=p,rank=rank,params=params,HMM=options['HMM'])   
     elif options['modelname'] == 'MACG':
         if options['LR']==0:
             model = MACG_EM(K=K,p=p,q=2,rank=rank,params=params)
         else:
             model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params,HMM=options['HMM']) 
+            model2 = MACG_torch(K=1,p=p,q=2,rank=rank,params=params,HMM=options['HMM'])
         
     if options['LR']==0: #EM
         params,posterior,loglik = mixture_EM_loop(model,data_train,tol=options['tol'],max_iter=options['max_iter'],
                                                 num_repl=options['num_repl_inner'],init=options['init'],
                                                 suppress_output=suppress_output,threads=options['threads'])
     else:
-        params,posterior,loglik = mixture_torch_loop(model,data_train,tol=options['tol'],max_iter=options['max_iter'],
+        params,posterior,loglik = mixture_torch_loop(model,data_train,model2=model2,tol=options['tol'],max_iter=options['max_iter'],
                                         num_repl=options['num_repl_inner'],init=options['init'],LR=options['LR'],
                                         suppress_output=suppress_output,threads=options['threads'])
     
@@ -214,6 +161,7 @@ def calc_MI(Z1,Z2):
     return MI
 
 def calc_NMI(Z1,Z2):
+    #Z1 and Z2 are two partition matrices of size (KxN) where K is number of components and N is number of samples
     NMI = (2*calc_MI(Z1,Z2))/(calc_MI(Z1,Z1)+calc_MI(Z2,Z2))
     return NMI
 

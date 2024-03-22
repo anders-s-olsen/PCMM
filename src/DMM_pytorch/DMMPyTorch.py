@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
-from src.DMM_pytorch.diametrical_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch
-
+from src.DMM_pytorch.diametrical_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch, grassmannian_clustering_gruber2006_torch
+from src.DMM_pytorch.run_single_comp import run_single_comp
 class DMMPyTorchBaseModel(nn.Module):
 
     def __init__(self):
@@ -49,31 +49,103 @@ class DMMPyTorchBaseModel(nn.Module):
         else:
             raise ValueError('Invalid distribution')
 
-    def initialize(self,X,init_method):
-        self.pi = nn.Parameter((1/self.K).repeat(self.K))
-        if self.HMM:
-            self.T = nn.Parameter(torch.tensor(1/self.K).repeat(self.K,self.K))
-        if X.ndim==3:
-            X = X[:,:,0]
-        if init_method=='uniform' or init_method=='unif':
-            mu = torch.rand(self.p,self.K)
-            mu = mu/torch.linalg.vector_norm(mu,dim=0)
-        elif init_method == '++' or init_method == 'plusplus' or init_method == 'diametrical_clustering_plusplus' or init_method=='dc++':
-            mu = diametrical_clustering_plusplus_torch(X=X,K=self.K)
-        elif init_method == 'dc' or init_method == 'diametrical_clustering':
-            mu = diametrical_clustering_torch(X=X,K=self.K,max_iter=100000,num_repl=5,init='++')
-        else:
-            raise ValueError('Invalid initialization method')
 
+
+    def initialize(self,X,init_method,model2=None):
+        assert init_method in ['uniform','unif',
+                               '++','plusplus','diametrical_clustering_plusplus','dc++',
+                               '++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg',
+                               'dc','diametrical_clustering',
+                               'dc_seg','diametrical_clustering_seg',
+                               'Grassmann','Grassmann_clustering',
+                               'Grassmann_seg','Grassmann_clustering_seg']
+        assert self.distribution in ['Watson','ACG','ACG','MACG','MACG']
+
+        # strategy: 
+        # 1) if uniform, initialize with uniform random values and return
+        # 2) if not, compute mu or C using dc++, dc, gr or gr++
+        # 3) if not seg use those values to initialize the model
+        # 4) if seg, use the partition and run the model a single time using the partition
+
+        # initialize pi as uniform, will be overwritten by 'seg' methods
+        self.pi = self.pi = nn.Parameter((1/self.K).repeat(self.K))
+
+        # for watson, always initialize kappa as ones, will be overwritten by 'seg' methods
         if self.distribution == 'Watson':
-            self.mu = nn.Parameter(mu)
             self.kappa = nn.Parameter(torch.ones(self.K))
-        elif self.distribution == 'ACG' or self.distribution=='MACG':
-            M = torch.rand(self.K,self.p,self.r)
-            if init_method is not None and init_method !='unif' and init_method!='uniform':
+
+        if init_method in ['uniform','unif']:
+            if self.distribution == 'Watson':
+                mu = torch.rand(self.p,self.K)
+                self.mu = nn.Parameter(mu/torch.linalg.vector_norm(mu,dim=0))
+            elif self.distribution in ['ACG', 'MACG']:
+                self.M = nn.Parameter(torch.rand(self.K,self.p,self.r))
+            return
+        elif init_method in ['++','plusplus','diametrical_clustering_plusplus','dc++','++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg','dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
+            if X.ndim==3:
+                X2 = X[:,:,0]
+            else:
+                X2 = X.clone()
+            
+            # if '++' or 'plusplus' in init_method
+            if init_method in ['++','plusplus','diametrical_clustering_plusplus','dc++','++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg']:
+                mu = diametrical_clustering_plusplus_torch(X=X2,K=self.K)
+            elif init_method in ['dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
+                mu = diametrical_clustering_torch(X=X2,K=self.K,max_iter=100000,num_repl=1,init='++')
+            
+            if self.distribution == 'Watson':
+                self.mu = nn.Parameter(mu)
+            elif self.distribution in ['ACG','MACG']:
+                self.M = torch.rand(self.K,self.p,self.r)
                 for k in range(self.K):
-                    M[k,:,0] = mu[:,k] #initialize only the first of the rank D columns this way, the rest uniform
-            self.M = nn.Parameter(M)
+                    self.M[k,:,0] = mu[:,k]
+                self.M = nn.Parameter(self.M)
+
+            # if segmentation methods, use mu to segment the data and later estimate single-component models
+            if init_method in ['++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg','dc_seg','diametrical_clustering_seg']:
+                sim = (X2@mu)**2           
+                X_part = torch.argmax(sim,dim=1) 
+            
+        elif init_method in ['Grassmann','Grassmann_clustering','Grassmann_seg','Grassmann_clustering_seg']:
+            if X.ndim!=3:
+                raise ValueError('Grassmann methods are only implemented for 3D data')
+            
+            C = grassmannian_clustering_gruber2006_torch(X=X,K=self.K,max_iter=100000,num_repl=1)
+            
+            self.M = torch.rand(self.K,self.p,self.r)
+            for k in range(self.K):
+                self.M[k,:,0] = C[k,:,0]
+            self.M = nn.Parameter(self.M)
+
+            if init_method in ['Grassmann_seg','Grassmann_clustering_seg']:
+                XXt = X@torch.swapaxes(X,-2,-1)
+                CCt = C@torch.swapaxes(C,-2,-1)
+                dis = 1/torch.sqrt(torch.tensor(2))*torch.linalg.matrix_norm(XXt[:,None]-CCt[None])
+                X_part = torch.argmin(dis,axis=1)
+        else:
+            raise ValueError('Invalid init_method')
+            
+        if init_method in ['++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg','dc_seg','diametrical_clustering_seg','Grassmann_seg','Grassmann_clustering_seg']:
+            print('Running single component models as initialization')
+            self.pi = nn.Parameter(torch.bincount(X_part)/X_part.shape[0])
+            # run a single-component model on each segment
+            if self.distribution=='Watson':
+                mu = torch.zeros(self.p,self.K)
+                kappa = torch.zeros(self.K)
+                for k in range(self.K):
+                    model2.unpack_params({'mu':self.mu[:,k],'kappa':torch.ones(1),'pi':torch.zeros(1)})
+                    params,_,_ = run_single_comp(model2,X[X_part==k])
+                    mu[:,k] = params['mu'][:,0]
+                    kappa[k] = params['kappa']
+                self.mu = nn.Parameter(mu)
+                self.kappa = nn.Parameter(kappa)
+            elif self.distribution in ['ACG','MACG']:
+                M = torch.zeros(self.K,self.p,self.r)
+                for k in range(self.K):
+                    model2.unpack_params({'M':self.M[k][None],'pi':torch.zeros(1)})
+                    params,_,_ = run_single_comp(model2,X[X_part==k],rank=self.r)
+                    M[k] = params['M']
+                self.M = nn.Parameter(M)
 
     # here the log_pdf should be formatted as KxN
     def MM_log_likelihood(self,log_pdf):
@@ -204,6 +276,9 @@ class DMMPyTorchBaseModel(nn.Module):
             return {'mu':mu,'kappa':self.kappa.data,'pi':pi}
         elif self.distribution == 'ACG' or self.distribution == 'MACG':
             return {'M':self.M.detach(),'pi':pi}
+        
+    def set_params(self,params):
+        self.unpack_params(params)
         
     def sample(self, num_samples):
         raise NotImplementedError("Subclasses must implement sample() method")

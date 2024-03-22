@@ -1,13 +1,14 @@
-from src.helper_functions import load_real_data,train_model,test_model,calc_NMI
+from src.helper_functions import train_model,test_model,calc_NMI
+from src.helper_functions2 import load_real_data
 import pandas as pd
 import numpy as np
-import torch
+# import torch
 import os
 
 def run_experiment(extraoptions={},suppress_output=False):
     # options pertaining to current experiment
     options = {}
-    options['tol'] = 1e-8
+    options['tol'] = 1
     options['num_repl_outer'] = 10
     options['num_repl_inner'] = 1
     options['max_iter'] = 100000
@@ -16,9 +17,9 @@ def run_experiment(extraoptions={},suppress_output=False):
     options['ACG_rank'] = 'full' #for ACG and MACG
     options['data_type'] = '116'
     options['threads'] = 8
-    options['init'] = '++'
+    options['init'] = 'unif'
     options['HMM'] = False
-    options['num_subjects'] = 1
+    options['num_subjects'] = 10
     options.update(extraoptions) #modelname, LR, init controlled in shell script
     os.makedirs(options['outfolder'],exist_ok=True)
 
@@ -33,6 +34,7 @@ def run_experiment(extraoptions={},suppress_output=False):
 
     subjectlist = np.loadtxt('100unrelatedsubjectsIDs.txt',dtype=int)
     data_train, data_test = load_real_data(options,'fMRI_full_GSR',subjectlist,suppress_output=suppress_output)
+    print('Loaded data, shape: ',data_train.shape)
 
     print(options)
     Ks = [2,5,10]
@@ -40,9 +42,9 @@ def run_experiment(extraoptions={},suppress_output=False):
         for inner in range(options['num_repl_outer']):
             for ACG_rank in np.arange(10,200,10):#'full'
                 options['ACG_rank'] = ACG_rank
-                if options['LR']!=0:
-                    data_train = torch.tensor(data_train)
-                    data_test = torch.tensor(data_test)
+                # if options['LR']!=0:
+                #     data_train = torch.tensor(data_train)
+                #     data_test = torch.tensor(data_test)
                     
                 print('starting K='+str(K)+' inner='+str(inner))
                 if ACG_rank == 10:

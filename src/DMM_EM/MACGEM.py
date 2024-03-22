@@ -45,16 +45,13 @@ class MACG(DMMEMBaseModel):
         elif self.distribution == 'MACG_fullrank':
             return self.log_pdf_fullrank(X)
         
-    def M_step_lowrank(self,X,max_iter=int(1e5),tol=1e-6):
+    def M_step_single_component(self,X,Beta,M=None,Lambda=None,max_iter=int(1e5),tol=1e-6):
         n,p,q = X.shape
         if n<(p*(p-1)*q):
             Warning("Too high dimensionality compared to number of observations. Sigma cannot be estimated")
-        
-        Beta = np.exp(self.log_density-self.logsum_density)
-        self.update_pi(Beta)
-        for k in range(self.K):
-            M = self.M[k]
-            Q = Beta[k,:,None,None]*X
+            
+        if self.distribution == 'MACG_lowrank':
+            Q = Beta[:,None,None]*X
 
             loss = []
             o = np.linalg.norm(M,'fro')**2
@@ -75,7 +72,7 @@ class MACG(DMMEMBaseModel):
                 V_inv = np.linalg.inv(np.eye(q)-XtM@D_inv@np.swapaxes(XtM,-2,-1))
                 
                 # Works, think it's okay in terms of speed bco precomputation of XtM
-                M = p/(q*np.sum(Beta[k]))*np.sum(Q@V_inv@XtM,axis=0)@(np.eye(self.r)-D_inv@MtM)
+                M = p/(q*np.sum(Beta))*np.sum(Q@V_inv@XtM,axis=0)@(np.eye(self.r)-D_inv@MtM)
 
                 # Then we trace-normalize M
                 o = np.linalg.norm(M,'fro')**2
@@ -94,18 +91,9 @@ class MACG(DMMEMBaseModel):
                 # To measure convergence
                 trMMtMMt_old = trMMtMMt
                 M_old = M
-            self.M[k] = M
-        
-    def M_step_fullrank(self,X,max_iter=int(1e5),tol=1e-6):
-        n,p,q = X.shape
-        if n<(p*(p-1)*q):
-            Warning("Too high dimensionality compared to number of observations. Sigma cannot be estimated")
-        
-        Beta = np.exp(self.log_density-self.logsum_density)
-        self.update_pi(Beta)
-        for k in range(self.K):
-            Lambda = self.Lambda[k]
-            Q = Beta[k,:,None,None]*X
+            return M
+        elif self.distribution == 'MACG_fullrank':
+            Q = Beta[:,None,None]*X
 
             for j in range(max_iter):
 
@@ -115,16 +103,19 @@ class MACG(DMMEMBaseModel):
                 XtLX_trace = np.sum(1/L,axis=1) #trace of inverse is sum of inverse eigenvalues
                 
                 Lambda = p*np.sum(Q@np.linalg.inv(XtLX)@np.swapaxes(X,-2,-1),axis=0) \
-                    /(np.sum(Beta[k]*XtLX_trace))
+                    /(np.sum(Beta*XtLX_trace))
                 
                 if j>0:
                     if np.linalg.norm(Lambda_old-Lambda)<tol:
                         break
                 Lambda_old = Lambda
-            self.Lambda[k] = Lambda
+            return Lambda
 
     def M_step(self,X):
-        if self.distribution == 'MACG_lowrank':
-            self.M_step_lowrank(X)
-        elif self.distribution == 'MACG_fullrank':
-            self.M_step_fullrank(X)
+        Beta = np.exp(self.log_density-self.logsum_density)
+        self.update_pi(Beta)
+        for k in range(self.K):
+            if self.distribution == 'MACG_lowrank':
+                self.M[k] = self.M_step_single_component(X,Beta[k],self.M[k],None)
+            elif self.distribution == 'MACG_fullrank':
+                self.Lambda[k] = self.M_step_single_component(X,Beta[k],None,self.Lambda[k])

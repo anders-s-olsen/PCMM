@@ -26,6 +26,8 @@ def run_experiment(extraoptions={},suppress_output=False):
     options.update(extraoptions) #modelname, LR, init controlled in shell script
     os.makedirs(options['outfolder'],exist_ok=True)
 
+    if options['init'] in ['Grassmann','Grassmann_seg'] and options['modelname'] != 'MACG':
+        return
     if options['LR'] == 0:
         options['experiment_name'] = 'Synthetic_EM_'+options['modelname']+'_'+options['init']
     else:
@@ -39,43 +41,37 @@ def run_experiment(extraoptions={},suppress_output=False):
         df = pd.DataFrame()
 
     print(options)
-    ps = [3,10,25]
+    ps = [3,10,25,50,100,500,1000]
     Ks = [2,5,10]
     N = 10000
-    for HMM in [False,True]:
-        if HMM:
-            if options['LR']==0:
+
+    for p in ps:
+        for K in Ks:
+            if K>=p:
                 continue
-            options['HMM'] = True
-        else:
-            options['HMM'] = False
-        for ACG_rank in ['lowrank','fullrank']:#'full'
-            options['ACG_rank'] = ACG_rank
-            if ACG_rank == 'fullrank' and options['modelname'] == 'Watson':
-                continue
-            if ACG_rank == 'fullrank' and options['LR']!=0: #fullrank only for EM
-                continue
-            for inner in range(options['num_repl_outer']):
-                # if dataframe not empty
-                # if not df.empty:
-                #     dftmp = df[df['ACG_rank']==ACG_rank]
-                #     dftmp2 = df[df['ACG_rank']!=ACG_rank]
-                #     if len(dftmp[dftmp['inner']==inner])==6:
-                #         continue
-                #     elif len(dftmp[dftmp['inner']==inner])>0:
-                #         dftmp = dftmp[dftmp['inner']!=inner]
-                #         df = pd.concat([dftmp,dftmp2],ignore_index=True)
-                rows_list = []
-                for p in ps:
-                    for K in Ks:
-                        if K>=p:
-                            continue
-                        P = make_true_mat(K,N)
-                        print('starting K='+str(K)+' p='+str(p)+' inner='+str(inner))
-                        data_train,data_test = load_synthetic_data(options=options,p=p,K=K)
-                        if options['LR']!=0:
-                            data_train = torch.tensor(data_train)
-                            data_test = torch.tensor(data_test)
+            P = make_true_mat(K,N)
+            # for HMM in [False,True]:
+            HMM = False
+            if HMM:
+                if options['LR']==0:
+                    continue
+                options['HMM'] = True
+            else:
+                options['HMM'] = False
+            for ACG_rank in ['lowrank','fullrank']:#'full'
+                options['ACG_rank'] = ACG_rank
+                if ACG_rank == 'fullrank' and options['modelname'] == 'Watson':
+                    continue
+                if ACG_rank == 'fullrank' and options['LR']!=0: #fullrank only for EM
+                    continue
+                print('Loading K='+str(K)+' p='+str(p))
+                data_train,data_test = load_synthetic_data(options=options,p=p,K=K)
+                for inner in range(options['num_repl_outer']):
+                    print('Training model')
+                    if options['LR']!=0:
+                        data_train = torch.tensor(data_train)
+                        data_test = torch.tensor(data_test)
+                    try:
                         params,train_posterior,loglik_curve = train_model(data_train=data_train,K=K,options=options,suppress_output=suppress_output)
                         test_loglik,test_posterior = test_model(data_test=data_test,params=params,K=K,options=options)
                         train_NMI = calc_NMI(P,np.array(train_posterior))
@@ -84,12 +80,15 @@ def run_experiment(extraoptions={},suppress_output=False):
                                 'ACG_rank':options['ACG_rank'],'inner':inner,'iter':len(loglik_curve),
                                 'train_loglik':loglik_curve[-1],'test_loglik':test_loglik.item(),
                                 'train_NMI':train_NMI,'test_NMI':test_NMI}
-                        rows_list.append(entry)
-                df = pd.concat([df,pd.DataFrame(rows_list)],ignore_index=True)
-                df.to_csv(options['outfolder']+'/'+options['experiment_name']+'.csv')
+                    except:
+                        entry = {'modelname':options['modelname'],'init_method':options['init'],'LR':options['LR'],'HMM':str(options['HMM']),'K':K,'p':p,
+                                'ACG_rank':options['ACG_rank'],'inner':inner,'iter':np.nan,
+                                'train_loglik':np.nan,'test_loglik':np.nan,
+                                'train_NMI':np.nan,'test_NMI':np.nan}
+                    df = pd.concat([df,pd.DataFrame([entry])],ignore_index=True)
+                    df.to_csv(options['outfolder']+'/'+options['experiment_name']+'.csv')
 
 if __name__=="__main__":
-
     import sys
     if len(sys.argv)>1:
         print(sys.argv)
@@ -99,7 +98,7 @@ if __name__=="__main__":
         options['init'] = sys.argv[3]
         run_experiment(extraoptions=options,suppress_output=True)
     else:
-        run_experiment(extraoptions={'modelname':'Watson','LR':0.1,'init':'unif'},suppress_output=False)
+        run_experiment(extraoptions={'modelname':'Watson','LR':0,'init':'++_seg'},suppress_output=False)
         # modelnames = ['Watson','ACG','MACG']
         # LRs = [0]
         # inits = ['unif','++','dc']
