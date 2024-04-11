@@ -1,5 +1,5 @@
 from src.helper_functions import train_model,test_model,calc_NMI
-from src.helper_functions2 import load_real_data
+from src.load_HCP_data import load_real_data
 import pandas as pd
 import numpy as np
 import torch
@@ -54,10 +54,12 @@ def run_experiment(extraoptions={},suppress_output=False):
                 test_lls = []
                 rows_list = []
                 iters = []
-                df_tmp = df[(df['K']==K) & (df['N']==N) & (df['ACG_rank']==ACG_rank)]
-                if len(df_tmp) == options['num_repl_outer']:
-                    print('skipping K='+str(K)+' N='+str(N))
-                    continue
+                # if df is not empty
+                if not df.empty:
+                    df_tmp = df[(df['K']==K) & (df['N']==N) & (df['ACG_rank']==ACG_rank)]
+                    if len(df_tmp) == options['num_repl_outer']:
+                        print('skipping K='+str(K)+' N='+str(N))
+                        continue
                 for inner in range(options['num_repl_outer']):
                     # choose random N points in data_train
                     # data_train2 = data_train[np.random.choice(data_train.shape[0],N,replace=False)]
@@ -118,8 +120,8 @@ if __name__=="__main__":
         run_experiment(extraoptions=options,suppress_output=True)
     else:
         # run_experiment(extraoptions={'modelname':'Watson','LR':0,'init':'++_seg'},suppress_output=False)
-        modelnames = ['Watson','ACG','MACG']
-        LRs = [0]
+        modelnames = ['Watson']
+        LRs = [0.1]
         inits = ['unif','++','dc','++_seg','dc_seg','Grassmann','Grassmann_seg']
         options = {}
         for modelname in modelnames:

@@ -4,7 +4,7 @@ from src.DMM_pytorch.DMMPyTorch import DMMPyTorchBaseModel
 import math
 
 class Watson(DMMPyTorchBaseModel):
-    def __init__(self, p:int, K:int=1, HMM:bool=False, params:dict=None):
+    def __init__(self, p:int, K:int=1, HMM:bool=False, samples_per_sequence=None, params:dict=None):
         super().__init__()
 
         self.p = torch.tensor(p)
@@ -12,6 +12,7 @@ class Watson(DMMPyTorchBaseModel):
         self.K = torch.tensor(K)
         self.a = torch.tensor(0.5)  # a = 1/2,  !constant
         self.HMM = HMM
+        self.samples_per_sequence = samples_per_sequence
         self.distribution = 'Watson'
         
         # precompute log-surface area of the unit hypersphere

@@ -27,57 +27,12 @@ def load_synthetic_data(options,p,K):
         data_test_tmp = np.loadtxt('data/synthetic/synth_data_MACG_p'+str(p)+'K'+str(K)+'_2.csv',delimiter=',')
         data_test[:,:,0] = data_test_tmp[np.arange(20000,step=2),:]
         data_test[:,:,1] = data_test_tmp[np.arange(20000,step=2)+1,:]
-    if options['LR']==0:
-        data_train = np.ascontiguousarray(data_train)
-        data_test = np.ascontiguousarray(data_test)
+    # if options['LR']==0:
+    #     data_train = np.ascontiguousarray(data_train)
+    #     data_test = np.ascontiguousarray(data_test)
     return data_train,data_test
 
-
-# def load_data(options,p=3,K=2):
-#     import h5py
-
-#     if options['data_type']=='fMRI_SchaeferTian454':
-#         loc = 'data/processed/fMRI_SchaeferTian454_RL'
-#     elif options['data_type']=='fMRI_full':
-#         loc = 'data/processed/fMRI_full_RL'
-#     elif options['data_type']=='fMRI_SchaeferTian116':
-#         loc = 'data/processed/fMRI_SchaeferTian116_RL'
-#     elif options['data_type']=='fMRI_SchaeferTian116_GSR':
-#         loc = 'data/processed/fMRI_SchaeferTian116_GSR_RL'
-#     else:
-#         raise ValueError('Invalid data_type')
-
-#     if options['modelname']=='Watson' or options['modelname']=='ACG' or options['modelname']=='ACG_lowrank':
-#         num_eigs=1
-#     elif options['modelname']=='MACG' or options['modelname']=='MACG_lowrank':
-#         num_eigs=2
-    
-#     data_train_tmp = np.array(h5py.File(loc+'2.h5', 'r')['Dataset'][:,:options['num_subjects']*1200*2]).T
-#     data_test_tmp = np.array(h5py.File(loc+'1.h5', 'r')['Dataset'][:,:options['num_subjects']*1200*2]).T
-#     data_test2_tmp = np.array(h5py.File(loc+'2.h5', 'r')['Dataset'][:,options['num_subjects']*1200*2:options['num_subjects']*1200*4]).T
-#     if num_eigs==1:
-#         data_train = data_train_tmp[np.arange(options['num_subjects']*1200*2,step=2),:]
-#         data_test = data_test_tmp[np.arange(options['num_subjects']*1200*2,step=2),:]
-#         data_test2 = data_test2_tmp[np.arange(options['num_subjects']*1200*2,step=2),:]
-#     elif num_eigs == 2:
-#         p = data_train_tmp.shape[1]
-#         data_train = np.zeros((options['num_subjects']*1200,p,2))
-#         data_train[:,:,0] = data_train_tmp[np.arange(options['num_subjects']*1200*2,step=2),:]
-#         data_train[:,:,1] = data_train_tmp[np.arange(options['num_subjects']*1200*2,step=2)+1,:]
-#         data_test = np.zeros((options['num_subjects']*1200,p,2))
-#         data_test[:,:,0] = data_test_tmp[np.arange(options['num_subjects']*1200*2,step=2),:]
-#         data_test[:,:,1] = data_test_tmp[np.arange(options['num_subjects']*1200*2,step=2)+1,:]
-#         data_test2 = np.zeros((options['num_subjects']*1200,p,2))
-#         data_test2[:,:,0] = data_test2_tmp[np.arange(options['num_subjects']*1200*2,step=2),:]
-#         data_test2[:,:,1] = data_test2_tmp[np.arange(options['num_subjects']*1200*2,step=2)+1,:]
-
-#     if options['LR']!=0:
-#         data_train = torch.tensor(data_train)
-#         data_test = torch.tensor(data_test)
-#         data_test2 = torch.tensor(data_test2)
-#     return data_train,data_test,data_test2
-
-def train_model(data_train,K,options,params=None,suppress_output=False):
+def train_model(data_train,K,options,params=None,suppress_output=False,samples_per_sequence=None):
 
     p = data_train.shape[1]
     if options['ACG_rank']=='fullrank':
@@ -90,20 +45,20 @@ def train_model(data_train,K,options,params=None,suppress_output=False):
         if options['LR']==0:
             model = Watson_EM(K=K,p=p,params=params)
         else:
-            model = Watson_torch(K=K,p=p,params=params,HMM=options['HMM'])
-            model2 = Watson_torch(K=1,p=p,params=params,HMM=options['HMM'])
+            model = Watson_torch(K=K,p=p,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
+            model2 = Watson_torch(K=1,p=p,params=None,HMM=False)
     elif options['modelname'] == 'ACG':
         if options['LR']==0:
             model = ACG_EM(K=K,p=p,rank=rank,params=params)
         else:
-            model = ACG_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'])
-            model2 = ACG_torch(K=1,p=p,rank=rank,params=params,HMM=options['HMM'])   
+            model = ACG_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
+            model2 = ACG_torch(K=1,p=p,rank=rank,params=None,HMM=False)   
     elif options['modelname'] == 'MACG':
         if options['LR']==0:
             model = MACG_EM(K=K,p=p,q=2,rank=rank,params=params)
         else:
-            model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params,HMM=options['HMM']) 
-            model2 = MACG_torch(K=1,p=p,q=2,rank=rank,params=params,HMM=options['HMM'])
+            model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence) 
+            model2 = MACG_torch(K=1,p=p,q=2,rank=rank,params=None,HMM=False)
         
     if options['LR']==0: #EM
         params,posterior,loglik = mixture_EM_loop(model,data_train,tol=options['tol'],max_iter=options['max_iter'],
@@ -113,7 +68,6 @@ def train_model(data_train,K,options,params=None,suppress_output=False):
         params,posterior,loglik = mixture_torch_loop(model,data_train,model2=model2,tol=options['tol'],max_iter=options['max_iter'],
                                         num_repl=options['num_repl_inner'],init=options['init'],LR=options['LR'],
                                         suppress_output=suppress_output,threads=options['threads'])
-    
     return params,posterior,loglik
     
 def test_model(data_test,params,K,options):
@@ -164,16 +118,3 @@ def calc_NMI(Z1,Z2):
     #Z1 and Z2 are two partition matrices of size (KxN) where K is number of components and N is number of samples
     NMI = (2*calc_MI(Z1,Z2))/(calc_MI(Z1,Z1)+calc_MI(Z2,Z2))
     return NMI
-
-# def parse_input_args(args):
-#     options = {}
-#     options['modelname'] = args[1]
-#     options['LR'] = float(args[2])
-#     options['init'] = args[3]
-#     if len(args)>4:
-#         options['GSR'] = int(args[4])
-#     else:
-#         options['GSR'] = None
-#     return options
-
-

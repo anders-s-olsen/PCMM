@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from src.helper_functions2 import initialize_pi_mu_M
+from src.load_HCP_data import initialize_pi_mu_M
 
 class Watson(nn.Module):
     """

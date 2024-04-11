@@ -1,5 +1,5 @@
 from src.helper_functions import train_model,test_model,calc_NMI
-from src.helper_functions2 import load_real_data
+from src.load_HCP_data import load_real_data
 import pandas as pd
 import numpy as np
 # import torch

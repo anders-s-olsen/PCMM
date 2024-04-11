@@ -30,7 +30,7 @@ class MACG(DMMEMBaseModel):
         log_det_D = self.logdet(D)
         XtM = np.swapaxes(X,-2,-1)[None,:,:,:]@self.M[:,None,:,:]
         v = self.logdet(D[:,None]-np.swapaxes(XtM,-2,-1)@XtM)-log_det_D[:,None]
-        
+
         log_pdf = self.logSA_stiefel - (self.q/2)*self.logdet(D)[:,None] - self.half_p*v
         return log_pdf
 
@@ -47,8 +47,8 @@ class MACG(DMMEMBaseModel):
         
     def M_step_single_component(self,X,Beta,M=None,Lambda=None,max_iter=int(1e5),tol=1e-6):
         n,p,q = X.shape
-        if n<(p*(p-1)*q):
-            Warning("Too high dimensionality compared to number of observations. Sigma cannot be estimated")
+        # if n<(p*(p-1)*q):
+        #     Warning("Too high dimensionality compared to number of observations. Sigma cannot be estimated")
             
         if self.distribution == 'MACG_lowrank':
             Q = Beta[:,None,None]*X

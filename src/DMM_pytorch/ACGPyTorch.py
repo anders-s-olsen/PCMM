@@ -3,7 +3,7 @@ from src.DMM_pytorch.DMMPyTorch import DMMPyTorchBaseModel
 import math
 
 class ACG(DMMPyTorchBaseModel):
-    def __init__(self, p:int, K:int=1, rank=None, HMM:bool=False, params:dict=None):
+    def __init__(self, p:int, K:int=1, rank=None, HMM:bool=False, samples_per_sequence=None, params:dict=None):
         super().__init__()
 
         self.p = torch.tensor(p)
@@ -11,6 +11,7 @@ class ACG(DMMPyTorchBaseModel):
         self.r = torch.tensor(rank)
         self.K = torch.tensor(K)
         self.HMM = HMM
+        self.samples_per_sequence = samples_per_sequence
         self.distribution = 'ACG'
         
         # precompute log-surface area of the unit hypersphere

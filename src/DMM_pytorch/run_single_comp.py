@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-def run_single_comp(model,data,rank=None,tol=1e-5,max_iter=100000,num_repl=1,init='unif',LR=0.1,suppress_output=False,threads=8):
+def run_single_comp(model,data,tol=1e-5,max_iter=100000,num_repl=1,init='unif',LR=0.1,suppress_output=False,threads=8):
     
     torch.set_num_threads(threads)
     torch.set_default_dtype(torch.float64)

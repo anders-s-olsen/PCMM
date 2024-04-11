@@ -7,12 +7,6 @@ class DMMEMBaseModel():
         super().__init__()
 
     def unpack_params(self,params):
-        
-        # mixture settings
-        if 'pi' in params:
-            self.pi = params['pi']
-        else:
-            self.pi = np.array([1/self.K]*self.K)
 
         # distribution-specific settings
         if self.distribution == 'Watson':
@@ -20,6 +14,7 @@ class DMMEMBaseModel():
             self.kappa = params['kappa']
         elif self.distribution == 'ACG_lowrank' or self.distribution == 'MACG_lowrank':
             M_init = params['M']
+            M_init = M_init/np.linalg.norm(M_init,axis=1)[:,None,:]
                 
             if M_init.ndim!=3 or M_init.shape[2]!=self.r: # add extra columns
                 if M_init.ndim==2:
@@ -28,6 +23,7 @@ class DMMEMBaseModel():
                     num_missing = self.r-M_init.shape[2]
 
                 M_extra = np.random.uniform(size=(self.K,M_init.shape[1],num_missing))
+                M_extra = M_extra/np.linalg.norm(M_extra,axis=1)[:,None,:]/1000 #unit norm
                 self.M = np.concatenate([M_init,M_extra],axis=2)
             else:
                 self.M = M_init
@@ -35,6 +31,12 @@ class DMMEMBaseModel():
             self.Lambda = params['Lambda']
         else:
             raise ValueError('Invalid distribution')
+        
+        # mixture settings
+        if 'pi' in params:
+            self.pi = params['pi']
+        else:
+            self.pi = np.array([1/self.K]*self.K)
 
     def initialize(self,X,init_method):
         assert init_method in ['uniform','unif',
@@ -76,7 +78,7 @@ class DMMEMBaseModel():
             if X.ndim==3:
                 X2 = X[:,:,0]
             else:
-                X2 = X.copy()
+                X2 = X.copy()   
             
             # if '++' or 'plusplus' in init_method
             if init_method in ['++','plusplus','diametrical_clustering_plusplus','dc++','++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg']:
@@ -88,8 +90,9 @@ class DMMEMBaseModel():
                 self.mu = mu
             elif self.distribution in ['ACG_lowrank','MACG_lowrank']:
                 self.M = np.random.uniform(size=(self.K,self.p,self.r))
+                self.M = self.M/np.linalg.norm(self.M,axis=1)[:,None,:] #unit norm
                 for k in range(self.K):
-                    self.M[k,:,0] = mu[:,k]
+                    self.M[k,:,0] = 1000*mu[:,k] #upweight compared to the random columns
             elif self.distribution in ['ACG_fullrank', 'MACG_fullrank']:
                 self.Lambda = np.zeros((self.K,self.p,self.p))
                 for k in range(self.K):
@@ -109,8 +112,9 @@ class DMMEMBaseModel():
             
             if self.distribution == 'MACG_lowrank':
                 self.M = np.random.uniform(size=(self.K,self.p,self.r))
+                self.M = self.M/np.linalg.norm(self.M,axis=1)[:,None,:] #unit norm
                 for k in range(self.K):
-                    self.M[k,:,0] = C[k,:,0]
+                    self.M[k,:,0] = 1000*C[k,:,0] #upweight compared to the random columns
             elif self.distribution == 'MACG_fullrank':
                 self.Lambda = np.zeros((self.K,self.p,self.p))
                 for k in range(self.K):
@@ -137,7 +141,7 @@ class DMMEMBaseModel():
                 self.mu = mu
                 self.kappa = kappa
             elif self.distribution in ['ACG_lowrank','MACG_lowrank']:
-                M = np.random.uniform(size=(self.K,self.p,self.r))
+                M = np.zeros((self.K,self.p,self.r))
                 for k in range(self.K):
                     M[k] = self.M_step_single_component(X=X[X_part==k],Beta=np.ones(np.sum(X_part==k)),M=self.M[k],Lambda=None)
                 self.M = M
