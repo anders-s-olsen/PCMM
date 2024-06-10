@@ -12,7 +12,7 @@ class MACG(DMMPyTorchBaseModel):
         self.K = torch.tensor(K)
         self.HMM = HMM
         self.samples_per_sequence = samples_per_sequence
-        self.distribution = 'ACG'
+        self.distribution = 'MACG'
         
         # precompute log-surface area of the Stiefel manifold
         loggamma_k = (self.q*(self.q-1)/4)*torch.log(torch.tensor(math.pi))+torch.sum(torch.lgamma(self.half_p-torch.arange(self.q)/2))

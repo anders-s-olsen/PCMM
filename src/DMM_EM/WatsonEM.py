@@ -23,7 +23,7 @@ def kummer_log(k,a,c):
     return logkum
 
 class Watson(DMMEMBaseModel):
-    def __init__(self, p:int, K:int=1, params:dict=None):
+    def __init__(self, p:int, K:int, params:dict=None):
         super().__init__()
 
         self.K = K

@@ -1,5 +1,5 @@
 import numpy as np
-from src.DMM_EM.diametrical_clustering import diametrical_clustering, diametrical_clustering_plusplus, grassmannian_clustering_gruber2006
+from src.DMM_EM.riemannian_clustering import diametrical_clustering, diametrical_clustering_plusplus, grassmannian_clustering_gruber2006, weighted_grassmann_clustering
 
 class DMMEMBaseModel():
 
@@ -38,15 +38,17 @@ class DMMEMBaseModel():
         else:
             self.pi = np.array([1/self.K]*self.K)
 
-    def initialize(self,X,init_method):
+    def initialize(self,X,init_method,L=None):
         assert init_method in ['uniform','unif',
                                '++','plusplus','diametrical_clustering_plusplus','dc++',
                                '++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg',
                                'dc','diametrical_clustering',
                                'dc_seg','diametrical_clustering_seg',
-                               'Grassmann','Grassmann_clustering',
-                               'Grassmann_seg','Grassmann_clustering_seg']
-        assert self.distribution in ['Watson','ACG_lowrank','ACG_fullrank','MACG_lowrank','MACG_fullrank']
+                               'grassmann','grassmann_clustering',
+                               'grassmann_seg','grassmann_clustering_seg',
+                               'weighted_grassmann','weighted_grassmann_clustering',
+                               'weighted_grassmann_seg','weighted_grassmann_clustering_seg']
+        assert self.distribution in ['Watson','ACG_lowrank','ACG_fullrank','MACG_lowrank','MACG_fullrank','SingularWishart_lowrank','SingularWishart_fullrank']
 
         # strategy: 
         # 1) if uniform, initialize with uniform random values and return
@@ -65,9 +67,9 @@ class DMMEMBaseModel():
             if self.distribution == 'Watson':
                 mu = np.random.uniform(size=(self.p,self.K))
                 self.mu = mu / np.linalg.norm(mu,axis=0)
-            elif self.distribution in ['ACG_lowrank', 'MACG_lowrank']:
+            elif self.distribution in ['ACG_lowrank', 'MACG_lowrank','SingularWishart_lowrank']:
                 self.M = np.random.uniform(size=(self.K,self.p,self.r))
-            elif self.distribution in ['ACG_fullrank', 'MACG_fullrank']:
+            elif self.distribution in ['ACG_fullrank', 'MACG_fullrank','SingularWishart_fullrank']:
                 M = np.random.uniform(size=(self.K,self.p,self.p))
                 self.Lambda = np.zeros((self.K,self.p,self.p))
                 for k in range(self.K):
@@ -82,54 +84,65 @@ class DMMEMBaseModel():
             
             # if '++' or 'plusplus' in init_method
             if init_method in ['++','plusplus','diametrical_clustering_plusplus','dc++','++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg']:
-                mu = diametrical_clustering_plusplus(X=X2,K=self.K)
+                mu,X_part,_ = diametrical_clustering_plusplus(X=X2,K=self.K)
             elif init_method in ['dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
-                mu = diametrical_clustering(X=X2,K=self.K,max_iter=100000,num_repl=1,init='++')
+                mu,X_part,_ = diametrical_clustering(X=X2,K=self.K,max_iter=100000,num_repl=1,init='++')
             
             if self.distribution == 'Watson':
                 self.mu = mu
-            elif self.distribution in ['ACG_lowrank','MACG_lowrank']:
+            elif self.distribution in ['ACG_lowrank','MACG_lowrank','SingularWishart_lowrank']:
                 self.M = np.random.uniform(size=(self.K,self.p,self.r))
                 self.M = self.M/np.linalg.norm(self.M,axis=1)[:,None,:] #unit norm
                 for k in range(self.K):
-                    self.M[k,:,0] = 1000*mu[:,k] #upweight compared to the random columns
-            elif self.distribution in ['ACG_fullrank', 'MACG_fullrank']:
+                    self.M[k,:,0] = 1000*mu[:,k] #upweighed compared to the random columns
+            elif self.distribution in ['ACG_fullrank', 'MACG_fullrank','SingularWishart_fullrank']:
                 self.Lambda = np.zeros((self.K,self.p,self.p))
                 for k in range(self.K):
                     self.Lambda[k] = np.outer(mu[:,k],mu[:,k])+np.eye(self.p)
                     self.Lambda[k] = self.Lambda[k]/np.trace(self.Lambda[k])
-
-            # if segmentation methods, use mu to segment the data and later estimate single-component models
-            if init_method in ['++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg','dc_seg','diametrical_clustering_seg']:
-                dis = (X2@mu)**2           
-                X_part = np.argmax(dis,axis=1) 
             
-        elif init_method in ['Grassmann','Grassmann_clustering','Grassmann_seg','Grassmann_clustering_seg']:
+        elif init_method in ['grassmann','grassmann_clustering','grassmann_seg','grassmann_clustering_seg']:
             if X.ndim!=3:
                 raise ValueError('Grassmann methods are only implemented for 3D data')
             
-            C = grassmannian_clustering_gruber2006(X=X,K=self.K,max_iter=100000,num_repl=1)
+            C,X_part,_ = grassmannian_clustering_gruber2006(X=X,K=self.K,max_iter=100000,num_repl=1)
             
-            if self.distribution == 'MACG_lowrank':
+            if self.distribution in ['MACG_lowrank','SingularWishart_lowrank']:
                 self.M = np.random.uniform(size=(self.K,self.p,self.r))
                 self.M = self.M/np.linalg.norm(self.M,axis=1)[:,None,:] #unit norm
                 for k in range(self.K):
-                    self.M[k,:,0] = 1000*C[k,:,0] #upweight compared to the random columns
-            elif self.distribution == 'MACG_fullrank':
+                    if self.r<self.q:
+                        self.M[k,:,:self.r] = 1000*C[k,:,:self.r] 
+                    else:
+                        self.M[k,:,:self.q] = 1000*C[k,:,:] #upweighed compared to the random columns
+            elif self.distribution in ['MACG_fullrank','SingularWishart_fullrank']:
                 self.Lambda = np.zeros((self.K,self.p,self.p))
                 for k in range(self.K):
                     self.Lambda[k] = C[k]@C[k].T+np.eye(self.p)
                     self.Lambda[k] = self.Lambda[k]/np.trace(self.Lambda[k])
 
-            if init_method in ['Grassmann_seg','Grassmann_clustering_seg']:
-                XXt = X@np.swapaxes(X,-2,-1)
-                CCt = C@np.swapaxes(C,-2,-1)
-                dis = 1/np.sqrt(2)*np.linalg.norm(XXt[:,None]-CCt[None],axis=(-2,-1))
-                X_part = np.argmin(dis,axis=1)
+        elif init_method in ['weighted_grassmann','weighted_grassmann_clustering','weighted_grassmann_seg','weighted_grassmann_clustering_seg']:
+            if X.ndim!=3:
+                raise ValueError('Grassmann methods are only implemented for 3D data')
+            
+            C,C_weights,X_part,_ = weighted_grassmann_clustering(X=X,X_weights=L,K=self.K,max_iter=100000,num_repl=1)
+            
+            if self.distribution == 'SingularWishart_lowrank':
+                self.M = np.random.uniform(size=(self.K,self.p,self.r))
+                self.M = self.M/np.linalg.norm(self.M,axis=1)[:,None,:] #unit norm
+                for k in range(self.K):
+                    if self.r<self.q:
+                        self.M[k,:,:self.r] = 1000*C[k,:,:self.r]@np.diag(C_weights[k,:self.r])
+                    else:
+                        self.M[k,:,:self.q] = 1000*C[k,:,:]@np.diag(C_weights[k]) #upweighed compared to the random columns
+            elif self.distribution == 'SingularWishart_fullrank':
+                self.Lambda = np.zeros((self.K,self.p,self.p))
+                for k in range(self.K):
+                    self.Lambda[k] = C[k]@np.diag(C_weights[k])@C[k].T
         else:
             raise ValueError('Invalid init_method')
             
-        if init_method in ['++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg','dc_seg','diametrical_clustering_seg','Grassmann_seg','Grassmann_clustering_seg']:
+        if init_method in ['++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg','dc_seg','diametrical_clustering_seg','grassmann_seg','grassmann_clustering_seg','weighted_grassmann_seg','weighted_grassmann_clustering_seg']:
             print('Running single component models as initialization')
             self.pi = np.bincount(X_part)/X_part.shape[0]
             # run a single-component model on each segment
@@ -149,6 +162,16 @@ class DMMEMBaseModel():
                 Lambda = np.zeros((self.K,self.p,self.p))
                 for k in range(self.K):
                     Lambda[k] = self.M_step_single_component(X=X[X_part==k],Beta=np.ones(np.sum(X_part==k)),M=None, Lambda=self.Lambda[k])
+                self.Lambda=Lambda
+            elif self.distribution == 'SingularWishart_lowrank':
+                M = np.zeros((self.K,self.p,self.r))
+                for k in range(self.K):
+                    M[k] = self.M_step_single_component(X=X[X_part==k],L=L[X_part==k],Beta=np.ones(np.sum(X_part==k)),M=self.M[k])
+                self.M = M
+            elif self.distribution == 'SingularWishart_fullrank':
+                Lambda = np.zeros((self.K,self.p,self.p))
+                for k in range(self.K):
+                    Lambda[k] = self.M_step_single_component(X=X[X_part==k],L=L[X_part==k],Beta=np.ones(np.sum(X_part==k)),M=None)
                 self.Lambda=Lambda
 
     def logdet(self,B):

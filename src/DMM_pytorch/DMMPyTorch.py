@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
-from src.DMM_pytorch.diametrical_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch, grassmannian_clustering_gruber2006_torch
+from src.DMM_pytorch.riemannian_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch, grassmannian_clustering_gruber2006_torch, weighted_grassmann_clustering_torch
 from src.DMM_pytorch.run_single_comp import run_single_comp
+
 class DMMPyTorchBaseModel(nn.Module):
 
     def __init__(self):
@@ -19,7 +20,7 @@ class DMMPyTorchBaseModel(nn.Module):
         if self.distribution == 'Watson':
             self.mu = nn.Parameter(params['mu'])
             self.kappa = nn.Parameter(params['kappa'])
-        elif self.distribution == 'ACG' or self.distribution == 'MACG':
+        elif self.distribution in ['ACG','MACG','MVG_lowrank']:
             M_init = params['M']
             M_init = M_init/torch.linalg.norm(M_init,dim=1)[:,None,:] #unit norm
                 
@@ -34,6 +35,13 @@ class DMMPyTorchBaseModel(nn.Module):
                 self.M = nn.Parameter(torch.cat([M_init,M_extra],dim=2))
             else:
                 self.M = nn.Parameter(M_init)
+        elif self.distribution == 'MVG_scalar':
+            self.mu = nn.Parameter(params['mu'])
+            self.sigma = nn.Parameter(params['sigma'])
+        elif self.distribution == 'MVG_diagonal':
+            self.mu = nn.Parameter(params['mu'])
+            self.M = nn.Parameter(params['M'])
+        
         else:
             raise ValueError('Invalid distribution')
         
@@ -55,13 +63,12 @@ class DMMPyTorchBaseModel(nn.Module):
         T = T/T.sum(axis=1)[:,None]
         return T
 
-    def initialize(self,X,init_method=None,model2=None,only_T=False):
-        
-        if only_T:
-            X_part = torch.argmax(self.log_pdf(X),dim=0) 
-            self.T = nn.Parameter(self.compute_transition_matrix(X_part))
-            return
+    def initialize_transition_matrix(self,X):
+        X_part = torch.argmax(self.MM_log_likelihood(self.log_pdf(X)),dim=0)
+        self.T = nn.Parameter(self.compute_transition_matrix(X_part))
 
+    def initialize(self,X,init_method=None,model2=None,L=None):
+        
         if init_method is None:
             Warning('No init_method specified, using uniform initialization')
             init_method = 'uniform'
@@ -71,24 +78,22 @@ class DMMPyTorchBaseModel(nn.Module):
                                '++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg',
                                'dc','diametrical_clustering',
                                'dc_seg','diametrical_clustering_seg',
-                               'Grassmann','Grassmann_clustering',
-                               'Grassmann_seg','Grassmann_clustering_seg']
-        assert self.distribution in ['Watson','ACG','ACG','MACG','MACG']
-
-        # strategy: 
-        # 1) if uniform, initialize with uniform random values and return
-        # 2) if not, compute mu or C using dc++, dc, gr or gr++
-        # 3) if not seg use those values to initialize the model
-        # 4) if seg, use the partition and run the model a single time using the partition
+                               'grassmann','grassmann_clustering',
+                               'grassmann_seg','grassmann_clustering_seg',
+                               'weighted_grassmann','weighted_grassmann_clustering',
+                               'weighted_grassmann_seg','weighted_grassmann_clustering_seg']
+        assert self.distribution in ['Watson','ACG','MACG','SingularWishart']#,'MVG_scalar','MVG_diagonal','MVG_lowank'
 
         # initialize pi as uniform, will be overwritten by 'seg' methods
         self.pi = nn.Parameter((1/self.K).repeat(self.K))
         if self.HMM:
             self.T = nn.Parameter((1/self.K).repeat(self.K,self.K))
-
+        
         # for watson, always initialize kappa as ones, will be overwritten by 'seg' methods
         if self.distribution == 'Watson':
             self.kappa = nn.Parameter(torch.ones(self.K))
+        if self.distribution == 'MVG_scalar':
+            self.sigma = nn.Parameter(torch.ones(self.K))
 
         if init_method in ['uniform','unif']:
             if self.distribution == 'Watson':
@@ -96,7 +101,13 @@ class DMMPyTorchBaseModel(nn.Module):
                 self.mu = nn.Parameter(mu/torch.linalg.vector_norm(mu,dim=0))
             elif self.distribution in ['ACG', 'MACG']:
                 self.M = nn.Parameter(torch.rand(self.K,self.p,self.r))
+            # elif self.distribution in ['MVG_diagonal','MVG_lowrank']:
+            #     self.M = nn.Parameter(torch.rand(self.K,self.p))
+            #     self.mu = nn.Parameter(torch.rand(self.K,self.p))
+            # elif self.distribution == 'MVG_scalar':
+            #     self.mu = nn.Parameter(torch.rand(self.K,self.p))
             return
+        
         elif init_method in ['++','plusplus','diametrical_clustering_plusplus','dc++','++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg','dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
             if X.ndim==3:
                 X2 = X[:,:,0]
@@ -105,45 +116,58 @@ class DMMPyTorchBaseModel(nn.Module):
             
             # if '++' or 'plusplus' in init_method
             if init_method in ['++','plusplus','diametrical_clustering_plusplus','dc++','++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg']:
-                mu = diametrical_clustering_plusplus_torch(X=X2,K=self.K)
+                C,X_part,_ = diametrical_clustering_plusplus_torch(X=X2,K=self.K)
             elif init_method in ['dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
-                mu = diametrical_clustering_torch(X=X2,K=self.K,max_iter=100000,num_repl=1,init='++')
+                C,X_part,_ = diametrical_clustering_torch(X=X2,K=self.K,max_iter=100000,num_repl=1,init='++')
             
             if self.distribution == 'Watson':
-                self.mu = nn.Parameter(mu)
-            elif self.distribution in ['ACG','MACG']:
+                self.mu = nn.Parameter(C)
+            elif self.distribution in ['ACG','MACG','SingularWishart']:
                 self.M = torch.rand(self.K,self.p,self.r)
                 self.M = self.M/torch.linalg.norm(self.M,dim=1)[:,None,:] #unit norm
                 for k in range(self.K):
-                    self.M[k,:,0] = 1000*mu[:,k] #upweigh the first component
+                    self.M[k,:,0] = 1000*C[:,k] #upweigh the first component
                 self.M = nn.Parameter(self.M)
-
-            # if segmentation methods, use mu to segment the data and later estimate single-component models
-            if init_method in ['++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg','dc_seg','diametrical_clustering_seg']:
-                sim = (X2@mu)**2           
-                X_part = torch.argmax(sim,dim=1) 
             
-        elif init_method in ['Grassmann','Grassmann_clustering','Grassmann_seg','Grassmann_clustering_seg']:
+        elif init_method in ['grassmann','grassmann_clustering','grassmann_seg','grassmann_clustering_seg']:
             if X.ndim!=3:
                 raise ValueError('Grassmann methods are only implemented for 3D data')
             
-            C = grassmannian_clustering_gruber2006_torch(X=X,K=self.K,max_iter=100000,num_repl=1)
+            C,X_part,_ = grassmannian_clustering_gruber2006_torch(X=X,K=self.K,max_iter=100000,num_repl=1)
             
             self.M = torch.rand(self.K,self.p,self.r)
             self.M = self.M/torch.linalg.norm(self.M,dim=1)[:,None,:] #unit norm
             for k in range(self.K):
-                self.M[k,:,0] = 1000*C[k,:,0] #upweigh the first component
+                if self.r<self.q:
+                    self.M[k,:,:self.r] = 1000*C[k,:,:self.r] #upweigh the first component
+                else:
+                    self.M[k,:,:self.q] = 1000*C[k,:,:] #upweigh the first component
             self.M = nn.Parameter(self.M)
 
-            if init_method in ['Grassmann_seg','Grassmann_clustering_seg']:
-                XXt = X@torch.swapaxes(X,-2,-1)
-                CCt = C@torch.swapaxes(C,-2,-1)
-                dis = 1/torch.sqrt(torch.tensor(2))*torch.linalg.matrix_norm(XXt[:,None]-CCt[None])
-                X_part = torch.argmin(dis,axis=1)
+        elif init_method in ['weighted_grassmann','weighted_grassmann_clustering','weighted_grassmann_seg','weighted_grassmann_clustering_seg']:
+            C,C_weights,X_part,_ = weighted_grassmann_clustering_torch(X=X,X_weights=L,K=self.K,max_iter=100000,num_repl=1)
+            self.M = torch.rand(self.K,self.p,self.r)
+            self.M = self.M/torch.linalg.norm(self.M,dim=1)[:,None,:] #unit norm
+            for k in range(self.K):
+                if self.r<self.q:
+                    self.M[k,:,:self.r] = 1000*C[k,:,:self.r]@torch.diag(C_weights[k,:self.r]) #upweigh the first component
+                else:
+                    self.M[k,:,:self.q] = 1000*C[k,:,:]@torch.diag(C_weights[k]) #upweigh the first component
+            self.M = nn.Parameter(self.M)
+
+
+        # elif init_method in ['euclidean_kmeans','euclidean_kmeans_seg']:
+        #     from scipy.cluster.vq import kmeans2
+        #     if X.ndim==3:
+        #         X2 = X[:,:,0]
+        #     else:
+        #         X2 = X.clone()
+        #     C,X_part = kmeans2(X2,self.K,minit='++')
+        #     self.mu = nn.Parameter(torch.tensor(C))
         else:
             raise ValueError('Invalid init_method')
             
-        if init_method in ['++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg','dc_seg','diametrical_clustering_seg','Grassmann_seg','Grassmann_clustering_seg']:
+        if init_method in ['++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg','dc_seg','diametrical_clustering_seg','Grassmann_seg','Grassmann_clustering_seg','euclidean_kmeans_seg']:
             print('Running single component models as initialization')
             # self.pi = nn.Parameter(torch.bincount(X_part)/X_part.shape[0])
             # run a single-component model on each segment
@@ -157,23 +181,40 @@ class DMMPyTorchBaseModel(nn.Module):
                     kappa[k] = params['kappa']
                 self.mu = nn.Parameter(mu)
                 self.kappa = nn.Parameter(kappa)
-            elif self.distribution in ['ACG','MACG']:
+            elif self.distribution in ['ACG','MACG','SingularWishart']:
                 M = torch.zeros(self.K,self.p,self.r)
                 for k in range(self.K):
                     model2.unpack_params({'M':self.M[k][None],'pi':torch.zeros(1)})
                     params,_,_ = run_single_comp(model2,X[X_part==k],init='no')
                     M[k] = params['M']
                 self.M = nn.Parameter(M)
+            # elif self.distribution =='MVG_scalar':
+            #     mu = torch.zeros(self.K,self.p)
+            #     sigma = torch.zeros(self.K)
+            #     for k in range(self.K):
+            #         model2.unpack_params({'mu':self.mu[k][None],'sigma':self.sigma[k].unsqueeze(-1),'pi':torch.zeros(1)})
+            #         params,_,_ = run_single_comp(model2,X[X_part==k],init='no')
+            #         mu[k] = params['mu'][0]
+            #         sigma[k] = params['sigma'][0]
+            #     self.mu = nn.Parameter(mu)
+            #     self.sigma = nn.Parameter(sigma)
+            # elif self.distribution in ['MVG_diagonal','MVG_lowank']:
+            #     mu = torch.zeros(self.p,self.K)
+            #     M = torch.zeros(self.K,self.p,self.r)
+            #     for k in range(self.K):
+            #         model2.unpack_params({'mu':self.mu[k][None],'M':self.M[k][None],'pi':torch.zeros(1)})
+            #         params,_,_ = run_single_comp(model2,X[X_part==k],init='no')
+            #         mu[k] = params['mu'][0]
+            #         M[k] = params['M'][0]
+            #     self.mu = nn.Parameter(mu)
+            #     self.M = nn.Parameter(M)
+            
             X_part = torch.argmax(self.log_pdf(X),dim=0) 
             self.pi = nn.Parameter(torch.bincount(X_part)/X_part.shape[0])
             if self.HMM:
                 self.T = nn.Parameter(self.compute_transition_matrix(X_part))
 
-
-    # here the log_pdf should be formatted as KxN
     def MM_log_likelihood(self,log_pdf):
-        # if log_pdf.ndim!=2:
-        #     raise ValueError("log_pdf should be KxN, where N is concatenated across all subjects/batches")
         log_density = log_pdf+self.LogSoftmax_pi(self.pi)[:,None] #each pdf gets "multiplied" with the weight
         logsum_density = torch.logsumexp(log_density,dim=0) #sum over the K components
         log_likelihood = torch.sum(logsum_density) #sum over the N samples
@@ -194,12 +235,16 @@ class DMMPyTorchBaseModel(nn.Module):
             log_alpha[0,:] = log_pdf[:,sequence_starts[seq]] + log_pi
 
             for t in range(1,Ns):
-                log_alpha[t,:] = log_pdf[:,sequence_starts[seq]+t] + torch.logsumexp(log_alpha[t-1,:]+log_T,dim=-1)
+                log_alpha[t,:] = log_pdf[:,sequence_starts[seq]+t] + torch.logsumexp(log_alpha[t-1,:,None]+log_T,dim=0)
             
-            log_t = torch.logsumexp(log_alpha,dim=-1)
-            log_prob[seq] = log_t[-1]
+            log_t = torch.logsumexp(log_alpha[-1,:],dim=-1)
+            log_prob[seq] = log_t
         return torch.sum(log_prob)
+    
     def HMM_log_likelihood_seq(self,log_pdf,samples_per_sequence):
+        """
+        This is a faster version of HMM_log_likelihood_seq_nonuniform_sequences, but it assumes that all sequences have the same length
+        """
         K,N = log_pdf.shape
         if samples_per_sequence is None:
             samples_per_sequence = N
@@ -219,34 +264,13 @@ class DMMPyTorchBaseModel(nn.Module):
         log_alpha[:,0,:] = log_pdf_reshaped[:,:,0] + log_pi[None]
 
         for t in range(1,Ns):
-            log_alpha[:,t,:] = log_pdf_reshaped[:,:,t] + torch.logsumexp(log_alpha[:,t-1,:][:,None]+log_T,dim=-1)
-        
-        log_t = torch.logsumexp(log_alpha,dim=-1)
-        log_prob = torch.sum(log_t[:,-1],dim=0)
+            # The logsumexp is over the 2nd dimension since it's over k', not k!
+            log_alpha[:,t,:] = log_pdf_reshaped[:,:,t] + torch.logsumexp(log_alpha[:,t-1,:,None]+log_T[None],dim=1) 
+
+        log_t = torch.logsumexp(log_alpha[:,-1,:],dim=-1) #this is the logsumexp over the K states
+        log_prob = torch.sum(log_t,dim=0) #sum over sequences
         return log_prob
 
-    # def HMM_log_likelihood(self,log_pdf):
-    #     K,N = log_pdf.shape
-    #     log_T = self.LogSoftmax_T(self.T) # size KxK
-    #     log_pi = self.LogSoftmax_pi(self.pi) #size K
-
-    #     log_alpha = torch.zeros(N,K)
-
-    #     #initialize the first alpha for time t=0
-    #     log_alpha[0,:] = log_pdf[:,0]+log_pi
-
-    #     #recursion for time t=1 and onwards (this is correct)
-    #     for t in range(1,N):
-    #         log_alpha[t,:] = log_pdf[:,t]+torch.logsumexp(log_alpha[t-1,:]+log_T,dim=-1)
-
-    #     # Logsum for states N for each time t
-    #     log_t = torch.logsumexp(log_alpha,dim=-1)
-
-    #     # Retrieve alpha for the last time t
-    #     log_probability = log_t[-1]
-
-    #     return log_probability
-    
     def forward(self, X):
         log_pdf = self.log_pdf(X)
         if self.K==1:
@@ -266,7 +290,7 @@ class DMMPyTorchBaseModel(nn.Module):
         logsum_density = torch.logsumexp(log_density,dim=0)
         return torch.exp(log_density-logsum_density)
 
-    def viterbi(self,log_pdf,samples_per_sequence):
+    def viterbi2(self,log_pdf,samples_per_sequence):
         K,N = log_pdf.shape
         if samples_per_sequence is None:
             samples_per_sequence = N
@@ -280,42 +304,45 @@ class DMMPyTorchBaseModel(nn.Module):
         for seq in range(len(samples_per_sequence)):
             Ns = samples_per_sequence[seq]
             log_delta = torch.zeros(Ns,K)
-            log_psi = torch.zeros(Ns,K,dtype=torch.int32)
+            psi = torch.zeros(Ns,K,dtype=torch.int32) #state sequence = integers
 
             log_delta[0,:] = log_pdf[:,sequence_starts[seq]]+log_pi
 
             for t in range(1,Ns):
-                temp = log_delta[t-1,:]+log_T+log_pdf[:,sequence_starts[seq]+t]
-                log_delta[t,:],log_psi[t,:] = torch.max(temp,dim=1)
+                temp = log_delta[t-1,:,None]+log_T
+                log_delta[t,:],psi[t,:] = torch.max(temp,dim=0) #maximum over "from" states
+                log_delta[t,:] = log_delta[t,:]+log_pdf[:,sequence_starts[seq]+t]
 
-            Z_T_prob, Z_T = torch.max(log_delta[-1,:],dim=0)
+            P_T, Z_T = torch.max(log_delta[-1,:],dim=0)
             Z_path = torch.zeros(Ns,dtype=torch.int32)
             Z_path[-1] = Z_T
-
             for t in range(Ns-2,-1,-1):
-                Z_path[t] = log_psi[t+1,Z_T]
-                Z_T = Z_path[t]
+                Z_path[t] = psi[t+1,Z_T]
 
+            # from partition vector to partition matrix
             Z_path2 = torch.zeros(K,Ns,dtype=torch.bool)
             for t in range(Ns):
                 Z_path2[Z_path[t],t] = True
             Z_path_all.append(Z_path2)
 
         return torch.hstack(Z_path_all)
-
     def posterior(self,X):
         with torch.no_grad():
             log_pdf = self.log_pdf(X)
             if self.HMM:
-                return self.viterbi(log_pdf,self.samples_per_sequence)#self.posterior_MM(log_pdf), 
+                return self.viterbi2(log_pdf,self.samples_per_sequence)
             else:
                 return self.posterior_MM(log_pdf)
     
     def get_params(self):
         if self.distribution == 'Watson':
             return {'mu':self.mu.detach(),'kappa':self.kappa.detach(),'pi':self.pi.detach()}
-        elif self.distribution == 'ACG' or self.distribution == 'MACG':
+        elif self.distribution in ['ACG','MACG','SingularWishart']:
             return {'M':self.M.detach(),'pi':self.pi.detach()}
+        # elif self.distribution == 'MVG_scalar':
+        #     return {'mu':self.mu.detach(),'sigma':self.sigma.detach(),'pi':self.pi.detach()}
+        # elif self.distribution in ['MVG_diagonal','MVG_lowrank']:
+        #     return {'mu':self.mu.detach(),'M':self.M.detach(),'pi':self.pi.detach()}
         
     def set_params(self,params):
         self.unpack_params(params)

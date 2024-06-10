@@ -11,7 +11,7 @@ def diametrical_clustering_torch(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-
 
     for _ in range(num_repl):
         if init is None or init=='++' or init=='plusplus' or init == 'diametrical_clustering_plusplus':
-            C = diametrical_clustering_plusplus_torch(X,K)
+            C,_,_ = diametrical_clustering_plusplus_torch(X,K)
         else:
             C = torch.rand(size=(p,K))
             C = C/torch.linalg.norm(C,axis=0)
@@ -40,19 +40,12 @@ def diametrical_clustering_torch(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-
                 idx_k = X_part==k
                 # Establish covariance matrix
                 A = X[idx_k].T@X[idx_k]
-                C[:,k] = A@C[:,k]
+                C[:,k] = (C[:,k]) @ A
             C = C/torch.linalg.norm(C,axis=0)
             iter += 1
-    # try:
-    #     best = np.nanargmax(np.array(obj_final))
-    # except: 
-    #     if call>4:
-    #         raise ValueError('Diametrical clustering ++ didn''t work for 5 re-calls of the function')
-    #     print('Diametrical clustering returned nan. Repeating')
-    #     return diametrical_clustering(X,K,max_iter=max_iter,num_repl=num_repl,init=init,call=call+1)
-    best = torch.argmax(torch.tensor(obj_final))
     
-    return C_final[best]#,part_final[best],obj_final[best]
+    best = torch.argmax(torch.tensor(obj_final))
+    return C_final[best],part_final[best],obj_final[best]
 
 def diametrical_clustering_plusplus_torch(X,K):
     n,_ = X.shape
@@ -78,7 +71,12 @@ def diametrical_clustering_plusplus_torch(X,K):
         idx = torch.multinomial(prob_dist,num_samples=1).item()
         C = torch.hstack((C,X[idx].clone()[:,None]))
     
-    return C
+    dis = (X@C)**2
+    maxdis = torch.max(dis,dim=1)[0] # check that this works
+    X_part = torch.argmax(dis,dim=1)
+    obj = torch.mean(maxdis)
+
+    return C,X_part,obj
 
 def grassmannian_clustering_gruber2006_torch(X,K,max_iter=10000,num_repl=1,init=None,call=0,tol=1e-16):
     
@@ -87,16 +85,12 @@ def grassmannian_clustering_gruber2006_torch(X,K,max_iter=10000,num_repl=1,init=
     obj_final = [] # objective function collector
     part_final = [] # partition collector
     C_final = [] # cluster center collector
-    XXt = X@torch.swapaxes(X,-2,-1)
 
     # loop over the number of repetitions
     for _ in range(num_repl):
         # initialize cluster centers
         C = torch.rand(K,p,q)
         for k in range(K):
-            #eigenvals
-            # evals = torch.linalg.eigvals(torch.linalg.inv(C[k].T@C[k]))
-            # C[k] = C[k]@torch.sqrt(evals) # project onto the Grassmannian
             C[k] = C[k]@torch.tensor(scipy.linalg.sqrtm(torch.linalg.inv(C[k].T@C[k]).numpy()))
 
         iter = 0
@@ -104,14 +98,9 @@ def grassmannian_clustering_gruber2006_torch(X,K,max_iter=10000,num_repl=1,init=
         partsum = torch.zeros(max_iter,K)
         while True:
             # "E-step" - compute the similarity between each matrix and each cluster center
-            # dis = torch.zeros(n,K)
-            # S_all = np.zeros((K,n,q))
-            # note this can surely be optimized!! but cba
-            # 
-            CCt = C@torch.swapaxes(C,-2,-1)
-
-            dis = 1/torch.sqrt(torch.tensor(2))*torch.linalg.matrix_norm(XXt[:,None]-CCt[None])
-            sim = 1-dis
+            
+            dis = 1/torch.sqrt(2)(2*q-2*torch.linalg.norm(torch.swapaxes(X[:,None],-2,-1)@C[None],axis=(-2,-1)))
+            sim = -dis
             maxsim,X_part = torch.max(sim,dim=1) # find the maximum similarity
             obj.append(torch.mean(maxsim))
 
@@ -129,39 +118,60 @@ def grassmannian_clustering_gruber2006_torch(X,K,max_iter=10000,num_repl=1,init=
             # "M-step" - update the cluster centers
             for k in range(K):
                 idx_k = X_part==k
-                V = torch.sum(X[idx_k]@torch.swapaxes(X[idx_k],1,2),dim=0)
-                L,U = torch.linalg.eigh(V)
-                # take only the last q columns
-                # U = U[:,-q:]
-                #rearrange the last two columns
-                U = torch.index_select(U,1,torch.argsort(L,dim=0,descending=True))
-                U = U[:,:q]
-                # L,U = scipy.sparse.linalg.eigsh(V,k=q,which='LM')
-
-                # U,S,_ = np.linalg.svd(np.reshape(np.swapaxes(X[idx_k],0,1),(p,np.sum(idx_k)*q)),full_matrices=False)
-                C[k] = U
+                V = torch.reshape(torch.swapaxes(X[idx_k],0,1),(p,torch.sum(idx_k)*q))
+                U,_,_ = torch.svd_lowrank(V,q=q)
+                C[k] = U[:,:q]
             iter += 1
-    try:
-        best = torch.argmax(torch.tensor(obj_final))
-    except: 
-        if call>4:
-            raise ValueError('Diametrical clustering ++ didn''t work for 5 re-calls of the function')
-        print('Weighted Grassmannian clustering returned nan. Repeating')
-        return grassmannian_clustering_gruber2006_torch(X,K,max_iter=max_iter,num_repl=num_repl,init=init,call=call+1)
+    best = torch.argmax(torch.tensor(obj_final))
     
-    return C_final[best]
+    return C_final[best],part_final[best],obj_final[best]
 
-if __name__=='__main__':
-    import matplotlib.pyplot as plt
-    import numpy as np
-    K = torch.tensor(2)
+def weighted_grassmannian_clustering(X,X_weights,K,max_iter=10000,tol=1e-16):
+    """"
+    Weighted grassmannian clustering using the chordal distance function and a SVD-based update rule
     
-    p = torch.tensor(3)
+    X: size (nxpxq), where n is the number of observations, p is the number of features and q is the subspace dimensionality
+    X_weights: size (n,q), where n is the number of observations and q is the subspace dimensionality (corresponds to eigenvalues)
+    K: number of clusters
+    max_iter: maximum number of iterations
+    tol: tolerance for convergence
 
-    data = torch.tensor(np.loadtxt('data/synthetic/synth_data_ACG.csv',delimiter=','))
-    # data = data[np.arange(2000,step=2),:]
-
-    C,part,obj = diametrical_clustering_torch(X=data,K=K,num_repl=1,init=None)
-    # C = diametrical_clustering_plusplus_torch(X=data,K=K)
+    """
     
-    stop=7
+    n,p,q = X.shape
+
+    # initialize cluster centers using a normal distribution projected to the Grassmannian
+    C = torch.rand(K,p,q)
+    C_weights = torch.ones(K,q)
+    for k in range(K):
+        C[k] = C[k]@scipy.linalg.sqrtm(torch.linalg.inv(C[k].T@C[k])) # project onto the Grassmannian
+
+    # initialize counters
+    iter = 0
+    obj = []
+    partsum = torch.zeros((max_iter,K))
+    while True:
+        # "E-step" - compute the similarity between each matrix and each cluster center
+        dis = 1/torch.sqrt(2)(torch.sum(X_weights**4)+torch.sum(C_weights**4)-2*torch.linalg.norm(torch.swapaxes((X*X_weights[:,None,:])[:,None],-2,-1)@(C*C_weights[:,None,:])[None],dim=(-2,-1)))
+        sim = -dis
+        maxsim,X_part = torch.max(sim,dim=1) # find the maximum similarity - the sum of this value is the objective function
+        obj.append(torch.sum(maxsim))
+
+        # check for convergence
+        for k in range(K):
+            partsum[iter,k] = torch.sum(X_part==k)
+        if iter>0:
+            if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or abs(obj[-1]-obj[-2])<tol:
+                break
+        
+        # "M-step" - update the cluster centers
+        for k in range(K):
+            idx_k = X_part==k
+            V = torch.reshape(torch.swapaxes(X[idx_k]*X_weights[idx_k,None,:],0,1),(p,torch.sum(idx_k)*q))
+            U,S,_ = torch.svd_lowrank(V,q=q)
+            C[k] = U[:,:q]
+            C_weights[k] = S**2
+
+        iter += 1
+    
+    return C,obj,X_part
