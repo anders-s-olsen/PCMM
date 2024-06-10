@@ -1,19 +1,10 @@
-from src.helper_functions import load_synthetic_data,train_model,test_model,calc_NMI
+from src.helper_functions import train_model,calc_NMI,make_true_mat
 import pandas as pd
 import numpy as np
 import torch
 import os
 import h5py as h5
 # make an 2xN array where the first row is ones for the first half of N and zeros for the second half, opposite for the second row
-def make_true_mat():
-    rows = []
-    for _ in range(10):
-        row = np.zeros((3,1200),dtype=bool)
-        row[0,:400] = True
-        row[1,400:800] = True
-        row[2,800:] = True
-        rows.append(row)
-    return np.hstack(rows)
 def run_experiment(extraoptions={},suppress_output=False):
     # options pertaining to current experiment
     options = {}
@@ -29,11 +20,10 @@ def run_experiment(extraoptions={},suppress_output=False):
     options.update(extraoptions) #modelname, LR, init controlled in shell script
     os.makedirs(options['outfolder'],exist_ok=True)
     p = 116
-    K = 3
+    K = 5
 
     # load data using h5
-    data_train = []
-    with h5.File('data/synthetic/phase_controlled_116data.h5','r') as f:
+    with h5.File('data/synthetic/phase_controlled_116data_eida.h5','r') as f:
         data_train = f['U'][:]
     if options['modelname']=='Watson' or options['modelname']=='ACG' or options['modelname']=='ACG_lowrank':
         data_train = data_train[:,:,0]
@@ -53,7 +43,7 @@ def run_experiment(extraoptions={},suppress_output=False):
         else:
             options['HMM'] = False
         for ACG_rank in [1,5,10,25,50,'fullrank']:#'full'
-            options['ACG_rank'] = ACG_rank
+            options['rank'] = ACG_rank
             if ACG_rank != 1 and options['modelname'] == 'Watson':
                 continue
             if ACG_rank == 'fullrank' and options['LR']!=0: #fullrank only for EM
@@ -79,7 +69,7 @@ if __name__=="__main__":
         options['LR'] = float(sys.argv[2])
         run_experiment(extraoptions=options,suppress_output=True)
     else:
-        run_experiment(extraoptions={'modelname':'ACG','LR':0.1},suppress_output=False)
+        run_experiment(extraoptions={'modelname':'MACG','LR':0},suppress_output=False)
         # modelnames = ['Watson','ACG','MACG']
         # LRs = [0]
         # inits = ['unif','++','dc']
