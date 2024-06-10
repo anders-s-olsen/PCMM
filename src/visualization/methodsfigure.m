@@ -1,7 +1,8 @@
 clear,close all
 ff = '/dtu-compute/HCP_dFC/figures/'; %figure folder
 %% load example dataset, fMRI
-V = double(squeeze(niftiread('/dtu-compute/HCP_dFC/data/alldata/100206_rfMRI_REST1_LR.nii')));
+% V = double(squeeze(niftiread('/dtu-compute/HCP_dFC/data/alldata/100206_rfMRI_REST1_LR.nii')));
+V = double(squeeze(niftiread('/dtu-compute/HCP_dFC/2023/hcp_dfc/data/raw/100206/fMRI/rfMRI_REST1_RL_Atlas_MSMAll_hp2000_clean.dtseries.nii')));
 % Compute eigenvectors
 TR = 0.72;%s
 fnq=1/(2*TR);                 % Nyquist frequency
@@ -43,7 +44,7 @@ plot(t_fMRI/60,0.5+normc(V_phase(1:numel(t_fMRI),voxidx)),'k-.','LineWidth',1.5)
 set(gca,'box','off')
 xlim([-.1 5.1])
 ylim([0.3,1.7])
-yticks([0.5,0.75,1.2,1.5]),yticklabels({'\theta(t)','a(t)','s_h(t)','s(t)'})
+yticks([0.5,0.75,1.2,1.5]),yticklabels({'\theta_i(t)','a_i(t)','s_i^{(h)}(t)','s_i(t)'})
 %title('Hilbert transform'),
 xlabel('Time [min]')
 % xlabel('Time [s]')
@@ -63,13 +64,13 @@ fac = 15;
 for i = 1:numel(timeidx)
     tmp = V_hil(timeidx(i),voxidx);
     if 15*abs(tmp)>1
-        h = quiver(0,0,fac*real(tmp),fac*imag(tmp),0,'-','color',[0.5,0.5,0.5],'LineWidth',1.5,'MaxHeadSize',.5)
+        h = quiver(0,0,fac*real(tmp),fac*imag(tmp),0,'-','color',[0.5,0.5,0.5],'LineWidth',1.5,'MaxHeadSize',.5);
         tmp2 = tmp./abs(tmp);
-        h = quiver(0,0,real(tmp2),imag(tmp2),0,'-','color',[0,0,0],'LineWidth',1.5,'MaxHeadSize',.5)
+        h = quiver(0,0,real(tmp2),imag(tmp2),0,'-','color',[0,0,0],'LineWidth',1.5,'MaxHeadSize',.5);
     elseif 15*abs(tmp)<1
-        h = quiver(0,0,fac*real(tmp),fac*imag(tmp),0,'-','color',[0.5,0.5,0.5],'LineWidth',1.5,'MaxHeadSize',.5)
+        h = quiver(0,0,fac*real(tmp),fac*imag(tmp),0,'-','color',[0.5,0.5,0.5],'LineWidth',1.5,'MaxHeadSize',.5);
         tmp2 = tmp./abs(tmp);
-        h = quiver(real(tmp),imag(tmp),real(tmp2)-real(tmp),imag(tmp2)-imag(tmp),0,'-','color',[0,0,0],'LineWidth',1.5,'MaxHeadSize',.5)
+        h = quiver(real(tmp),imag(tmp),real(tmp2)-real(tmp),imag(tmp2)-imag(tmp),0,'-','color',[0,0,0],'LineWidth',1.5,'MaxHeadSize',.5);
     end
 end
 
@@ -106,32 +107,38 @@ end
 timeidx = [10,15,20];
 for i = 1:numel(timeidx)
     cohmat = V_phase(timeidx(i),1:2:10000)'*V_phase(timeidx(i),1:2:10000);
-    
-    [V1,~] = eigs(cohmat,1);
-    
-    ROIs = 1:numel(V1);
-    pos = V1>0;neg = V1<0;
-    minposwidth = min(diff(ROIs(pos)));
-    if isempty(minposwidth)
-        widthpos = 0.5;
-    else
-        widthpos = 0.5/minposwidth;
-    end
-    
+
+    [V2,~] = eigs(cohmat,2);
+
+    ROIs = 1:size(V2,1);
     figure('Position',[50,50,100,300]),
-    barh(ROIs(pos),V1(pos),widthpos,'r','LineWidth',0.001),hold on
-    barh(ROIs(neg),V1(neg),0.5,'b','LineWidth',0.001)
-    xlim([-0.03 0.03])
-    yticks([])
-    if i==1
-        xticks([-0.1 0.1])
-    else xticks([])
+    tiledlayout(1,2,'TileSpacing','none')
+    for ii = 1:2
+        nexttile
+        pos = V2(:,ii)>0;neg = V2(:,ii)<0;
+        minposwidth = min(diff(ROIs(pos)));
+        if isempty(minposwidth)
+            widthpos = 0.5;
+        else
+            widthpos = 0.5/minposwidth;
+        end
+
+        barh(ROIs(pos),V2(pos,ii),widthpos,'r','LineWidth',0.001),hold on
+        barh(ROIs(neg),V2(neg,ii),0.5,'b','LineWidth',0.001)
+        xlim([-0.03 0.03])
+        yticks([])
+        if i==1
+            xticks([-0.1 0.1])
+        else xticks([])
+        end
+        % ylabel('Brain region')
+        % yticks(20:20:100)
+        box off
+        axis off
     end
-    % ylabel('Brain region')
-    % yticks(20:20:100)
-    box on
-    
-    exportgraphics(gca,[ff,'leadeig_fMRI_',num2str(i),'.png'],'Resolution',300,'BackgroundColor','none')
+    %     box on
+
+    exportgraphics(gcf,[ff,'leadeig_fMRI_',num2str(i),'.png'],'Resolution',300,'BackgroundColor','none')
     close
 end
 
