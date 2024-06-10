@@ -22,7 +22,7 @@ class MACG(DMMPyTorchBaseModel):
         if params is not None:
             self.unpack_params(params)
 
-    def log_pdf(self,X):
+    def log_pdf(self,X,L=None):
         D = torch.eye(self.r) + torch.swapaxes(self.M,-2,-1)@self.M
         log_det_D = torch.logdet(D)
         XtM = torch.swapaxes(X,-2,-1)[None,:,:,:]@self.M[:,None,:,:]

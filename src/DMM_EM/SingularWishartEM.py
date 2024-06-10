@@ -1,8 +1,7 @@
 import numpy as np
 from src.DMM_EM.DMMEMBaseModel import DMMEMBaseModel
-from scipy.special import loggamma
 
-class MACG(DMMEMBaseModel):
+class SingularWishart(DMMEMBaseModel):
     def __init__(self, p:int,q:int, K:int=1, rank=None, params:dict=None):
         super().__init__()
 
@@ -33,14 +32,14 @@ class MACG(DMMEMBaseModel):
         return log_pdf
 
     def log_pdf_fullrank(self, X,L):
-        log_pdf = self.log_norm_constant - (self.q/2)*self.logdet(self.Psi) - 1/2*np.trace(np.swapaxes(X,-2,-1)@np.linalg.inv(self.Psi)@X@L)
+        log_pdf = self.log_norm_constant - (self.q/2)*self.logdet(self.Psi) - 1/2*np.trace(np.swapaxes(X,-2,-1)@np.linalg.inv(self.Lambda)@X@L)
         return log_pdf
 
-    def log_pdf(self, X):
+    def log_pdf(self, X,L):
         if self.distribution == 'SingularWishart_lowrank':
-            return self.log_pdf_lowrank(X)
+            return self.log_pdf_lowrank(X,L)
         elif self.distribution == 'SingularWishart_fullrank':
-            return self.log_pdf_fullrank(X)
+            return self.log_pdf_fullrank(X,L)
         
     def M_step_single_component(self,X,L,Beta,M=None,max_iter=int(1e5),tol=1e-6):
         n,p,q = X.shape

@@ -21,7 +21,7 @@ class ACG(DMMPyTorchBaseModel):
         if params is not None:
             self.unpack_params(params)
             
-    def log_pdf(self,X):
+    def log_pdf(self,X,L=None):
         D = torch.eye(self.r) + torch.swapaxes(self.M,-2,-1)@self.M
         XM = X[None,:,:]@self.M
         v = 1-torch.sum(XM@torch.linalg.inv(D)*XM,dim=-1) #check

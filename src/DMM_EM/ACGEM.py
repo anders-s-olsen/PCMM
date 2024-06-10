@@ -42,7 +42,7 @@ class ACG(DMMEMBaseModel):
         log_pdf = self.logSA_sphere - 0.5 * self.logdet(self.Lambda)[:,None] -self.half_p*np.log(XtLX)
         return log_pdf
 
-    def log_pdf(self, X):
+    def log_pdf(self, X,L=None):
         if self.distribution == 'ACG_lowrank':
             return self.log_pdf_lowrank(X)
         elif self.distribution == 'ACG_fullrank':
@@ -106,7 +106,7 @@ class ACG(DMMEMBaseModel):
                 Lambda_old = Lambda
             return Lambda
 
-    def M_step(self,X):
+    def M_step(self,X,L=None):
         Beta = np.exp(self.log_density-self.logsum_density)
         self.update_pi(Beta)
         for k in range(self.K):

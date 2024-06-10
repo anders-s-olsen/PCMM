@@ -3,14 +3,14 @@ from tqdm import tqdm
 from time import time
 import os
 
-def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,suppress_output=False,threads=8):
+def mixture_EM_loop(model,data,L=None,tol=1e-8,max_iter=10000,num_repl=1,init=None,suppress_output=False,threads=8):
 
     best_loglik = -1000000
 
     for repl in range(num_repl):
         # print(['Initializing repl '+str(repl)])
         if init != 'no':
-            model.initialize(X=data,init_method=init)
+            model.initialize(X=data,L=L,init_method=init)
         loglik = []
         params = []
         print('Beginning EM loop')
@@ -18,7 +18,7 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
         
             # E-step
             # time1 = time()
-            loglik.append(model.log_likelihood(X=data))
+            loglik.append(model.log_likelihood(X=data,L=L))
             if np.isnan(loglik[-1]):
                 raise ValueError("Nan reached")
             
@@ -37,12 +37,12 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
                         loglik_final = loglik
                         params_final = params[np.where(loglik[-5:]==maxval)[0].item()]
                         model.set_params(params_final)
-                        beta_final = model.posterior(X=data)        
+                        beta_final = model.posterior(X=data,L=L)        
                     break
 
             # M-step
             # time2 = time()
-            model.M_step(X=data)
+            model.M_step(X=data,L=L)
             # np.savetxt('tmp/progress.txt','iter '+str(epoch)+' ll:'+str(loglik[-1]))
             # time3 = time()
             # print('E-step time: '+str(time2-time1))
@@ -52,7 +52,7 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
     # if no params_final variable exists
     if 'params_final' not in locals():
         params_final = model.get_params()
-        beta_final = model.posterior(X=data)
+        beta_final = model.posterior(X=data,L=L)
         loglik_final = loglik
     
     return params_final,beta_final,loglik_final

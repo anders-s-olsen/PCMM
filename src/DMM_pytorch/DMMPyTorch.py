@@ -63,8 +63,11 @@ class DMMPyTorchBaseModel(nn.Module):
         T = T/T.sum(axis=1)[:,None]
         return T
 
-    def initialize_transition_matrix(self,X):
-        X_part = torch.argmax(self.MM_log_likelihood(self.log_pdf(X)),dim=0)
+    def initialize_transition_matrix(self,X,L=None):
+        if L is not None:
+            X_part = torch.argmax(self.MM_log_likelihood(self.log_pdf(X,L)),dim=0)    
+        else:
+            X_part = torch.argmax(self.MM_log_likelihood(self.log_pdf(X)),dim=0)
         self.T = nn.Parameter(self.compute_transition_matrix(X_part))
 
     def initialize(self,X,init_method=None,model2=None,L=None):
@@ -209,10 +212,10 @@ class DMMPyTorchBaseModel(nn.Module):
             #     self.mu = nn.Parameter(mu)
             #     self.M = nn.Parameter(M)
             
-            X_part = torch.argmax(self.log_pdf(X),dim=0) 
-            self.pi = nn.Parameter(torch.bincount(X_part)/X_part.shape[0])
-            if self.HMM:
-                self.T = nn.Parameter(self.compute_transition_matrix(X_part))
+            # X_part = torch.argmax(self.log_pdf(X),dim=0) 
+            # self.pi = nn.Parameter(torch.bincount(X_part)/X_part.shape[0])
+            # if self.HMM:
+            #     self.T = nn.Parameter(self.compute_transition_matrix(X_part))
 
     def MM_log_likelihood(self,log_pdf):
         log_density = log_pdf+self.LogSoftmax_pi(self.pi)[:,None] #each pdf gets "multiplied" with the weight
@@ -271,8 +274,8 @@ class DMMPyTorchBaseModel(nn.Module):
         log_prob = torch.sum(log_t,dim=0) #sum over sequences
         return log_prob
 
-    def forward(self, X):
-        log_pdf = self.log_pdf(X)
+    def forward(self, X,L):
+        log_pdf = self.log_pdf(X,L)
         if self.K==1:
             return torch.sum(log_pdf)
         else:
@@ -281,9 +284,9 @@ class DMMPyTorchBaseModel(nn.Module):
             else:
                 return self.MM_log_likelihood(log_pdf)
         
-    def test_log_likelihood(self,X):
+    def test_log_likelihood(self,X,L):
         with torch.no_grad():
-            return self.forward(X)
+            return self.forward(X,L)
         
     def posterior_MM(self,log_pdf):
         log_density = log_pdf+self.LogSoftmax_pi(self.pi)[:,None]
@@ -326,9 +329,9 @@ class DMMPyTorchBaseModel(nn.Module):
             Z_path_all.append(Z_path2)
 
         return torch.hstack(Z_path_all)
-    def posterior(self,X):
+    def posterior(self,X,L):
         with torch.no_grad():
-            log_pdf = self.log_pdf(X)
+            log_pdf = self.log_pdf(X,L)
             if self.HMM:
                 return self.viterbi2(log_pdf,self.samples_per_sequence)
             else:

@@ -39,7 +39,7 @@ class MACG(DMMEMBaseModel):
         log_pdf = self.logSA_stiefel - (self.q/2)*self.logdet(self.Lambda)[:,None] - self.half_p*logdetXtLX
         return log_pdf
 
-    def log_pdf(self, X):
+    def log_pdf(self, X,L=None):
         if self.distribution == 'MACG_lowrank':
             return self.log_pdf_lowrank(X)
         elif self.distribution == 'MACG_fullrank':
@@ -111,7 +111,7 @@ class MACG(DMMEMBaseModel):
                 Lambda_old = Lambda
             return Lambda
 
-    def M_step(self,X):
+    def M_step(self,X,L=None):
         Beta = np.exp(self.log_density-self.logsum_density)
         self.update_pi(Beta)
         for k in range(self.K):

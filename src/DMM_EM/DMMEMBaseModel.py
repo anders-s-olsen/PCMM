@@ -150,18 +150,18 @@ class DMMEMBaseModel():
                 mu = np.zeros((self.p,self.K))
                 kappa = np.zeros(self.K)
                 for k in range(self.K):
-                    mu[:,k],kappa[k] = self.M_step_single_component(X=X[X_part==k],Beta=np.ones(np.sum(X_part==k)),mu=self.mu[:,k],kappa=1)
+                    mu[:,k],kappa[k] = self.M_step_single_component(X=X[X_part==k],L=None,Beta=np.ones(np.sum(X_part==k)),mu=self.mu[:,k],kappa=1)
                 self.mu = mu
                 self.kappa = kappa
             elif self.distribution in ['ACG_lowrank','MACG_lowrank']:
                 M = np.zeros((self.K,self.p,self.r))
                 for k in range(self.K):
-                    M[k] = self.M_step_single_component(X=X[X_part==k],Beta=np.ones(np.sum(X_part==k)),M=self.M[k],Lambda=None)
+                    M[k] = self.M_step_single_component(X=X[X_part==k],L=None,Beta=np.ones(np.sum(X_part==k)),M=self.M[k],Lambda=None)
                 self.M = M
             elif self.distribution in ['ACG_fullrank','MACG_fullrank']:
                 Lambda = np.zeros((self.K,self.p,self.p))
                 for k in range(self.K):
-                    Lambda[k] = self.M_step_single_component(X=X[X_part==k],Beta=np.ones(np.sum(X_part==k)),M=None, Lambda=self.Lambda[k])
+                    Lambda[k] = self.M_step_single_component(X=X[X_part==k],L=None,Beta=np.ones(np.sum(X_part==k)),M=None, Lambda=self.Lambda[k])
                 self.Lambda=Lambda
             elif self.distribution == 'SingularWishart_lowrank':
                 M = np.zeros((self.K,self.p,self.r))
@@ -187,16 +187,16 @@ class DMMEMBaseModel():
         log_likelihood = np.sum(logsum_density) #sum over the N samples
         return log_likelihood,log_density,logsum_density
 
-    def log_likelihood(self, X):
-        log_pdf = self.log_pdf(X)
+    def log_likelihood(self, X,L):
+        log_pdf = self.log_pdf(X,L)
         if self.K==1:
             return np.sum(log_pdf)
         else:
             log_likelihood, self.log_density, self.logsum_density = self.MM_log_likelihood(log_pdf)
             return log_likelihood
         
-    def test_log_likelihood(self,X):
-        return self.log_likelihood(X)
+    def test_log_likelihood(self,X,L):
+        return self.log_likelihood(X,L)
 
     def update_pi(self,Beta):
         self.pi = np.sum(Beta,axis=1)/Beta.shape[1]
@@ -206,16 +206,16 @@ class DMMEMBaseModel():
         logsum_density = np.logaddexp.reduce(log_density)
         return np.exp(log_density-logsum_density)
     
-    def posterior(self,X):
-        log_pdf = self.log_pdf(X)
+    def posterior(self,X,L):
+        log_pdf = self.log_pdf(X,L)
         return self.posterior_MM(log_pdf)
 
     def get_params(self):
         if self.distribution == 'Watson':
             return {'mu':self.mu,'kappa':self.kappa,'pi':self.pi}
-        elif self.distribution == 'ACG_lowrank' or self.distribution == 'MACG_lowrank':
+        elif self.distribution in ['ACG_lowrank','MACG_lowrank','SingularWishart_lowrank']:
             return {'M':self.M,'pi':self.pi}
-        elif self.distribution == 'ACG_fullrank' or self.distribution == 'MACG_fullrank':
+        elif self.distribution in ['ACG_fullrank','MACG_fullrank','SingularWishart_fullrank']:
             return {'Lambda':self.Lambda,'pi':self.pi}
         
     def set_params(self,params):

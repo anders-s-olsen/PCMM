@@ -42,7 +42,7 @@ class Watson(DMMPyTorchBaseModel):
     def log_norm_constant(self):
         return self.logSA_sphere - self.kummer_log(self.kappa)
     
-    def log_pdf(self, X):
+    def log_pdf(self, X,L=None):
         mu_unit = nn.functional.normalize(self.mu, dim=0)
         logpdf = self.log_norm_constant()[:,None] + self.kappa[:,None]*((mu_unit.T@X.T)**2)
 

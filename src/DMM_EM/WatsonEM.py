@@ -45,7 +45,7 @@ class Watson(DMMEMBaseModel):
             logkum[idx] = kummer_log(k=kappa,a=self.a,c=self.half_p)
         return self.logSA_sphere - logkum
     
-    def log_pdf(self, X):
+    def log_pdf(self, X,L=None):
         log_pdf = self.log_norm_constant()[:,None] + self.kappa[:,None]*((self.mu.T@X.T)**2)
         return log_pdf
     
@@ -92,7 +92,7 @@ class Watson(DMMEMBaseModel):
         #     return
         return mu,kappa
     
-    def M_step(self,X):
+    def M_step(self,X,L=None):
         n,p = X.shape
         Beta = np.exp(self.log_density-self.logsum_density)
         self.update_pi(Beta)
