@@ -26,12 +26,25 @@ class MACG(DMMEMBaseModel):
             self.unpack_params(params)
     
     def log_pdf_lowrank(self, X):
-        D = np.eye(self.r) + np.swapaxes(self.M,-2,-1)@self.M 
-        log_det_D = self.logdet(D)
-        XtM = np.swapaxes(X,-2,-1)[None,:,:,:]@self.M[:,None,:,:]
-        v = self.logdet(D[:,None]-np.swapaxes(XtM,-2,-1)@XtM)-log_det_D[:,None]
+        # from time import time
+        # t0 = time()
+        # D = np.eye(self.r) + np.swapaxes(self.M,-2,-1)@self.M 
+        # XtM = np.swapaxes(X,-2,-1)[None,:,:,:]@self.M[:,None,:,:]
+        # log_det_D = self.logdet(D)
+        # v = self.logdet(D[:,None]-np.swapaxes(XtM,-2,-1)@XtM)-log_det_D[:,None]
+        # t1 = time()
 
-        log_pdf = self.logSA_stiefel - (self.q/2)*self.logdet(D)[:,None] - self.half_p*v
+        # t2 = time()
+        XtM = np.swapaxes(X,-2,-1)[None,:,:,:]@self.M[:,None,:,:]
+        _,S1,V1t = np.linalg.svd(self.M,full_matrices=False)
+        D_sqrtinv = (np.swapaxes(V1t,-2,-1)*np.sqrt(1/(1+S1**2))[:,None])@V1t
+        S2 = np.linalg.svdvals(XtM@(D_sqrtinv[:,None]))
+        v = np.sum(np.log(1/(S2**2)-1),axis=-1)+2*np.sum(np.log(S2),axis=-1)
+        log_det_D = np.sum(np.log(1/S1**2+1),axis=-1)+2*np.sum(np.log(S1),axis=-1)
+        # t3 = time()
+        # print(t1-t0,t3-t2)
+        
+        log_pdf = self.logSA_stiefel - (self.q/2)*log_det_D[:,None] - self.half_p*v
         return log_pdf
 
     def log_pdf_fullrank(self, X):
@@ -46,7 +59,6 @@ class MACG(DMMEMBaseModel):
             return self.log_pdf_fullrank(X)
         
     def M_step_single_component(self,X,Beta,M=None,Lambda=None,max_iter=int(1e5),tol=1e-6):
-        n,p,q = X.shape
         # if n<(p*(p-1)*q):
         #     Warning("Too high dimensionality compared to number of observations. Sigma cannot be estimated")
             
@@ -55,42 +67,58 @@ class MACG(DMMEMBaseModel):
 
             loss = []
             o = np.linalg.norm(M,'fro')**2
-            b = 1/(1+o/p)
+            b = 1/(1+o/self.p)
             M = np.sqrt(b)*M
+            _,S1,V1t = np.linalg.svd(M)
             
-            MtM = M.T@M
-            trMMtMMt_old = np.trace(MtM@MtM)
-            M_old = M
+            trZt_oldZ_old = np.sum(S1**4)+2*b*np.sum(S1**2)+b**2*self.p
+            b_old = b
+            S1_old = S1
+            M_old = M.copy()
 
             for j in range(max_iter):
+                # from time import time
+                # t0 = time()
 
-                # Woodbury scaled. First we update M
-                D_inv = np.linalg.inv(np.eye(self.r)+MtM)
+                # # Woodbury scaled. First we update M
+                # D_inv = np.linalg.inv(np.eye(self.r)+MtM)
+                # XtM = np.swapaxes(X,-2,-1)@M
+                
+                # # This is okay, because the matrices to be inverted are only 2x2
+                # V_inv = np.linalg.inv(np.eye(self.q)-XtM@D_inv@np.swapaxes(XtM,-2,-1))
+                
+                # # Works, think it's okay in terms of speed bco precomputation of XtM
+                # M1 = self.p/(self.q*np.sum(Beta))*np.sum(Q@V_inv@XtM,axis=0)@(np.eye(self.r)-D_inv@M.T@M)
+                # t1 = time()
+
                 XtM = np.swapaxes(X,-2,-1)@M
-                
-                # This is okay, because the matrices to be inverted are only 2x2
-                V_inv = np.linalg.inv(np.eye(q)-XtM@D_inv@np.swapaxes(XtM,-2,-1))
-                
-                # Works, think it's okay in terms of speed bco precomputation of XtM
-                M = p/(q*np.sum(Beta))*np.sum(Q@V_inv@XtM,axis=0)@(np.eye(self.r)-D_inv@MtM)
+                D_sqrtinv = V1t.T@np.diag(np.sqrt(1/(1+S1**2)))@V1t
+                U2,S2,V2t = np.linalg.svd(XtM@D_sqrtinv,full_matrices=False)
+                M = self.p/(self.q*np.sum(Beta))*np.sum(Q@(U2*(S2/(1-S2**2))[:,None,:])@V2t,axis=0)@D_sqrtinv
 
                 # Then we trace-normalize M
                 o = np.linalg.norm(M,'fro')**2
-                b = 1/(1+o/p)
+                b = 1/(1+o/self.p)
+                # c = b*self.p/self.r
                 M = np.sqrt(b)*M
 
                 # To measure convergence, we compute norm(Z-Z_old)**2
-                MtM = M.T@M
-                trMMtMMt = np.trace(MtM@MtM)
-                loss.append(trMMtMMt+trMMtMMt_old-2*np.trace(MtM@M_old.T@M_old))
+                _,S1,V1t = np.linalg.svd(M,full_matrices=False)
+                trZtZ = np.sum(S1**4)+2*b*np.sum(S1**2)+b**2*self.p
+                trZtZt_old = np.linalg.norm(M.T@M_old)**2 + b_old*b*self.p + b_old*np.sum(S1**2) + b*np.sum(S1_old**2)
+                loss.append(trZtZ+trZt_oldZ_old-2*trZtZt_old)
                 
                 if j>0:
                     if loss[-1]<tol:
+                        if np.any(np.array(loss)<0):
+                            raise Warning("Loss is negative. Check M_step_single_component")
                         break
                 
                 # To measure convergence
-                trMMtMMt_old = trMMtMMt
+                trZt_oldZ_old = trZtZ
+                b_old = b
                 M_old = M
+                S1_old = S1
             return M
         elif self.distribution == 'MACG_fullrank':
             Q = Beta[:,None,None]*X
@@ -99,10 +127,10 @@ class MACG(DMMEMBaseModel):
 
                 # this has been tested in the "Naive" version below
                 XtLX = np.swapaxes(X,-2,-1)@np.linalg.inv(Lambda)@X
-                L,V = np.linalg.eigh(XtLX)
+                L,_ = np.linalg.eigh(XtLX)
                 XtLX_trace = np.sum(1/L,axis=1) #trace of inverse is sum of inverse eigenvalues
                 
-                Lambda = p*np.sum(Q@np.linalg.inv(XtLX)@np.swapaxes(X,-2,-1),axis=0) \
+                Lambda = self.p*np.sum(Q@np.linalg.inv(XtLX)@np.swapaxes(X,-2,-1),axis=0) \
                     /(np.sum(Beta*XtLX_trace))
                 
                 if j>0:

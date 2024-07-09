@@ -49,25 +49,25 @@ def train_model(data_train,L_train,K,options,params=None,suppress_output=False,s
             model = Watson_EM(K=K,p=p,params=params)
         else:
             model = Watson_torch(K=K,p=p,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
-            model2 = Watson_torch(K=1,p=p,params=None,HMM=False)
+            # model2 = Watson_torch(K=1,p=p,params=None,HMM=False)
     elif options['modelname'] == 'ACG':
         if options['LR']==0:
             model = ACG_EM(K=K,p=p,rank=rank,params=params)
         else:
             model = ACG_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
-            model2 = ACG_torch(K=1,p=p,rank=rank,params=None,HMM=False)   
+            # model2 = ACG_torch(K=1,p=p,rank=rank,params=None,HMM=False)   
     elif options['modelname'] == 'MACG':
         if options['LR']==0:
             model = MACG_EM(K=K,p=p,q=2,rank=rank,params=params)
         else:
             model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence) 
-            model2 = MACG_torch(K=1,p=p,q=2,rank=rank,params=None,HMM=False)
+            # model2 = MACG_torch(K=1,p=p,q=2,rank=rank,params=None,HMM=False)
     elif options['modelname'] == 'SingularWishart':
         if options['LR']==0:
             model = SingularWishart_EM(K=K,p=p,q=2,rank=rank,params=params)
         else:
             model = SingularWishart_torch(K=K,p=p,q=2,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence) 
-            model2 = SingularWishart_torch(K=1,p=p,q=2,rank=rank,params=None,HMM=False)
+            # model2 = SingularWishart_torch(K=1,p=p,q=2,rank=rank,params=None,HMM=False)
     # elif options['modelname'] in ['MVG_scalar','MVG_diagonal','MVG_lowrank']:
     #     assert options['LR']!=0
     #     model = MVG_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence,distribution_type=options['modelname']) 
@@ -78,7 +78,7 @@ def train_model(data_train,L_train,K,options,params=None,suppress_output=False,s
                                                 num_repl=options['num_repl_inner'],init=options['init'],
                                                 suppress_output=suppress_output,threads=options['threads'])
     else:
-        params,posterior,loglik = mixture_torch_loop(model,data_train,L_train,model2=model2,tol=options['tol'],max_iter=options['max_iter'],
+        params,posterior,loglik = mixture_torch_loop(model,data_train,L_train,tol=options['tol'],max_iter=options['max_iter'],
                                         num_repl=options['num_repl_inner'],init=options['init'],LR=options['LR'],
                                         suppress_output=suppress_output,threads=options['threads'])
     return params,posterior,loglik
@@ -127,18 +127,18 @@ def calc_MI(Z1,Z2):
     P=Z1@Z2.T
     PXY=P/np.sum(P)
     PXPY=np.outer(np.sum(PXY,axis=1),np.sum(PXY,axis=0))
-    ind=np.where(PXY>0)
+    ind=np.where(PXY>0) #PXY should always be >0
     MI=np.sum(PXY[ind]*np.log(PXY[ind]/PXPY[ind]))
     return MI
 
 def calc_NMI(Z1,Z2):
-    #Z1 and Z2 are two partition matrices of size (KxN) where K is number of components and N is number of samples
+    #Z1 and Z2 are two partition matrices of size (K1xN) and (K2xN) where K is number of components and N is number of samples
     NMI = (2*calc_MI(Z1,Z2))/(calc_MI(Z1,Z1)+calc_MI(Z2,Z2))
     return NMI
 
-def make_true_mat():
+def make_true_mat(num_subs=10):
     rows = []
-    for _ in range(10):
+    for _ in range(num_subs):
         row = np.zeros((5,1200),dtype=bool)
         num_samples = 240
         row[0,num_samples*0:num_samples*1] = True

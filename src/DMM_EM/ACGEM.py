@@ -29,12 +29,15 @@ class ACG(DMMEMBaseModel):
             self.unpack_params(params)
     
     def log_pdf_lowrank(self, X):
-        D = np.eye(self.r) + np.swapaxes(self.M,-2,-1)@self.M 
+        _,S1,V1t = np.linalg.svd(self.M,full_matrices=False)
+        D_inv = (np.swapaxes(V1t,-2,-1)*(1/(1+S1**2))[:,None])@V1t
+        # D = np.eye(self.r) + np.swapaxes(self.M,-2,-1)@self.M 
+        log_det_D = np.sum(np.log(1/S1**2+1),axis=-1)+2*np.sum(np.log(S1),axis=-1)
         XM = X[None,:,:]@self.M
-        v = 1-np.sum(XM@np.linalg.inv(D)*XM,axis=-1) 
-        log_pdf = self.logSA_sphere - 0.5 * self.logdet(D)[:,None] - self.half_p * np.log(v)
-        if np.any(np.isnan(log_pdf)):
-            print('nan')
+        # v = 1-np.sum(XM@np.linalg.inv(D)*XM,axis=-1) 
+        v = 1-np.sum(XM@D_inv*XM,axis=-1) 
+        # log_pdf = self.logSA_sphere - 0.5 * self.logdet(D)[:,None] - self.half_p * np.log(v)
+        log_pdf = self.logSA_sphere - 0.5 * log_det_D[:,None] - self.half_p * np.log(v)
         return log_pdf
     
     def log_pdf_fullrank(self, X):
@@ -60,16 +63,19 @@ class ACG(DMMEMBaseModel):
             o = np.linalg.norm(M,'fro')**2
             o_all.append(o)
             b = 1/(1+o/p)
-            M = np.sqrt(b)*M
+            M = np.sqrt(b)*M #we control the scale of M to avoid numerical issues
+            _,S1,V1t = np.linalg.svd(M,full_matrices=False)
             
-            MtM = M.T@M
-            trMMtMMt_old = np.trace(MtM@MtM)
-            MtM_old = MtM
+            trZt_oldZ_old = np.sum(S1**4)+2*b*np.sum(S1**2)+b**2*self.p
+            b_old = b
+            S1_old = S1
+            M_old = M.copy()
 
             for j in range(max_iter):
 
-                # Woodbury scaled. First we update M
-                D_inv = np.linalg.inv(np.eye(self.r)+MtM)
+                # First we update M
+
+                D_inv = V1t.T@np.diag(1/(1+S1**2))@V1t
                 XM = X@M
                 XMD_inv = XM@D_inv
                 v = 1-np.sum(XMD_inv*XM,axis=1) #denominator
@@ -82,17 +88,22 @@ class ACG(DMMEMBaseModel):
                 M = np.sqrt(b)*M
 
                 # To measure convergence, we compute norm(Z-Z_old)**2
-                MtM = M.T@M
-                trMMtMMt = np.trace(MtM@MtM)
-                loss.append(trMMtMMt+trMMtMMt_old-2*np.trace(MtM@MtM_old))
-                # print('iter'+str(j)+', loss='+str(loss[-1]))
+                _,S1,V1t = np.linalg.svd(M,full_matrices=False)
+                trZtZ = np.sum(S1**4)+2*b*np.sum(S1**2)+b**2*self.p
+                trZtZt_old = np.linalg.norm(M.T@M_old)**2 + b_old*b*self.p + b_old*np.sum(S1**2) + b*np.sum(S1_old**2)
+                loss.append(trZtZ+trZt_oldZ_old-2*trZtZt_old)
+                
                 if j>0:
                     if loss[-1]<tol:
+                        if np.any(np.array(loss)<0):
+                            raise Warning("Loss is negative. Check M_step_single_component")
                         break
                 
                 # To measure convergence
-                trMMtMMt_old = trMMtMMt
-                MtM_old = MtM
+                trZt_oldZ_old = trZtZ
+                b_old = b
+                M_old = M
+                S1_old = S1
             return M
         elif self.distribution == 'ACG_fullrank':
             Lambda_old = np.eye(self.p)

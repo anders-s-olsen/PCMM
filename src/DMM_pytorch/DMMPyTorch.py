@@ -1,7 +1,13 @@
 import torch
 import torch.nn as nn
-from src.DMM_pytorch.riemannian_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch, grassmannian_clustering_gruber2006_torch, weighted_grassmann_clustering_torch
-from src.DMM_pytorch.run_single_comp import run_single_comp
+# from src.DMM_pytorch.riemannian_clustering_torch import diametrical_clustering_torch, diametrical_clustering_plusplus_torch, grassmann_clustering_torch, weighted_grassmann_clustering_torch
+# from src.DMM_EM.riemannian_clustering import diametrical_clustering, grassmann_clustering, weighted_grassmann_clustering,plusplus_initialization
+# from src.DMM_pytorch.run_single_comp import run_single_comp
+from src.DMM_EM.WatsonEM import Watson
+from src.DMM_EM.ACGEM import ACG
+from src.DMM_EM.MACGEM import MACG
+from src.DMM_EM.SingularWishartEM import SingularWishart
+# import numpy as np
 
 class DMMPyTorchBaseModel(nn.Module):
 
@@ -14,15 +20,16 @@ class DMMPyTorchBaseModel(nn.Module):
         # check if the any one of the elements in the dictionary is a tensor
         
         if not torch.is_tensor(params[list(params.keys())[0]]):
-            raise ValueError('Input parameters must be torch tensors')
+            for key in params.keys():
+                params[key] = torch.tensor(params[key])
         
         # distribution-specific settings
         if self.distribution == 'Watson':
             self.mu = nn.Parameter(params['mu'])
             self.kappa = nn.Parameter(params['kappa'])
-        elif self.distribution in ['ACG','MACG','MVG_lowrank']:
+        elif self.distribution in ['ACG_lowrank','MACG_lowrank','SingularWishart_lowrank']:
             M_init = params['M']
-            M_init = M_init/torch.linalg.norm(M_init,dim=1)[:,None,:] #unit norm
+            M_init_norm = torch.linalg.norm(M_init,dim=1)[:,None,:] 
                 
             if M_init.dim()!=3 or M_init.shape[2]!=self.r: # add extra columns
                 if M_init.dim()==2:
@@ -31,17 +38,10 @@ class DMMPyTorchBaseModel(nn.Module):
                     num_missing = self.r-M_init.shape[2]
 
                 M_extra = torch.rand(self.K,M_init.shape[1],num_missing)
-                M_extra = M_extra/torch.linalg.norm(M_extra,dim=1)[:,None,:]/1000 #extra downweighing
+                M_extra = M_extra/torch.linalg.norm(M_extra,dim=1)[:,None,:]*(M_init_norm/1000) #extra downweighing
                 self.M = nn.Parameter(torch.cat([M_init,M_extra],dim=2))
             else:
                 self.M = nn.Parameter(M_init)
-        elif self.distribution == 'MVG_scalar':
-            self.mu = nn.Parameter(params['mu'])
-            self.sigma = nn.Parameter(params['sigma'])
-        elif self.distribution == 'MVG_diagonal':
-            self.mu = nn.Parameter(params['mu'])
-            self.M = nn.Parameter(params['M'])
-        
         else:
             raise ValueError('Invalid distribution')
         
@@ -60,162 +60,155 @@ class DMMPyTorchBaseModel(nn.Module):
         T = torch.zeros(self.K,self.K)
         for i in range(len(seq)-1):
             T[seq[i],seq[i+1]] += 1
-        T = T/T.sum(axis=1)[:,None]
+        T = T/T.sum(dim=1)[:,None]
         return T
 
-    def initialize_transition_matrix(self,X,L=None):
-        if L is not None:
-            X_part = torch.argmax(self.MM_log_likelihood(self.log_pdf(X,L)),dim=0)    
-        else:
-            X_part = torch.argmax(self.MM_log_likelihood(self.log_pdf(X)),dim=0)
+    def initialize_transition_matrix(self,X):
+        print(self.pi)
+        X_part = torch.argmax(self.posterior_MM(self.log_pdf(X)),dim=0)
+        for k in range(self.K):
+            if torch.sum(X_part==k)==0:
+                self.T = nn.Parameter(1/self.K.repeat(self.K,self.K))
+                break
+            
         self.T = nn.Parameter(self.compute_transition_matrix(X_part))
 
-    def initialize(self,X,init_method=None,model2=None,L=None):
+    def initialize(self,X,init_method=None,L=None):
         
-        if init_method is None:
-            Warning('No init_method specified, using uniform initialization')
-            init_method = 'uniform'
-        
-        assert init_method in ['uniform','unif',
-                               '++','plusplus','diametrical_clustering_plusplus','dc++',
-                               '++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg',
-                               'dc','diametrical_clustering',
-                               'dc_seg','diametrical_clustering_seg',
-                               'grassmann','grassmann_clustering',
-                               'grassmann_seg','grassmann_clustering_seg',
-                               'weighted_grassmann','weighted_grassmann_clustering',
-                               'weighted_grassmann_seg','weighted_grassmann_clustering_seg']
-        assert self.distribution in ['Watson','ACG','MACG','SingularWishart']#,'MVG_scalar','MVG_diagonal','MVG_lowank'
-
-        # initialize pi as uniform, will be overwritten by 'seg' methods
-        self.pi = nn.Parameter((1/self.K).repeat(self.K))
-        if self.HMM:
-            self.T = nn.Parameter((1/self.K).repeat(self.K,self.K))
-        
-        # for watson, always initialize kappa as ones, will be overwritten by 'seg' methods
+        # initialize using analytical optimization only
         if self.distribution == 'Watson':
-            self.kappa = nn.Parameter(torch.ones(self.K))
-        if self.distribution == 'MVG_scalar':
-            self.sigma = nn.Parameter(torch.ones(self.K))
+            WatsonEM = Watson(p=self.p.numpy(),K=self.K.numpy())
+            WatsonEM.initialize(X.numpy(),init_method=init_method)
+            self.unpack_params(WatsonEM.get_params())
+        elif self.distribution == 'ACG_lowrank':
+            ACGEM = ACG(p=self.p.numpy(),K=self.K.numpy(),r=self.r.numpy())
+            ACGEM.initialize(X.numpy(),init_method=init_method)
+            self.unpack_params(ACGEM.get_params())
+        elif self.distribution == 'MACG_lowrank':
+            MACGEM = MACG(p=self.p.numpy(),K=self.K.numpy(),r=self.r.numpy(),q=self.q.numpy())
+            MACGEM.initialize(X.numpy(),init_method=init_method)
+            self.unpack_params(MACGEM.get_params())
+        elif self.distribution == 'SingularWishart_lowrank':
+            SingularWishartEM = SingularWishart(p=self.p.numpy(),K=self.K.numpy(),q=self.q.numpy(),r=self.r.numpy())
+            SingularWishartEM.initialize(X.numpy(),init_method=init_method,L=L.numpy())
+            self.unpack_params(SingularWishartEM.get_params())
 
-        if init_method in ['uniform','unif']:
-            if self.distribution == 'Watson':
-                mu = torch.rand(self.p,self.K)
-                self.mu = nn.Parameter(mu/torch.linalg.vector_norm(mu,dim=0))
-            elif self.distribution in ['ACG', 'MACG']:
-                self.M = nn.Parameter(torch.rand(self.K,self.p,self.r))
-            # elif self.distribution in ['MVG_diagonal','MVG_lowrank']:
-            #     self.M = nn.Parameter(torch.rand(self.K,self.p))
-            #     self.mu = nn.Parameter(torch.rand(self.K,self.p))
-            # elif self.distribution == 'MVG_scalar':
-            #     self.mu = nn.Parameter(torch.rand(self.K,self.p))
-            return
+
+        # if init_method is None:
+        #     Warning('No init_method specified, using uniform initialization')
+        #     init_method = 'uniform'
         
-        elif init_method in ['++','plusplus','diametrical_clustering_plusplus','dc++','++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg','dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
-            if X.ndim==3:
-                X2 = X[:,:,0]
-            else:
-                X2 = X.clone()
-            
-            # if '++' or 'plusplus' in init_method
-            if init_method in ['++','plusplus','diametrical_clustering_plusplus','dc++','++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg']:
-                C,X_part,_ = diametrical_clustering_plusplus_torch(X=X2,K=self.K)
-            elif init_method in ['dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
-                C,X_part,_ = diametrical_clustering_torch(X=X2,K=self.K,max_iter=100000,num_repl=1,init='++')
-            
-            if self.distribution == 'Watson':
-                self.mu = nn.Parameter(C)
-            elif self.distribution in ['ACG','MACG','SingularWishart']:
-                self.M = torch.rand(self.K,self.p,self.r)
-                self.M = self.M/torch.linalg.norm(self.M,dim=1)[:,None,:] #unit norm
-                for k in range(self.K):
-                    self.M[k,:,0] = 1000*C[:,k] #upweigh the first component
-                self.M = nn.Parameter(self.M)
-            
-        elif init_method in ['grassmann','grassmann_clustering','grassmann_seg','grassmann_clustering_seg']:
-            if X.ndim!=3:
-                raise ValueError('Grassmann methods are only implemented for 3D data')
-            
-            C,X_part,_ = grassmannian_clustering_gruber2006_torch(X=X,K=self.K,max_iter=100000,num_repl=1)
-            
-            self.M = torch.rand(self.K,self.p,self.r)
-            self.M = self.M/torch.linalg.norm(self.M,dim=1)[:,None,:] #unit norm
-            for k in range(self.K):
-                if self.r<self.q:
-                    self.M[k,:,:self.r] = 1000*C[k,:,:self.r] #upweigh the first component
-                else:
-                    self.M[k,:,:self.q] = 1000*C[k,:,:] #upweigh the first component
-            self.M = nn.Parameter(self.M)
+        # assert init_method in ['uniform','unif',
+        #                        '++','plusplus','diametrical_clustering_plusplus','dc++',
+        #                        '++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg',
+        #                        'dc','diametrical_clustering',
+        #                        'dc_seg','diametrical_clustering_seg',
+        #                        'grassmann','grassmann_clustering',
+        #                        'grassmann_seg','grassmann_clustering_seg',
+        #                        'weighted_grassmann','weighted_grassmann_clustering',
+        #                        'weighted_grassmann_seg','weighted_grassmann_clustering_seg']
+        # assert self.distribution in ['Watson','ACG','MACG','SingularWishart']#,'MVG_scalar','MVG_diagonal','MVG_lowank'
 
-        elif init_method in ['weighted_grassmann','weighted_grassmann_clustering','weighted_grassmann_seg','weighted_grassmann_clustering_seg']:
-            C,C_weights,X_part,_ = weighted_grassmann_clustering_torch(X=X,X_weights=L,K=self.K,max_iter=100000,num_repl=1)
-            self.M = torch.rand(self.K,self.p,self.r)
-            self.M = self.M/torch.linalg.norm(self.M,dim=1)[:,None,:] #unit norm
-            for k in range(self.K):
-                if self.r<self.q:
-                    self.M[k,:,:self.r] = 1000*C[k,:,:self.r]@torch.diag(C_weights[k,:self.r]) #upweigh the first component
-                else:
-                    self.M[k,:,:self.q] = 1000*C[k,:,:]@torch.diag(C_weights[k]) #upweigh the first component
-            self.M = nn.Parameter(self.M)
+        # # initialize pi as uniform, will be overwritten by 'seg' methods
+        # self.pi = nn.Parameter((1/self.K).repeat(self.K))
+        # if self.HMM:
+        #     self.T = nn.Parameter((1/self.K).repeat(self.K,self.K))
+        
+        # # for watson, always initialize kappa as ones, will be overwritten by 'seg' methods
+        # if self.distribution == 'Watson':
+        #     self.kappa = nn.Parameter(torch.ones(self.K))
 
-
-        # elif init_method in ['euclidean_kmeans','euclidean_kmeans_seg']:
-        #     from scipy.cluster.vq import kmeans2
+        # if init_method in ['uniform','unif']:
+        #     if self.distribution == 'Watson':
+        #         mu = torch.rand(self.p,self.K)
+        #         self.mu = nn.Parameter(mu/torch.linalg.vector_norm(mu,dim=0))
+        #     elif self.distribution in ['ACG', 'MACG','SingularWishart']:
+        #         self.M = nn.Parameter(torch.rand(self.K,self.p,self.r))
+        #     return
+        
+        # elif init_method in ['++','plusplus','diametrical_clustering_plusplus','dc++','++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg','dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
         #     if X.ndim==3:
         #         X2 = X[:,:,0]
         #     else:
         #         X2 = X.clone()
-        #     C,X_part = kmeans2(X2,self.K,minit='++')
-        #     self.mu = nn.Parameter(torch.tensor(C))
-        else:
-            raise ValueError('Invalid init_method')
             
-        if init_method in ['++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg','dc_seg','diametrical_clustering_seg','Grassmann_seg','Grassmann_clustering_seg','euclidean_kmeans_seg']:
-            print('Running single component models as initialization')
-            # self.pi = nn.Parameter(torch.bincount(X_part)/X_part.shape[0])
-            # run a single-component model on each segment
-            if self.distribution=='Watson':
-                mu = torch.zeros(self.p,self.K)
-                kappa = torch.zeros(self.K)
-                for k in range(self.K):
-                    model2.unpack_params({'mu':self.mu[:,k],'kappa':(self.p/3*2).unsqueeze(-1),'pi':torch.zeros(1)})
-                    params,_,_ = run_single_comp(model2,X[X_part==k],init='no')
-                    mu[:,k] = params['mu']
-                    kappa[k] = params['kappa']
-                self.mu = nn.Parameter(mu)
-                self.kappa = nn.Parameter(kappa)
-            elif self.distribution in ['ACG','MACG','SingularWishart']:
-                M = torch.zeros(self.K,self.p,self.r)
-                for k in range(self.K):
-                    model2.unpack_params({'M':self.M[k][None],'pi':torch.zeros(1)})
-                    params,_,_ = run_single_comp(model2,X[X_part==k],init='no')
-                    M[k] = params['M']
-                self.M = nn.Parameter(M)
-            # elif self.distribution =='MVG_scalar':
-            #     mu = torch.zeros(self.K,self.p)
-            #     sigma = torch.zeros(self.K)
-            #     for k in range(self.K):
-            #         model2.unpack_params({'mu':self.mu[k][None],'sigma':self.sigma[k].unsqueeze(-1),'pi':torch.zeros(1)})
-            #         params,_,_ = run_single_comp(model2,X[X_part==k],init='no')
-            #         mu[k] = params['mu'][0]
-            #         sigma[k] = params['sigma'][0]
-            #     self.mu = nn.Parameter(mu)
-            #     self.sigma = nn.Parameter(sigma)
-            # elif self.distribution in ['MVG_diagonal','MVG_lowank']:
-            #     mu = torch.zeros(self.p,self.K)
-            #     M = torch.zeros(self.K,self.p,self.r)
-            #     for k in range(self.K):
-            #         model2.unpack_params({'mu':self.mu[k][None],'M':self.M[k][None],'pi':torch.zeros(1)})
-            #         params,_,_ = run_single_comp(model2,X[X_part==k],init='no')
-            #         mu[k] = params['mu'][0]
-            #         M[k] = params['M'][0]
-            #     self.mu = nn.Parameter(mu)
-            #     self.M = nn.Parameter(M)
+        #     # if '++' or 'plusplus' in init_method
+        #     if init_method in ['++','plusplus','diametrical_clustering_plusplus','dc++','++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg']:
+        #         C,X_part,_ = plusplus_initialization(X=X2.numpy(),K=self.K,dist='diametrical')
+        #     elif init_method in ['dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
+        #         C,X_part,_ = diametrical_clustering(X=X2.numpy(),K=self.K,max_iter=100000,num_repl=1,init='++')
+        #     C = torch.tensor(C)
             
-            # X_part = torch.argmax(self.log_pdf(X),dim=0) 
-            # self.pi = nn.Parameter(torch.bincount(X_part)/X_part.shape[0])
-            # if self.HMM:
-            #     self.T = nn.Parameter(self.compute_transition_matrix(X_part))
+        #     if self.distribution == 'Watson':
+        #         self.mu = nn.Parameter(C)
+        #     elif self.distribution in ['ACG','MACG','SingularWishart']:
+        #         self.M = torch.rand(self.K,self.p,self.r)
+        #         self.M = self.M/torch.linalg.norm(self.M,dim=1)[:,None,:] #unit norm
+        #         for k in range(self.K):
+        #             self.M[k,:,0] = 1000*C[:,k] #upweigh the first component
+        #         self.M = nn.Parameter(self.M)
+            
+        # elif init_method in ['grassmann','grassmann_clustering','grassmann_seg','grassmann_clustering_seg']:
+        #     if X.ndim!=3:
+        #         raise ValueError('Grassmann methods are only implemented for 3D data')
+            
+        #     C,X_part,_ = grassmann_clustering(X=X.numpy(),K=self.K,max_iter=100000,num_repl=1)
+        #     C = torch.tensor(C)
+            
+        #     self.M = torch.rand(self.K,self.p,self.r)
+        #     self.M = self.M/torch.linalg.norm(self.M,dim=1)[:,None,:] #unit norm
+        #     for k in range(self.K):
+        #         if self.r<self.q:
+        #             self.M[k,:,:self.r] = 1000*C[k,:,:self.r] #upweigh the first component
+        #         else:
+        #             self.M[k,:,:self.q] = 1000*C[k,:,:] #upweigh the first component
+        #     self.M = nn.Parameter(self.M)
+
+        # elif init_method in ['weighted_grassmann','weighted_grassmann_clustering','weighted_grassmann_seg','weighted_grassmann_clustering_seg']:
+        #     C,C_weights,X_part,_ = weighted_grassmann_clustering(X=X.numpy(),X_weights=L.numpy(),K=self.K,max_iter=100000,num_repl=1)
+        #     C = torch.tensor(C)
+        #     C_weights = torch.tensor(C_weights)
+        #     self.M = torch.rand(self.K,self.p,self.r)
+        #     self.M = self.M/torch.linalg.norm(self.M,dim=1)[:,None,:] #unit norm
+        #     for k in range(self.K):
+        #         if self.r<self.q:
+        #             self.M[k,:,:self.r] = 1000*C[k,:,:self.r]@torch.diag(torch.sqrt(C_weights[k,:self.r])) #upweigh the first component
+        #         else:
+        #             self.M[k,:,:self.q] = 1000*C[k,:,:]@torch.diag(torch.sqrt(C_weights[k])) #upweigh the first component
+        #     self.M = nn.Parameter(self.M)
+        # else:
+        #     raise ValueError('Invalid init_method')
+        
+        # self.pi = nn.Parameter(torch.bincount(torch.tensor(X_part))/X_part.shape[0])
+        
+        # if init_method in ['++_seg','plusplus_seg','diametrical_clustering_plusplus_seg','dc++_seg','dc_seg','diametrical_clustering_seg','Grassmann_seg','Grassmann_clustering_seg','euclidean_kmeans_seg']:
+        #     print('Running single component models as initialization')
+        #     # 
+        #     # run a single-component model on each segment
+        #     if self.distribution=='Watson':
+        #         mu = torch.zeros(self.p,self.K)
+        #         kappa = torch.zeros(self.K)
+        #         for k in range(self.K):
+        #             model2.unpack_params({'mu':self.mu[:,k],'kappa':(self.p/3*2).unsqueeze(-1),'pi':torch.zeros(1)})
+        #             params,_,_ = run_single_comp(model2,X[X_part==k],init='no')
+        #             mu[:,k] = params['mu']
+        #             kappa[k] = params['kappa']
+        #         self.mu = nn.Parameter(mu)
+        #         self.kappa = nn.Parameter(kappa)
+        #     elif self.distribution in ['ACG','MACG']:
+        #         M = torch.zeros(self.K,self.p,self.r)
+        #         for k in range(self.K):
+        #             model2.unpack_params({'M':self.M[k][None],'pi':torch.zeros(1)})
+        #             params,_,_ = run_single_comp(model2,X[X_part==k],init='no')
+        #             M[k] = params['M']
+        #         self.M = nn.Parameter(M)
+        #     elif self.distribution == 'SingularWishart':
+        #         M = torch.zeros(self.K,self.p,self.r)
+        #         for k in range(self.K):
+        #             model2.unpack_params({'M':self.M[k][None],'pi':torch.zeros(1)})
+        #             params,_,_ = run_single_comp(model2,X[X_part==k]*L[X_part==k][:,None,:],init='no')
+        #             M[k] = params['M']
+        #         self.M = nn.Parameter(M)
 
     def MM_log_likelihood(self,log_pdf):
         log_density = log_pdf+self.LogSoftmax_pi(self.pi)[:,None] #each pdf gets "multiplied" with the weight
@@ -272,10 +265,18 @@ class DMMPyTorchBaseModel(nn.Module):
 
         log_t = torch.logsumexp(log_alpha[:,-1,:],dim=-1) #this is the logsumexp over the K states
         log_prob = torch.sum(log_t,dim=0) #sum over sequences
+
+        # print(log_pdf)
+        # print(log_T)
+        # print(log_pi)
+        # print(log_alpha)
+        # print(log_prob)
+
+
         return log_prob
 
-    def forward(self, X,L):
-        log_pdf = self.log_pdf(X,L)
+    def forward(self, X):
+        log_pdf = self.log_pdf(X)
         if self.K==1:
             return torch.sum(log_pdf)
         else:
@@ -284,9 +285,9 @@ class DMMPyTorchBaseModel(nn.Module):
             else:
                 return self.MM_log_likelihood(log_pdf)
         
-    def test_log_likelihood(self,X,L):
+    def test_log_likelihood(self,X):
         with torch.no_grad():
-            return self.forward(X,L)
+            return self.forward(X)
         
     def posterior_MM(self,log_pdf):
         log_density = log_pdf+self.LogSoftmax_pi(self.pi)[:,None]
@@ -329,9 +330,9 @@ class DMMPyTorchBaseModel(nn.Module):
             Z_path_all.append(Z_path2)
 
         return torch.hstack(Z_path_all)
-    def posterior(self,X,L):
+    def posterior(self,X):
         with torch.no_grad():
-            log_pdf = self.log_pdf(X,L)
+            log_pdf = self.log_pdf(X)
             if self.HMM:
                 return self.viterbi2(log_pdf,self.samples_per_sequence)
             else:
@@ -340,7 +341,7 @@ class DMMPyTorchBaseModel(nn.Module):
     def get_params(self):
         if self.distribution == 'Watson':
             return {'mu':self.mu.detach(),'kappa':self.kappa.detach(),'pi':self.pi.detach()}
-        elif self.distribution in ['ACG','MACG','SingularWishart']:
+        elif self.distribution in ['ACG_lowrank','MACG_lowrank','SingularWishart_lowrank']:
             return {'M':self.M.detach(),'pi':self.pi.detach()}
         # elif self.distribution == 'MVG_scalar':
         #     return {'mu':self.mu.detach(),'sigma':self.sigma.detach(),'pi':self.pi.detach()}
@@ -350,5 +351,3 @@ class DMMPyTorchBaseModel(nn.Module):
     def set_params(self,params):
         self.unpack_params(params)
         
-    def sample(self, num_samples):
-        raise NotImplementedError("Subclasses must implement sample() method")

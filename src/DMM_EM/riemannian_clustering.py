@@ -1,7 +1,63 @@
 import numpy as np
 import scipy
 
-def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,call=0,tol=1e-16):
+def plusplus_initialization(X,K,X_weights=None,dist='diametrical'):
+    assert dist in ['diametrical','grassmann','weighted_grassmann']
+    n = X.shape[0]
+    if X.ndim == 3:
+        q = X.shape[2]
+
+    # choose first centroid at random from X
+    idx = np.random.choice(n,p=None)
+
+    if dist == 'diametrical':
+        C = X[idx][:,np.newaxis]
+    else:
+        C = np.zeros((K,X.shape[1],X.shape[2]))
+        C[0] = X[idx]
+        if X_weights is not None:
+            C_weights = np.zeros((K,X.shape[2]))
+            C_weights[0] = X_weights[idx]
+            X_weights = np.delete(X_weights,idx,axis=0)
+    
+    X = np.delete(X,idx,axis=0)
+
+    # for all other centroids, compute the distance from all X to the current set of centroids. 
+    # Construct a weighted probability distribution and sample using this. 
+
+    for k in range(K):
+        if dist == 'diametrical':
+            dis = 1-(X@C)**2 
+            dis = np.clip(dis,0,None)
+        elif dist == 'grassmann':
+            dis = 1/np.sqrt(2)*(2*q-2*np.linalg.norm(np.swapaxes(X[:,None],-2,-1)@C[:k+1][None],axis=(-2,-1)))
+            dis = np.clip(dis,0,None)
+        elif dist == 'weighted_grassmann':
+            M = np.swapaxes(X*np.sqrt(X_weights[:,None,:]),-2,-1)[:,None]@((C[:k+1]*np.sqrt(C_weights[:k+1])[:,None,:])[None])
+            dis = 1/np.sqrt(2)*(np.sum(X_weights**2,axis=1)[:,None]+np.sum(C_weights[:k+1]**2,axis=1)[None]-2*np.linalg.norm(M,axis=(-2,-1))**2)#
+        mindis = np.min(dis,axis=1) #choose the distance to the closest centroid for each point
+
+        if k==K-1:
+            X_part = np.argmin(dis,axis=1)
+            obj = np.mean(mindis)
+            break
+
+        prob_dist = mindis/np.sum(mindis) # construct the prob. distribution
+        idx = np.random.choice(n-k-1,p=prob_dist)
+        if dist == 'diametrical':
+            C = np.hstack((C,X[idx][:,np.newaxis]))
+        else:
+            C[k+1] = X[idx]
+        X = np.delete(X,idx,axis=0)
+        if X_weights is not None:
+            C_weights[k+1] = X_weights[idx]
+            X_weights = np.delete(X_weights,idx,axis=0)
+    if X_weights is not None:
+        return C,C_weights,X_part,obj
+    else:
+        return C,X_part,obj
+    
+def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-16):
     n,p = X.shape
 
     obj_final = []
@@ -10,7 +66,7 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,call=0,tol=1e
 
     for _ in range(num_repl):
         if init is None or init=='++' or init=='plusplus' or init == 'diametrical_clustering_plusplus':
-            C,_,_ = diametrical_clustering_plusplus(X,K)
+            C,_,_ = plusplus_initialization(X,K,X_weights=None,dist='diametrical')
         elif init=='uniform' or init=='unif':
             C = np.random.uniform(size=(p,K))
             C = C/np.linalg.norm(C,axis=0)
@@ -20,10 +76,10 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,call=0,tol=1e
         partsum = np.zeros((max_iter,K))
         while True:
             # E-step
-            dis = (X@C)**2
-            maxdis = np.max(dis,axis=1) # check that this works
-            X_part = np.argmax(dis,axis=1)
-            obj.append(np.mean(maxdis))
+            sim = (X@C)**2
+            maxsim = np.max(sim,axis=1) # check that this works
+            X_part = np.argmax(sim,axis=1)
+            obj.append(np.mean(maxsim))
 
             for k in range(K):
                 partsum[iter,k] = np.sum(X_part==k)
@@ -37,41 +93,20 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,call=0,tol=1e
             
             for k in range(K):
                 idx_k = X_part==k
-                # Establish covariance matrix
+                # # Establish covariance matrix
                 A = X[idx_k].T@X[idx_k]
                 C[:,k] = A@C[:,k]
+
+                # # changed as of July 2024
+                # C[:,k] = scipy.sparse.linalg.svds(X[idx_k].T,1)[0][:,0]
+
             C = C/np.linalg.norm(C,axis=0)
             iter += 1
     best = np.nanargmax(np.array(obj_final))
     
     return C_final[best],part_final[best],obj_final[best]
 
-def diametrical_clustering_plusplus(X,K):
-    n,_ = X.shape
-
-    # choose first centroid at random from X
-    idx = np.random.choice(n,p=None)
-    C = X[idx][:,np.newaxis]
-    X = np.delete(X,idx,axis=0)
-
-    # for all other centroids, compute the distance from all X to the current set of centroids. 
-    # Construct a weighted probability distribution and sample using this. 
-
-    for k in range(K-1):
-        dist = 1-(X@C)**2 #large means far away
-        min_dist = np.min(dist,axis=1) #choose the distance to the closest centroid for each point
-        prob_dist = min_dist/np.sum(min_dist) # construct the prob. distribution
-        idx = np.random.choice(n-k-1,p=prob_dist)
-        C = np.hstack((C,X[idx][:,np.newaxis]))
-        X = np.delete(X,idx,axis=0)
-    
-    dis = (X@C)**2
-    maxdis = np.max(dis,axis=1) # check that this works
-    X_part = np.argmax(dis,axis=1)
-    obj = np.mean(maxdis)
-    return C,X_part,obj
-
-def grassmannian_clustering(X,K,max_iter=10000,num_repl=1,init=None,call=0,tol=1e-16):
+def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-16):
     
     n,p,q = X.shape
 
@@ -82,16 +117,19 @@ def grassmannian_clustering(X,K,max_iter=10000,num_repl=1,init=None,call=0,tol=1
     # loop over the number of repetitions
     for _ in range(num_repl):
         # initialize cluster centers
-        C = np.random.uniform(size=(K,p,q))
-        for k in range(K):
-            C[k] = C[k]@scipy.linalg.sqrtm(np.linalg.inv(C[k].T@C[k])) # project onto the Grassmannian
+        if init is None or init=='++' or init=='plusplus' or init == 'grassmann_clustering_plusplus':
+            C,_,_ = plusplus_initialization(X,K,X_weights=None,dist='grassmann')
+        elif init=='uniform' or init=='unif':
+            C = np.random.uniform(size=(K,p,q))
+            for k in range(K):
+                C[k] = C[k]@scipy.linalg.sqrtm(np.linalg.inv(C[k].T@C[k])) # project onto the Grassmannian
 
         iter = 0
         obj = [] # objective function
         partsum = np.zeros((max_iter,K))
         while True:
 
-            dis = 1/np.sqrt(2)(2*q-2*np.linalg.norm(np.swapaxes(X[:,None],-2,-1)@C[None],axis=(-2,-1)))
+            dis = 1/np.sqrt(2)*(2*q-2*np.linalg.norm(np.swapaxes(X[:,None],-2,-1)@C[None],axis=(-2,-1))**2)
             sim = -dis
 
             maxsim = np.max(sim,axis=1) # find the maximum similarity
@@ -117,10 +155,9 @@ def grassmannian_clustering(X,K,max_iter=10000,num_repl=1,init=None,call=0,tol=1
                 C[k] = U[:,:q]
             iter += 1
     best = np.nanargmax(np.array(obj_final))
-    
     return C_final[best],part_final[best],obj_final[best]
 
-def weighted_grassmannian_clustering(X,X_weights,K,max_iter=10000,tol=1e-16):
+def weighted_grassmann_clustering(X,X_weights,K,max_iter=10000,num_repl=1,tol=1e-16,init=None):
     """"
     Weighted grassmannian clustering using the chordal distance function and a SVD-based update rule
     
@@ -133,40 +170,59 @@ def weighted_grassmannian_clustering(X,X_weights,K,max_iter=10000,tol=1e-16):
     """
     
     n,p,q = X.shape
+    Q = X*np.sqrt(X_weights[:,None,:])
 
-    # initialize cluster centers using a normal distribution projected to the Grassmannian
-    C = np.random.randn(K,p,q)
-    C_weights = np.ones((K,q))
-    for k in range(K):
-        C[k] = C[k]@scipy.linalg.sqrtm(np.linalg.inv(C[k].T@C[k])) # project onto the Grassmannian
+    obj_final = [] # objective function collector
+    part_final = [] # partition collector
+    C_final = [] # cluster center collector
+    C_weights_final = [] # cluster weights collector
 
-    # initialize counters
-    iter = 0
-    obj = []
-    partsum = np.zeros((max_iter,K))
-    while True:
-        # "E-step" - compute the similarity between each matrix and each cluster center
-        dis = 1/np.sqrt(2)(np.sum(X_weights**4)+np.sum(C_weights**4)-2*np.linalg.norm(np.swapaxes((X*X_weights[:,None,:])[:,None],-2,-1)@(C*C_weights[:,None,:])[None],axis=(-2,-1)))
-        sim = -dis
-        maxsim = np.max(sim,axis=1) # find the maximum similarity - the sum of this value is the objective function
-        X_part = np.argmax(sim,axis=1) # assign each point to the cluster with the highest similarity
-        obj.append(np.sum(maxsim))
+    # loop over the number of repetitions
+    for _ in range(num_repl):
+        # initialize cluster centers
+        if init is None or init=='++' or init=='plusplus' or init == 'weighted_grassmann_clustering_plusplus':
+            C,C_weights,_,_ = plusplus_initialization(X,K,X_weights=X_weights,dist='weighted_grassmann')
+        elif init=='uniform' or init=='unif':
+            C = np.random.uniform(size=(K,p,q))
+            C_weights = np.ones((K,q))
+            for k in range(K):
+                C[k] = C[k]@scipy.linalg.sqrtm(np.linalg.inv(C[k].T@C[k])) # project onto the Grassmannian
 
-        # check for convergence
-        for k in range(K):
-            partsum[iter,k] = np.sum(X_part==k)
-        if iter>0:
-            if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or abs(obj[-1]-obj[-2])<tol:
-                break
-        
-        # "M-step" - update the cluster centers
-        for k in range(K):
-            idx_k = X_part==k
-            V = np.reshape(np.swapaxes(X[idx_k]*X_weights[idx_k,None,:],0,1),(p,np.sum(idx_k)*q))
-            U,S,_ = scipy.sparse.linalg.svds(V,q)
-            C[k] = U[:,:q]
-            C_weights[k] = S**2
+        # initialize counters
+        iter = 0
+        obj = []
+        partsum = np.zeros((max_iter,K))
+        while True:
+            # "E-step" - compute the similarity between each matrix and each cluster center
+            M = np.swapaxes(Q,-2,-1)[:,None]@((C*np.sqrt(C_weights)[:,None,:])[None])
+            dis = 1/np.sqrt(2)*(np.sum(X_weights**2,axis=1)[:,None]+np.sum(C_weights**2,axis=1)[None]-2*np.linalg.norm(M,axis=(-2,-1))**2)#
+            sim = -dis
+            maxsim = np.max(sim,axis=1) # find the maximum similarity - the sum of this value is the objective function
+            X_part = np.argmax(sim,axis=1) # assign each point to the cluster with the highest similarity
+            obj.append(np.sum(maxsim))
 
-        iter += 1
-    
-    return C,C_weights,obj,X_part
+            # check for convergence   
+            for k in range(K):
+                partsum[iter,k] = np.sum(X_part==k)
+            if iter>0:
+                if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or abs(obj[-1]-obj[-2])<tol:
+                    C_final.append(C)
+                    C_weights_final.append(C_weights)
+                    obj_final.append(obj[-1])
+                    part_final.append(X_part)             
+                    break
+            
+            # "M-step" - update the cluster centers
+            for k in range(K):
+                idx_k = X_part==k
+                V = np.reshape(np.swapaxes(Q[idx_k],0,1),(p,np.sum(idx_k)*q))
+                U,S,_ = scipy.sparse.linalg.svds(V,q)
+                order = np.argsort(S)[::-1]
+                C[k] = U[:,order]#[:,::-1]
+                # C[k] = U[:,:q]
+                C_weights[k] = S[order]#[::-1]
+                C_weights[k] = C_weights[k]/np.sum(C_weights[k])*p
+
+            iter += 1
+    best = np.nanargmax(np.array(obj_final))
+    return C_final[best],C_weights_final[best],part_final[best],obj_final[best]

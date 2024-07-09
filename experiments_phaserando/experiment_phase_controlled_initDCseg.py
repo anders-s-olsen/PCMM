@@ -69,7 +69,7 @@ if __name__=="__main__":
         options['LR'] = float(sys.argv[2])
         run_experiment(extraoptions=options,suppress_output=True)
     else:
-        run_experiment(extraoptions={'modelname':'MACG','LR':0},suppress_output=False)
+        run_experiment(extraoptions={'modelname':'Watson','LR':0},suppress_output=False)
         # modelnames = ['Watson','ACG','MACG']
         # LRs = [0]
         # inits = ['unif','++','dc']

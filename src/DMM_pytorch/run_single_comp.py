@@ -10,8 +10,9 @@ def run_single_comp(model,data,tol=1e-5,max_iter=100000,num_repl=1,init='unif',L
 
     for repl in range(num_repl):
         # print(['Initializing inner repl '+str(repl)])
-        if init != 'no':
-            model.initialize(X=data,init_method=init)
+        # never initialize
+        # if init != 'no':
+        #     model.initialize(X=data,init_method=init)
         optimizer = torch.optim.Adam(model.parameters(),lr=LR)
         # optimizer = torch.optim.SGD(model.parameters(),lr=LR)
         # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,threshold=tol,threshold_mode='abs',min_lr=0.0001,patience=100)
