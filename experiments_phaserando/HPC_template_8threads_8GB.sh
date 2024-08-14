@@ -1,6 +1,6 @@
 #!/bin/sh
 #BSUB -J HCPjob8GB
-#BSUB -q hpc
+#BSUB -q compute
 #BSUB -R "rusage[mem=1GB]"
 # #BSUB -B
 # #BSUB -N

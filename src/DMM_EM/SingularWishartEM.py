@@ -19,7 +19,8 @@ class SingularWishart(DMMEMBaseModel):
             self.distribution = 'SingularWishart_lowrank'
 
         loggamma_k = (self.q*(self.q-1)/4)*np.log(np.pi)+np.sum(loggamma(self.q-np.arange(self.q)/2))
-        self.log_norm_constant = self.q**2/2*np.log(np.pi)+loggamma_k-self.q*self.half_p*np.log(2*np.pi)
+        self.log_norm_constant = self.q*(self.q-self.p)*np.log(np.pi)-self.p*self.q/2*np.log(2)-loggamma_k
+        
         self.log_det_S11 = None
 
         # initialize parameters
@@ -27,35 +28,26 @@ class SingularWishart(DMMEMBaseModel):
             self.unpack_params(params)
     
     def log_pdf_lowrank(self, Q):
-        # Q defined as X*np.sqrt(L)[:,None,:]
-        QtM = np.swapaxes(Q,-2,-1)[None,:,:,:]@self.M[:,None,:,:]
 
-        _,S1,V1t = np.linalg.svd(self.M)
+        M_tilde = self.M*np.sqrt(1/np.atleast_1d(self.gamma)[:,None,None])
+        
+        _,S1,V1t = np.linalg.svd(M_tilde)
+        log_det_D = self.p*np.log(self.gamma)+np.sum(np.log(1/S1**2+1),axis=-1)+2*np.sum(np.log(S1),axis=-1)
         D_sqrtinv = (np.swapaxes(V1t,-2,-1)*np.sqrt(1/(1+S1**2))[:,None])@V1t
-        log_det_D = np.sum(np.log(1/S1**2+1),axis=-1)+2*np.sum(np.log(S1),axis=-1)
 
-        # while Q_q^T Q_q != U_q^T L U_q, their determinants are the same'
+        # while Q_q^T Q_q != U_q^T L U_q, their determinants are the same
         if self.log_det_S11 is None:
             self.log_det_S11 = self.logdet(np.swapaxes(Q[:,:self.q,:],-2,-1)@Q[:,:self.q,:])
 
-        v = self.p - np.linalg.norm(QtM@D_sqrtinv[:,None],axis=(-2,-1))**2
-        log_pdf = self.log_norm_constant - (self.q/2)*log_det_D[:,None] + (self.q-self.p-1)/2*self.log_det_S11[None] - 1/2*v
-
-        # QtM = np.swapaxes(Q,-2,-1)[:,None,:,:]@self.M[None,:,:,:]
-        # D = np.eye(self.r) + np.swapaxes(self.M,-2,-1)@self.M 
+        QtM_tilde = np.swapaxes(Q,-2,-1)[None,:,:,:]@M_tilde[:,None,:,:]
         
-        # D_sqrtinv = np.zeros((self.K,self.r,self.r))
-        # for k in range(self.K):
-        #     D_sqrtinv[k] = scipy.linalg.sqrtm(np.linalg.inv(D[k]))
+        v = 1/np.atleast_1d(self.gamma)[:,None]*(self.p - np.linalg.norm(QtM_tilde@D_sqrtinv[:,None],axis=(-2,-1))**2)
+        log_pdf = self.log_norm_constant - (self.q/2)*np.atleast_1d(log_det_D)[:,None] + (self.q-self.p-1)/2*self.log_det_S11[None] - 1/2*v
 
-        # # v = self.p-np.trace(QtM@np.linalg.inv(D)[None]@np.swapaxes(QtM,-2,-1),axis1=-2,axis2=-1)
-        # v = self.p - np.linalg.norm(QtM@D_sqrtinv,axis=(-2,-1))**2
-
-        # log_pdf = self.log_norm_constant - (self.q/2)*self.logdet(D)[:,None] - 1/2*v.T
         return log_pdf
 
     def log_pdf_fullrank(self, Q):
-        log_pdf = self.log_norm_constant - (self.q/2)*self.logdet(self.Lambda)[:,None] - 1/2*np.trace(np.swapaxes(Q,-2,-1)[None,:]@np.linalg.inv(self.Lambda)[:,None]@Q[None,:],axis1=-2,axis2=-1)
+        log_pdf = self.log_norm_constant - (self.q/2)*np.atleast_1d(self.logdet(self.Lambda))[:,None] - 1/2*np.trace(np.swapaxes(Q,-2,-1)[None,:]@np.linalg.inv(self.Lambda)[:,None]@Q[None,:],axis1=-2,axis2=-1)
         return log_pdf
 
     def log_pdf(self, Q):
@@ -64,53 +56,68 @@ class SingularWishart(DMMEMBaseModel):
         elif self.distribution == 'SingularWishart_fullrank':
             return self.log_pdf_fullrank(Q)
         
-    def M_step_single_component(self,Q,Beta,M=None,max_iter=int(1e5),tol=1e-6):
-        # n,p,q = Q.shape
+    def M_step_single_component(self,Q,beta,M=None,gamma=None,max_iter=int(1e5),tol=1e-8):
             
         if self.distribution == 'SingularWishart_lowrank':
 
             loss = []
-            M_old = M.copy()
-            _,S1,V1t = np.linalg.svd(M)
-            trMMtMMt_old = np.sum(S1**4) #+2*np.sum(S1**2)+p cancels out
+            
+            if gamma is None:
+                raise ValueError("gamma is not provided")
+            
+            M_tilde = M * np.sqrt(1/gamma)
+            QtM_tilde = np.swapaxes(Q,-2,-1)@M_tilde
+            _,S1,V1t = np.linalg.svd(M_tilde)
+
+            trZt_oldZ_old = gamma**2*(np.sum(S1**4)+2*np.sum(S1**2)+self.p)
+            gamma_old = gamma
+            S1_old = S1
+            M_tilde_old = M_tilde
 
             for j in range(max_iter):
-                # # if j divisible by 100 print j and the loss
-                # if j>0:
-                #     if j%100==0:
-                #         print(j,loss[-1])
 
-                # Woodbury scaled. First we update M
-                QtM = np.swapaxes(Q,-2,-1)@M
-                D_inv =V1t.T@np.diag(1/(1+S1**2))@V1t
-                M = 1/(self.q*np.sum(Beta))*np.sum((Beta[:,None,None]*Q)[:,:,:,None]*QtM[:,None,:,:],axis=(0,-2))@D_inv
+                # M_tilde update
+                D_inv = V1t.T@np.diag(1/(1+S1**2))@V1t
+                M_tilde = 1/(gamma*self.q*np.sum(beta))*np.sum((beta[:,None,None]*Q)[:,:,:,None]*QtM_tilde[:,None,:,:],axis=(0,-2))@D_inv
+                _,S1,V1t = np.linalg.svd(M_tilde)
 
+                #gamma update
+                QtM_tilde = np.swapaxes(Q,-2,-1)@M_tilde
+                gamma = 1/(self.q*self.p*np.sum(beta))*np.sum(beta*(self.p-np.linalg.norm(QtM_tilde@V1t.T@np.diag(np.sqrt(1/(1+S1**2)))@V1t,axis=(-2,-1))**2))
 
-                # To measure convergence, we compute norm(Z-Z_old)**2
-                _,S1,V1t = np.linalg.svd(M)
-                trMMtMMt = np.sum(S1**4) #+2*np.sum(S1**2)+p
-                loss.append(trMMtMMt+trMMtMMt_old-2*np.linalg.norm(M.T@M_old)**2)
+                # convergence criterion
+                trZtZ = gamma**2*(np.sum(S1**4)+2*np.sum(S1**2)+self.p)
+                trZtZt_old = gamma*gamma_old*(np.linalg.norm(M_tilde.T@M_tilde_old)**2 + np.sum(S1**2) + np.sum(S1_old**2)+self.p)
+                loss.append(trZtZ+trZt_oldZ_old-2*trZtZt_old)
                 
                 if j>0:
                     if loss[-1]<tol:
-                        if np.any(np.array(loss)<0):
+                        if np.any(np.array(loss)<-tol):
                             raise Warning("Loss is negative. Check M_step_single_component")
                         break
                 
                 # To measure convergence
-                trMMtMMt_old = trMMtMMt
-                M_old = M
-            return M
+                trZt_oldZ_old = trZtZ
+                gamma_old = gamma
+                M_tilde_old = M_tilde
+                S1_old = S1
+
+            if j==max_iter-1:
+                raise Warning("M-step did not converge")
+
+            # output M, not M_tilde
+            M = M_tilde*np.sqrt(gamma)
+            print(j,np.linalg.norm(M),gamma,np.sum(beta))
+            return M, gamma
         elif self.distribution == 'SingularWishart_fullrank':
-            # Q = X*np.sqrt(L)[:,None,:]
-            Psi = 1/(self.q*np.sum(Beta))*np.sum((Beta[:,None,None]*Q)@np.swapaxes(Q,-2,-1),axis=0)
+            Psi = 1/(self.q*np.sum(beta))*np.sum((beta[:,None,None]*Q)@np.swapaxes(Q,-2,-1),axis=0)
             return Psi
 
     def M_step(self,X):
-        Beta = np.exp(self.log_density-self.logsum_density)
-        self.update_pi(Beta)
+        beta = np.exp(self.log_density-self.logsum_density)
+        self.update_pi(beta)
         for k in range(self.K):
             if self.distribution == 'SingularWishart_lowrank':
-                self.M[k] = self.M_step_single_component(X,Beta[k],self.M[k])
+                self.M[k],self.gamma[k] = self.M_step_single_component(X,beta[k],self.M[k],gamma=self.gamma[k])
             elif self.distribution == 'SingularWishart_fullrank':
-                self.Lambda[k] = self.M_step_single_component(X,Beta[k],None)
+                self.Lambda[k] = self.M_step_single_component(X,beta[k])

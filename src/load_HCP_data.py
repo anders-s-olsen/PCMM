@@ -16,16 +16,11 @@ def load_real_data(options,folder,subjectlist,suppress_output=False):
         num_rois = 91282
     else:
         raise ValueError('Invalid folder')
-    if options['modelname']=='Watson' or options['modelname']=='ACG' or options['modelname']=='ACG_lowrank':
-        num_eigs=1
-        data_train_all = np.zeros((1200*len(subjectlist),num_rois))
-        data_test_all = np.zeros((1200*len(subjectlist),num_rois))
-    elif options['modelname']=='MACG' or options['modelname']=='MACG_lowrank':
-        num_eigs=2    
-        data_train_all = np.zeros((1200*len(subjectlist),num_rois,num_eigs))
-        data_test_all = np.zeros((1200*len(subjectlist),num_rois,num_eigs))
-    else:
-        raise ValueError('Invalid modelname')
+
+    data_train_all = np.zeros((1200*len(subjectlist),num_rois,2))
+    L_train_all = np.zeros((1200*len(subjectlist),2))
+    data_test_all = np.zeros((1200*len(subjectlist),num_rois,2))
+    L_test_all = np.zeros((1200*len(subjectlist),2))
 
     for s,subject in tqdm(enumerate(subjectlist),disable=suppress_output):
         if tt==1:

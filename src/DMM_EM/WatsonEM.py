@@ -23,7 +23,7 @@ def kummer_log(k,a,c):
     return logkum
 
 class Watson(DMMEMBaseModel):
-    def __init__(self, p:int, K:int, params:dict=None):
+    def __init__(self, p:int, K:int=1, params:dict=None):
         super().__init__()
 
         self.K = K
@@ -45,15 +45,16 @@ class Watson(DMMEMBaseModel):
             logkum[idx] = kummer_log(k=kappa,a=self.a,c=self.half_p)
         return self.logSA_sphere - logkum
     
-    def log_pdf(self, X,L=None):
+    def log_pdf(self, X):
         log_pdf = self.log_norm_constant()[:,None] + self.kappa[:,None]*((self.mu.T@X.T)**2)
         return log_pdf
     
-    def M_step_single_component(self,X,Beta,mu,kappa):
-        Q = np.sqrt(Beta)[:,None]*X
+    def M_step_single_component(self,X,beta,mu,kappa,tol=1e-8):
+        n,p = X.shape
+        Q = np.sqrt(beta)[:,None]*X
 
         # the folllowing options are optimized for n>p but should work otherwise
-        if X.shape[0]>X.shape[1]:
+        if n>p:
             if kappa>0:
                 _,_,mu = svds(Q,k=1,which='LM',v0=mu,return_singular_vectors='vh')
             elif kappa<0:
@@ -64,22 +65,22 @@ class Watson(DMMEMBaseModel):
             elif kappa<0:
                 _,_,mu = svds(Q,k=1,which='SM',return_singular_vectors='vh')
 
-        rk = 1/np.sum(Beta)*np.sum((mu@Q.T)**2)
+        rk = 1/np.sum(beta)*np.sum((mu@Q.T)**2)
         LB = (rk*self.half_p-self.a)/(rk*(1-rk))*(1+(1-rk)/(self.half_p-self.a))
         B  = (rk*self.half_p-self.a)/(2*rk*(1-rk))*(1+np.sqrt(1+4*(self.half_p+1)*rk*(1-rk)/(self.a*(self.half_p-self.a))))
         UB = (rk*self.half_p-self.a)/(rk*(1-rk))*(1+rk/self.a)
-        # BBG = (self.half_p*rk-self.a)/(rk*(1-rk))+rk/(2*self.half_p*(1-rk))
 
         def f(kappa):
             return ((self.a/self.half_p)*(np.exp(kummer_log(k=kappa,a=self.a+1,c=self.half_p+1)-kummer_log(k=kappa,a=self.a,c=self.half_p)))-rk)**2
-
+        options={}
+        options['xatol'] = tol
         if rk>self.a/self.half_p:
-            kappa = minimize_scalar(f, bounds=[LB, B],tol=None,method='bounded')['x']
+            kappa = minimize_scalar(f, bounds=[LB, B],options=options,method='bounded')['x']
             if kappa<LB or kappa>B:
                 print('Probably a convergence problem for kappa')
                 return
         elif rk<self.a/self.half_p:
-            kappa = minimize_scalar(f, bounds=[B, UB],tol=None,method='bounded')['x']
+            kappa = minimize_scalar(f, bounds=[B, UB],options=options,method='bounded')['x']
             if kappa<B or kappa>UB:
                 print('Probably a convergence problem for kappa')
                 return
@@ -87,17 +88,29 @@ class Watson(DMMEMBaseModel):
             kappa = 0
         else:
             raise ValueError("kappa could not be optimized")
-        # if np.linalg.norm(self.kappa[k]-LB)<1e-10 or np.linalg.norm(self.kappa[k]-B)<1e-10 or np.linalg.norm(self.kappa[k]-UB)<1e-10:
-        #     print('Probably a convergence problem for kappa')
-        #     return
         return mu,kappa
     
-    def M_step(self,X,L=None):
-        n,p = X.shape
-        Beta = np.exp(self.log_density-self.logsum_density)
-        self.update_pi(Beta)
-        # self.pi = np.sum(Beta,axis=0)/n
+    def M_step(self,X):
+        # n,p = X.shape
+        beta = np.exp(self.log_density-self.logsum_density)
+        self.update_pi(beta)
 
         for k in range(self.K):
-            self.mu[:,k],self.kappa[k] = self.M_step_single_component(X,Beta[k],self.mu[:,k],self.kappa[k])
+            self.mu[:,k],self.kappa[k] = self.M_step_single_component(X=X,beta=beta[k],mu=self.mu[:,k],kappa=self.kappa[k])
             
+if __name__ == '__main__':
+    import scipy
+
+    #unit test in 2d
+    W = Watson(p=2,K=1,params={'mu':np.array([[1,0]]).T,'kappa':np.array([1.])})
+
+    W_pdf = lambda phi: float(np.exp(W.log_pdf(np.array([np.cos(phi), np.sin(phi)]))))
+    w_result2d = scipy.integrate.quad(W_pdf, 0., 2*np.pi)[0]
+
+    # unit test in 3d
+    W = Watson(p=3,K=1,params={'mu':np.array([[1,0,0]]).T,'kappa':np.array([1.])})
+
+    W_pdf = lambda theta,phi: float(np.exp(W.log_pdf(np.array([np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), np.cos(theta)]))))
+    w_result3d = scipy.integrate.dblquad(W_pdf, 0., np.pi, 0., 2*np.pi)[0]
+
+    print(w_result2d,w_result3d)

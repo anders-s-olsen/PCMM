@@ -4,15 +4,15 @@ from src.DMM_pytorch.DMMPyTorch import DMMPyTorchBaseModel
 import math
 
 class Watson(DMMPyTorchBaseModel):
-    def __init__(self, p:int, K:int=1, HMM:bool=False, samples_per_sequence=None, params:dict=None):
+    def __init__(self, p:int, K:int=1, HMM:bool=False, samples_per_sequence=0, params:dict=None):
         super().__init__()
 
         self.p = torch.tensor(p)
         self.half_p = torch.tensor(p/2)
         self.K = torch.tensor(K)
-        self.a = torch.tensor(0.5)  # a = 1/2,  !constant
+        self.a = torch.tensor(0.5)
         self.HMM = HMM
-        self.samples_per_sequence = samples_per_sequence
+        self.samples_per_sequence = torch.tensor(samples_per_sequence)
         self.distribution = 'Watson'
         
         # precompute log-surface area of the unit hypersphere
@@ -32,7 +32,7 @@ class Watson(DMMPyTorchBaseModel):
             else:
                 a = self.a
             j = 1
-            while torch.all(torch.abs(logkum[idx] - logkum_old[idx]) > tol) and (j < n):
+            while torch.abs(logkum[idx] - logkum_old[idx]) > tol and (j < n):
                 logkum_old[idx] = logkum[idx]
                 foo[idx] += torch.log((a + j - 1) / (j * (self.half_p + j - 1)) * torch.abs(k))
                 logkum[idx] = torch.logsumexp(torch.stack((logkum[idx],foo[idx]),dim=0),dim=0)
@@ -42,9 +42,8 @@ class Watson(DMMPyTorchBaseModel):
     def log_norm_constant(self):
         return self.logSA_sphere - self.kummer_log(self.kappa)
     
-    def log_pdf(self, X,L=None):
+    def log_pdf(self, X):
         mu_unit = nn.functional.normalize(self.mu, dim=0)
         logpdf = self.log_norm_constant()[:,None] + self.kappa[:,None]*((mu_unit.T@X.T)**2)
-
         return logpdf #size (K,N)
         

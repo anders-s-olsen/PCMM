@@ -6,7 +6,7 @@ subjects = np.loadtxt('100unrelatedsubjectsIDs.txt', dtype='str')
 p = 116
 K = 5
 T = 1200
-num_subs = 10
+num_subs = 1
 
 def butter_bandpass(lowcut, highcut, fs, order=5):
     nyq = 0.5 * fs
@@ -58,6 +58,7 @@ f = np.fft.fftfreq(num_samples+num_add*2, 1/TR)
 # find indices of frequencies above or equal to 0.008Hz and below or equal to 0.09Hz
 positive_frequency_content_indices = np.where((f>=0.009) & (f<=0.08))[0]
 negative_frequency_content_indices = np.where((f<=-0.009) & (f>=-0.08))[0]
+mid_frequency = np.argmin(np.abs(f-0.05))
 num_phases = len(positive_frequency_content_indices)
 
 nodes = [0, 23, 46, 69, 92]
@@ -93,8 +94,11 @@ for sub in range(num_subs):
             new_phases = np.angle(signal_spec)
             new_phases[positive_frequency_content_indices] = phases
             new_phases[negative_frequency_content_indices] = -phases[::-1]
-            tmp = np.abs(signal_spec) * np.exp(1j*new_phases)
+            # tmp = np.abs(signal_spec) * np.exp(1j*new_phases)
             # tmp = np.abs(specs[window]) * np.exp(1j*new_phases)
+            new_amps = np.zeros(num_samples+num_add*2)
+            new_amps[mid_frequency] = 1
+            tmp = new_amps * np.exp(1j*new_phases)
             
             # imaginary part is negligible
             new_signal = np.fft.ifft(tmp).real
@@ -124,6 +128,9 @@ U_tmp = np.concatenate(U_all, axis=0)
 L_tmp = np.concatenate(L_all, axis=0)
 
 # use h5py to save this data (U_all)
-with h5py.File('data/synthetic/phase_controlled_116data_eida.h5', 'w') as f:
+with h5py.File('data/synthetic/one_frequency_phase_controlled_116data_eida.h5', 'w') as f:
+# with h5py.File('data/synthetic/phase_amplitude_controlled_116data_eida.h5', 'w') as f:
+# with h5py.File('data/synthetic/phase_controlled_116data_eida.h5', 'w') as f:
     f.create_dataset("U", data=U_tmp)
     f.create_dataset("L", data=L_tmp)
+print('Data saved')

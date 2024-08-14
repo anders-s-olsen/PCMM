@@ -49,29 +49,23 @@ def train_model(data_train,L_train,K,options,params=None,suppress_output=False,s
             model = Watson_EM(K=K,p=p,params=params)
         else:
             model = Watson_torch(K=K,p=p,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
-            # model2 = Watson_torch(K=1,p=p,params=None,HMM=False)
     elif options['modelname'] == 'ACG':
         if options['LR']==0:
             model = ACG_EM(K=K,p=p,rank=rank,params=params)
         else:
             model = ACG_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
-            # model2 = ACG_torch(K=1,p=p,rank=rank,params=None,HMM=False)   
     elif options['modelname'] == 'MACG':
         if options['LR']==0:
             model = MACG_EM(K=K,p=p,q=2,rank=rank,params=params)
         else:
             model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence) 
-            # model2 = MACG_torch(K=1,p=p,q=2,rank=rank,params=None,HMM=False)
     elif options['modelname'] == 'SingularWishart':
         if options['LR']==0:
             model = SingularWishart_EM(K=K,p=p,q=2,rank=rank,params=params)
         else:
             model = SingularWishart_torch(K=K,p=p,q=2,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence) 
-            # model2 = SingularWishart_torch(K=1,p=p,q=2,rank=rank,params=None,HMM=False)
-    # elif options['modelname'] in ['MVG_scalar','MVG_diagonal','MVG_lowrank']:
-    #     assert options['LR']!=0
-    #     model = MVG_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence,distribution_type=options['modelname']) 
-    #     model2 = MVG_torch(K=1,p=p,rank=rank,params=None,HMM=False,distribution_type=options['modelname'])
+    else:
+        raise ValueError("Problem")
         
     if options['LR']==0: #EM
         params,posterior,loglik = mixture_EM_loop(model,data_train,L_train,tol=options['tol'],max_iter=options['max_iter'],
@@ -94,23 +88,31 @@ def test_model(data_test,L_test,params,K,options):
     if options['LR'] == 0:
         if options['modelname'] == 'Watson':    
             model = Watson_EM(K=K,p=p,params=params)
+            X = data_test
         elif options['modelname'] == 'ACG':
             model = ACG_EM(K=K,p=p,rank=rank,params=params)
+            X = data_test
         elif options['modelname'] == 'MACG':
             model = MACG_EM(K=K,p=p,q=2,rank=rank,params=params)
+            X = data_test
         elif options['modelname'] == 'SingularWishart':
             model = SingularWishart_EM(K=K,p=p,q=2,rank=rank,params=params)
+            X = data_test*np.sqrt(L_test[:,None,:])
     else:
         if options['modelname'] == 'Watson':
             model = Watson_torch(K=K,p=p,params=params)
+            X = data_test
         elif options['modelname'] == 'ACG':
             model = ACG_torch(K=K,p=p,rank=rank,params=params) 
+            X = data_test
         elif options['modelname'] == 'MACG':
             model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params) 
+            X = data_test
         elif options['modelname'] == 'SingularWishart':
             model = SingularWishart_torch(K=K,p=p,q=2,rank=rank,params=params)
-    test_loglik = model.test_log_likelihood(X=data_test,L=L_test)  
-    test_posterior = model.posterior(X=data_test,L=L_test)
+            X = data_test*np.sqrt(L_test[:,None,:])
+    test_loglik = model.test_log_likelihood(X=X)  
+    test_posterior = model.posterior(X=X)
     return test_loglik,test_posterior
 
 def run_model_reps_and_save_logliks(data_train,data_test,K,options,data_test2=None):

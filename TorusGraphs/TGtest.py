@@ -49,8 +49,8 @@ if __name__=="__main__":
 
     # fit unimodal Singular Wishart distribution
     SW = SingularWishart(p=p,q=2,K=1)
-    Lambda_cos = SW.M_step_single_component(U_cos,L_cos,Beta=np.ones(n))
-    Lambda_sin = SW.M_step_single_component(U_sin,L_sin,Beta=np.ones(n))
+    Lambda_cos = SW.M_step_single_component(U_cos,L_cos,beta=np.ones(n))
+    Lambda_sin = SW.M_step_single_component(U_sin,L_sin,beta=np.ones(n))
 
     import matplotlib.pyplot as plt
     # plot the two inferred matrices with colorbars

@@ -28,7 +28,7 @@ figure('Position',[50,50,500,300])
 plot(t_fMRI/60,V_subs5(1:numel(t_fMRI),:)+0.05*[-5,0,0,0,4:3:18],'k-','LineWidth',1.5)
 set(gca,'box','off')
 xlim([-.1 5.1])
-yticks(0.05*[-5,16.5]),yticklabels({'P','1'}),ylabel('Voxel'),xlabel('Time [min]'),%title('fMRI time-series')
+yticks(0.05*[-5,16.5]),yticklabels({'P','1'}),ylabel('Voxel (j)'),xlabel('Time (i) [min]'),%title('fMRI time-series')
 exportgraphics(gca,[ff,'methods_ts_fMRI.png'],'Resolution',300,'BackgroundColor','none')
 
 %% Hilbert figure, fMRI
@@ -44,9 +44,9 @@ plot(t_fMRI/60,0.5+normc(V_phase(1:numel(t_fMRI),voxidx)),'k-.','LineWidth',1.5)
 set(gca,'box','off')
 xlim([-.1 5.1])
 ylim([0.3,1.7])
-yticks([0.5,0.75,1.2,1.5]),yticklabels({'\theta_i(t)','a_i(t)','s_i^{(h)}(t)','s_i(t)'})
+yticks([0.5,0.75,1.2,1.5]),yticklabels({'\theta_j(i)','a_j(i)','s_j^{(h)}(i)','s_j(i)'})
 %title('Hilbert transform'),
-xlabel('Time [min]')
+xlabel('Time (i) [min]')
 % xlabel('Time [s]')
 % yticks([0,5,15]),yticklabels({'Hilbert \theta(t)','Hilbert a(t)','BOLD s(t)'})
 exportgraphics(gca,[ff,'methods_hilbertts_fMRI.png'],'Resolution',300,'BackgroundColor','none')
@@ -84,8 +84,10 @@ close
 %% corrplot
 
 timeidx = [10,15,20];
+regidx = round(linspace(1,10000,116));
 for i = 1:numel(timeidx)
-    cohmat = V_phase(timeidx(i),1:2:10000)'*V_phase(timeidx(i),1:2:10000);
+    % cohmat = V_phase(timeidx(i),1:2:10000)'*V_phase(timeidx(i),1:2:10000);
+    cohmat = cos(V_phase(timeidx(i),regidx))'*cos(V_phase(timeidx(i),regidx))+sin(V_phase(timeidx(i),regidx))'*sin(V_phase(timeidx(i),regidx));
     
     figure('Position',[50,50,400,300]),
     imagesc(cohmat,[-1,1])
@@ -105,8 +107,10 @@ end
 %% many leading eigenvectors
 
 timeidx = [10,15,20];
+regidx = round(linspace(1,10000,116));
 for i = 1:numel(timeidx)
-    cohmat = V_phase(timeidx(i),1:2:10000)'*V_phase(timeidx(i),1:2:10000);
+    % cohmat = V_phase(timeidx(i),1:2:10000)'*V_phase(timeidx(i),1:2:10000);
+    cohmat = cos(V_phase(timeidx(i),regidx))'*cos(V_phase(timeidx(i),regidx))+sin(V_phase(timeidx(i),regidx))'*sin(V_phase(timeidx(i),regidx));
 
     [V2,~] = eigs(cohmat,2);
 
@@ -141,7 +145,7 @@ for i = 1:numel(timeidx)
     exportgraphics(gcf,[ff,'leadeig_fMRI_',num2str(i),'.png'],'Resolution',300,'BackgroundColor','none')
     close
 end
-
+return
 %% Sphere, points with directions
 
 col1 = [0,0.4,0];

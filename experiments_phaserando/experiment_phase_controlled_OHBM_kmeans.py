@@ -1,4 +1,4 @@
-from src.helper_functions import train_model,calc_NMI,make_true_mat
+from src.helper_functions import calc_NMI,make_true_mat
 import pandas as pd
 import numpy as np
 import os
@@ -9,7 +9,7 @@ from scipy.cluster.vq import kmeans2
 def run_experiment(extraoptions={},suppress_output=False):
     # options pertaining to current experiment
     options = {}
-    options['tol'] = 1e-8
+    options['tol'] = 1e-10
     options['num_repl_outer'] = 25
     options['num_repl_inner'] = 1
     options['max_iter'] = 100000
@@ -23,7 +23,12 @@ def run_experiment(extraoptions={},suppress_output=False):
     K = 5
 
     # load data using h5
+    # with h5.File('data/synthetic/one_frequency_phase_controlled_116data_eida.h5','r') as f:
+    # options['experiment_name'] = 'phase_amplitude_controlled_'+options['modelname']
+    # with h5.File('data/synthetic/phase_amplitude_controlled_116data_eida.h5','r') as f:
+    options['experiment_name'] = 'phase_controlled_'+options['modelname']
     with h5.File('data/synthetic/phase_controlled_116data_eida.h5','r') as f:
+
         data_train = f['U'][:]
         L_train = f['L'][:]
     if options['modelname']=='euclidean':
@@ -34,7 +39,6 @@ def run_experiment(extraoptions={},suppress_output=False):
     data_train = data_train[:1200*options['num_subjects']]
     L_train = L_train[:1200*options['num_subjects']]
 
-    options['experiment_name'] = 'phase_controlled_'+options['modelname']
     df = pd.DataFrame()
     P = np.double(make_true_mat(options['num_subjects']))
 
@@ -42,7 +46,7 @@ def run_experiment(extraoptions={},suppress_output=False):
     for inner in range(options['num_repl_outer']):
         print('Running experiment: ',options['experiment_name'],' inner: ',inner)
         if options['modelname']=='euclidean':
-            _,labels = kmeans2(data_train,K,minit='++')
+            _,labels = kmeans2(data_train,k=K,minit='++')
         elif options['modelname']=='diametrical':
             C,labels,obj = diametrical_clustering(data_train,K=K,max_iter=10000,num_repl=1,init=options['init'],tol=1e-16)
         elif options['modelname']=='grassmann':
@@ -60,7 +64,9 @@ def run_experiment(extraoptions={},suppress_output=False):
     for inner in range(options['num_repl_outer']):
         print('Running experiment: ',options['experiment_name'],' inner: ',inner)
         if options['modelname']=='euclidean':
-            _,labels = kmeans2(data_train,K,minit='random')
+            init_matrix = np.random.random((K,p))
+            init_matrix = init_matrix/np.linalg.norm(init_matrix,axis=-1)[:,np.newaxis]
+            _,labels = kmeans2(data_train,k=init_matrix,minit='matrix')
         elif options['modelname']=='diametrical':
             C,labels,obj = diametrical_clustering(data_train,K=K,max_iter=10000,num_repl=1,init=options['init'],tol=1e-16)
         elif options['modelname']=='grassmann':
@@ -75,7 +81,14 @@ def run_experiment(extraoptions={},suppress_output=False):
         df.to_csv(options['outfolder']+'/'+options['experiment_name']+'.csv')
 
 if __name__=="__main__":
-    modelnames = ['euclidean','diametrical','grassmann','weighted_grassmann']
-    for modelname in modelnames:
-        run_experiment(extraoptions={'modelname':modelname},suppress_output=False)
-    # run_experiment(extraoptions={'modelname':'Watson','LR':0},suppress_output=False)
+    import sys
+    if len(sys.argv)>1:
+        print(sys.argv)
+        options = {}
+        options['modelname'] = sys.argv[1]
+        run_experiment(extraoptions=options,suppress_output=True)
+    else:
+        modelnames = ['euclidean','diametrical','grassmann','weighted_grassmann']
+        # modelnames = ['diametrical']
+        for modelname in modelnames:
+            run_experiment(extraoptions={'modelname':modelname},suppress_output=False)

@@ -10,13 +10,14 @@ def run(data_train,L_train,K,P,df,options,params=None,suppress_output=False,inne
     train_NMI = calc_NMI(P,np.double(np.array(train_posterior)))
     entry = {'modelname':options['modelname'],'init_method':options['init'],'LR':options['LR'],'HMM':str(options['HMM']),'K':K,'p':p,'rank':options['rank'],'inner':inner,'iter':len(loglik_curve),'train_loglik':loglik_curve[-1],'train_NMI':train_NMI}
     df = pd.concat([df,pd.DataFrame([entry])],ignore_index=True)
+    df.to_csv(options['outfolder']+'/'+options['experiment_name']+'.csv')
     return params,df
 
 def run_experiment(extraoptions={},suppress_output=False):
     # options pertaining to current experiment
     options = {}
-    options['tol'] = 1e-8
-    options['num_repl_outer'] = 10
+    options['tol'] = 1e-10
+    options['num_repl_outer'] = 25
     options['num_repl_inner'] = 1
     options['max_iter'] = 100000
     options['outfolder'] = 'data/results/torchvsEM_phase_controlled_results'
@@ -27,12 +28,14 @@ def run_experiment(extraoptions={},suppress_output=False):
     os.makedirs(options['outfolder'],exist_ok=True)
     p = 116
     K = 5
-    ranks = [1,5,25]
-    options['experiment_name'] = 'phase_controlled_'+options['modelname']+'_initKmeans'
+    ranks = [1,5,15]
     P = np.double(make_true_mat(options['num_subjects']))
 
     # load data using h5
-    with h5.File('data/synthetic/phase_controlled_116data_eida.h5','r') as f:
+    options['experiment_name'] = 'phase_amplitude_controlled_'+options['modelname']+'_initKmeans'
+    with h5.File('data/synthetic/phase_amplitude_controlled_116data_eida.h5','r') as f:
+    # options['experiment_name'] = 'phase_controlled_'+options['modelname']+'_initKmeans'
+    # with h5.File('data/synthetic/phase_controlled_116data_eida.h5','r') as f:
         data = f['U'][:]
         L = f['L'][:]
     if options['modelname']=='Watson' or options['modelname']=='ACG':
@@ -40,13 +43,10 @@ def run_experiment(extraoptions={},suppress_output=False):
     data = data[:1200*options['num_subjects']]
     L = L[:1200*options['num_subjects']]
 
-    for inner in range(options['num_repl_outer']):        
+    df = pd.DataFrame()
 
-        if inner==0:
-            df = pd.DataFrame()
-        else:
-            df = pd.read_csv(options['outfolder']+'/'+options['experiment_name']+'.csv',index_col=0)
-        for LR in [0,0.01]:
+    for inner in range(options['num_repl_outer']):        
+        for LR in [0,0.1]: 
             options['LR'] = LR
 
             if options['LR']!=0:
@@ -61,22 +61,21 @@ def run_experiment(extraoptions={},suppress_output=False):
                 if rank>1 and options['modelname']=='Watson':
                     break
 
-                params_MM = None
                 options['HMM'] = False
                 if options['modelname'] in ['Watson','ACG']:
-                    options['init'] = 'dc' #rank 1 model
+                    options['init'] = 'dc' 
                 elif options['modelname']=='MACG':
                     options['init'] = 'gc'
                 elif options['modelname']=='SingularWishart':
                     options['init'] = 'wgc'
+                else:
+                    raise ValueError("Problem")
 
-                params,df = run(data_train=data_train,L_train=L_train,K=K,P=P,df=df,options=options,params=params_MM,suppress_output=suppress_output,inner=inner,p=p)
+                _,df = run(data_train=data_train,L_train=L_train,K=K,P=P,df=df,options=options,params=None,suppress_output=suppress_output,inner=inner,p=p)
 
                 if options['LR'] != 0: #rank 1 HMM
                     options['HMM'] = True
-                    _,df = run(data_train=data_train,L_train=L_train,K=K,P=P,df=df,options=options,params=params_MM,suppress_output=suppress_output,inner=inner,p=p)
-
-        df.to_csv(options['outfolder']+'/'+options['experiment_name']+'.csv')
+                    _,df = run(data_train=data_train,L_train=L_train,K=K,P=P,df=df,options=options,params=None,suppress_output=suppress_output,inner=inner,p=p)
 
 
 if __name__=="__main__":
@@ -88,6 +87,6 @@ if __name__=="__main__":
         run_experiment(extraoptions=options,suppress_output=True)
     else:
         modelnames = ['Watson','ACG','MACG','SingularWishart']
-        modelnames = ['SingularWishart']
+        modelnames = ['Watson']
         for modelname in modelnames:
             run_experiment(extraoptions={'modelname':modelname},suppress_output=False)

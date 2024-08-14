@@ -1,7 +1,6 @@
 import numpy as np
 from tqdm import tqdm
-from time import time
-import os
+from copy import deepcopy
 
 def mixture_EM_loop(model,data,L=None,tol=1e-8,max_iter=10000,num_repl=1,init=None,suppress_output=False,threads=8):
 
@@ -18,52 +17,60 @@ def mixture_EM_loop(model,data,L=None,tol=1e-8,max_iter=10000,num_repl=1,init=No
         else:
             X = data
 
+        if model.distribution in ['ACG_lowrank','MACG_lowrank','SingularWishart_lowrank']:
+            if model.M.shape[-1]!=model.r:
+                model2 = deepcopy(model)
+                model2.r = model2.M.shape[-1]
+                beta = model2.posterior(X=X)
+                model.M = model.init_M_svd_given_M_init(X=X,M_init=model.M,beta=beta)
+
         loglik = []
         params = []
         print('Beginning EM loop')
-        for epoch in tqdm(range(max_iter),disable=suppress_output):
+        pbar = tqdm(total=max_iter,disable=suppress_output)
+        for epoch in range(max_iter):
         
             # E-step
-            # time1 = time()
             loglik.append(model.log_likelihood(X=X))
             if np.isnan(loglik[-1]):
                 raise ValueError("Nan reached")
             
             params.append(model.get_params())
             #remove first entry in params
-            if len(params)>5:
+            if len(params)>10:
                 params.pop(0)
 
-            if epoch>5:
-                latest = np.array(loglik[-5:])
+            if epoch>10:
+                latest = np.array(loglik[-10:])
                 maxval = np.max(latest)
                 try:
                     secondhighest = np.max(latest[latest!=maxval])
-                    if (maxval-secondhighest)/np.abs(maxval)<tol or latest[-1]==np.min(latest):
+                    crit = (maxval-secondhighest)/np.abs(maxval)
+                    if crit<tol or latest[-1]==np.min(latest):
                         done=True
                 except:
+                    crit = tol
                     done=True
+                pbar.set_description('Convergence towards tol: %.2e'%crit)
+                pbar.update(1)
                 if done:
                     if maxval>best_loglik:
                         best_loglik = maxval
                         loglik_final = loglik
-                        best = np.where(loglik[-5:]==maxval)[0]
+                        best = np.where(loglik[-10:]==maxval)[0]
                         if hasattr(best,"__len__")>0: # in the rare case of two equal values....
                             best = best[0]
                         params_final = params[best.item()]
                         model.set_params(params_final)
                         beta_final = model.posterior(X=X)        
                     break
+            else:
+                pbar.set_description('In the initial phase')
+                pbar.update(1)
 
             # M-step
-            # time2 = time()
             model.M_step(X=X)
-            # np.savetxt('tmp/progress.txt','iter '+str(epoch)+' ll:'+str(loglik[-1]))
-            # time3 = time()
-            # print('E-step time: '+str(time2-time1))
-            # print('M-step time: '+str(time3-time2))
-            # if epoch % 10 == 0:
-            #     print(['Done with iteration '+str(epoch)])
+            
     # if no params_final variable exists
     if 'params_final' not in locals():
         params_final = model.get_params()

@@ -77,7 +77,7 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-16):
         while True:
             # E-step
             sim = (X@C)**2
-            maxsim = np.max(sim,axis=1) # check that this works
+            maxsim = np.max(sim,axis=1)
             X_part = np.argmax(sim,axis=1)
             obj.append(np.mean(maxsim))
 
@@ -85,7 +85,7 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-16):
                 partsum[iter,k] = np.sum(X_part==k)
             
             if iter>0:
-                if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or obj[-2]-obj[-1]<tol:
+                if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or obj[-1]-obj[-2]<tol:
                     C_final.append(C)
                     obj_final.append(obj[-1])
                     part_final.append(X_part)             
@@ -93,12 +93,13 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-16):
             
             for k in range(K):
                 idx_k = X_part==k
+                # if sum(idx_k)==0:
+                #     C[:,k] = np.random.uniform(size=p)
+                #     continue
+                
                 # # Establish covariance matrix
                 A = X[idx_k].T@X[idx_k]
                 C[:,k] = A@C[:,k]
-
-                # # changed as of July 2024
-                # C[:,k] = scipy.sparse.linalg.svds(X[idx_k].T,1)[0][:,0]
 
             C = C/np.linalg.norm(C,axis=0)
             iter += 1
@@ -151,8 +152,10 @@ def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-16):
             for k in range(K):
                 idx_k = X_part==k
                 V = np.reshape(np.swapaxes(X[idx_k],0,1),(p,np.sum(idx_k)*q))
-                U,_,_ = scipy.sparse.linalg.svds(V,q)
-                C[k] = U[:,:q]
+                U,S,_ = scipy.sparse.linalg.svds(V,q,return_singular_vectors="u")
+                order = np.argsort(S)[::-1]
+                C[k] = U[:,order]#[:,::-1]
+                # C[k] = U[:,:q]
             iter += 1
     best = np.nanargmax(np.array(obj_final))
     return C_final[best],part_final[best],obj_final[best]
@@ -194,8 +197,8 @@ def weighted_grassmann_clustering(X,X_weights,K,max_iter=10000,num_repl=1,tol=1e
         partsum = np.zeros((max_iter,K))
         while True:
             # "E-step" - compute the similarity between each matrix and each cluster center
-            M = np.swapaxes(Q,-2,-1)[:,None]@((C*np.sqrt(C_weights)[:,None,:])[None])
-            dis = 1/np.sqrt(2)*(np.sum(X_weights**2,axis=1)[:,None]+np.sum(C_weights**2,axis=1)[None]-2*np.linalg.norm(M,axis=(-2,-1))**2)#
+            B = np.swapaxes(Q,-2,-1)[:,None]@((C*np.sqrt(C_weights)[:,None,:])[None])
+            dis = 1/np.sqrt(2)*(np.sum(X_weights**2,axis=-1)[:,None]+np.sum(C_weights**2,axis=-1)[None]-2*np.linalg.norm(B,axis=(-2,-1))**2)#
             sim = -dis
             maxsim = np.max(sim,axis=1) # find the maximum similarity - the sum of this value is the objective function
             X_part = np.argmax(sim,axis=1) # assign each point to the cluster with the highest similarity
@@ -216,11 +219,10 @@ def weighted_grassmann_clustering(X,X_weights,K,max_iter=10000,num_repl=1,tol=1e
             for k in range(K):
                 idx_k = X_part==k
                 V = np.reshape(np.swapaxes(Q[idx_k],0,1),(p,np.sum(idx_k)*q))
-                U,S,_ = scipy.sparse.linalg.svds(V,q)
+                U,S,_ = scipy.sparse.linalg.svds(V,q,return_singular_vectors="u")
                 order = np.argsort(S)[::-1]
-                C[k] = U[:,order]#[:,::-1]
-                # C[k] = U[:,:q]
-                C_weights[k] = S[order]#[::-1]
+                C[k] = U[:,order]
+                C_weights[k] = S[order]
                 C_weights[k] = C_weights[k]/np.sum(C_weights[k])*p
 
             iter += 1
