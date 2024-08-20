@@ -74,16 +74,20 @@ class SingularWishart(DMMEMBaseModel):
             S1_old = S1
             M_tilde_old = M_tilde
 
+            #precompute
+            beta_sum = np.sum(beta)
+            beta_Q = beta[:,None,None]*Q[:,:,:,None]
+
             for j in range(max_iter):
 
                 # M_tilde update
                 D_inv = V1t.T@np.diag(1/(1+S1**2))@V1t
-                M_tilde = 1/(gamma*self.q*np.sum(beta))*np.sum((beta[:,None,None]*Q)[:,:,:,None]*QtM_tilde[:,None,:,:],axis=(0,-2))@D_inv
+                M_tilde = 1/(gamma*self.q*beta_sum)*np.sum(beta_Q*QtM_tilde[:,None,:,:],axis=(0,-2))@D_inv
                 _,S1,V1t = np.linalg.svd(M_tilde)
 
                 #gamma update
                 QtM_tilde = np.swapaxes(Q,-2,-1)@M_tilde
-                gamma = 1/(self.q*self.p*np.sum(beta))*np.sum(beta*(self.p-np.linalg.norm(QtM_tilde@V1t.T@np.diag(np.sqrt(1/(1+S1**2)))@V1t,axis=(-2,-1))**2))
+                gamma = 1/(self.q*self.p*beta_sum)*np.sum(beta*(self.p-np.linalg.norm(QtM_tilde@V1t.T@np.diag(np.sqrt(1/(1+S1**2)))@V1t,axis=(-2,-1))**2))
 
                 # convergence criterion
                 trZtZ = gamma**2*(np.sum(S1**4)+2*np.sum(S1**2)+self.p)
@@ -107,15 +111,18 @@ class SingularWishart(DMMEMBaseModel):
 
             # output M, not M_tilde
             M = M_tilde*np.sqrt(gamma)
-            print(j,np.linalg.norm(M),gamma,np.sum(beta))
+            # print(j,np.linalg.norm(M),gamma,np.sum(beta))
             return M, gamma
         elif self.distribution == 'SingularWishart_fullrank':
             Psi = 1/(self.q*np.sum(beta))*np.sum((beta[:,None,None]*Q)@np.swapaxes(Q,-2,-1),axis=0)
             return Psi
 
     def M_step(self,X):
-        beta = np.exp(self.log_density-self.logsum_density)
-        self.update_pi(beta)
+        if self.K!=1:
+            beta = np.exp(self.log_density-self.logsum_density)
+            self.update_pi(beta)
+        else:
+            beta = np.ones((1,X.shape[0]))
         for k in range(self.K):
             if self.distribution == 'SingularWishart_lowrank':
                 self.M[k],self.gamma[k] = self.M_step_single_component(X,beta[k],self.M[k],gamma=self.gamma[k])

@@ -57,7 +57,7 @@ def plusplus_initialization(X,K,X_weights=None,dist='diametrical'):
     else:
         return C,X_part,obj
     
-def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-16):
+def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
     n,p = X.shape
 
     obj_final = []
@@ -107,7 +107,7 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-16):
     
     return C_final[best],part_final[best],obj_final[best]
 
-def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-16):
+def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
     
     n,p,q = X.shape
 
@@ -160,7 +160,7 @@ def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-16):
     best = np.nanargmax(np.array(obj_final))
     return C_final[best],part_final[best],obj_final[best]
 
-def weighted_grassmann_clustering(X,X_weights,K,max_iter=10000,num_repl=1,tol=1e-16,init=None):
+def weighted_grassmann_clustering(X,X_weights,K,max_iter=10000,num_repl=1,tol=1e-10,init=None):
     """"
     Weighted grassmannian clustering using the chordal distance function and a SVD-based update rule
     

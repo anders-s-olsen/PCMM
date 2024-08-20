@@ -35,21 +35,19 @@ class DMMEMBaseModel():
 
     def init_M_svd(self,V,r):
         U,S,_ = np.linalg.svd(V,full_matrices=False)
-        # if V.shape[0]>=self.p:
-        epsilon = np.sum(S[r:])/(self.p-r)
-        # else:
-        #     epsilon = np.sum(S[r:])/(V.shape[0]-r)
-        M = U[:,:r]@np.diag(np.sqrt((S[:r]-epsilon)/epsilon))
-
-        # if V.shape[0]>=self.p:
-        #     sigma = np.sum(S[r:]**2)/(self.p-r)
-        # else:
-        #     sigma = np.sum(S[r:]**2)/(V.shape[0]-r)
-        # M = U[:,:r]@np.diag((S[:r]-sigma)/sigma)
+        if V.shape[1]>=self.p:
+            epsilon = np.sum(S[r:]**2)/(self.p-r)
+        else:
+            epsilon = np.sum(S[r:]**2)/(V.shape[1]-r)
         
-        return M
+        if self.distribution in ['ACG_lowrank','MACG_lowrank']:
+            M = U[:,:r]@np.diag(np.sqrt((S[:r]**2-epsilon)/epsilon))
+            return M
+        elif self.distribution in ['SingularWishart_lowrank']:
+            M = U[:,:r]@np.diag(np.sqrt(((S[:r]**2-epsilon))))
+            return M/self.p*self.q,epsilon/V.shape[1]
     
-    def init_M_svd_given_M_init(self,X,M_init,beta=None):
+    def init_M_svd_given_M_init(self,X,M_init,beta=None,gamma=None):
         if beta is None:
             beta = np.ones((self.K,X.shape[0]))/self.K
         elif beta.ndim==1:
@@ -75,13 +73,20 @@ class DMMEMBaseModel():
                 V = np.reshape(np.swapaxes(beta[k][:,None,None]*X,0,1),(self.p,self.q*X.shape[0]))
                 
             # projection matrix of M
-            # V_residual = V-M_init_orth[k]@np.swapaxes(M_init_orth[k],-2,-1)@V
-            # V_residual = V-M_init[k]@np.swapaxes(M_init[k],-2,-1)@V
-            M_proj = M_init[k]@np.linalg.inv(M_init[k].T@M_init[k])@M_init[k].T
+            if self.distribution in ['ACG_lowrank','MACG_lowrank']:
+                gamma = 1/(1+np.linalg.norm(M_init[k],'fro')**2/self.p)
+                M_init[k] = np.sqrt(gamma)*M_init[k]
+                M_proj = M_init[k]@np.linalg.inv(M_init[k].T@M_init[k]+np.eye(M_init[k].shape[1]))@M_init[k].T
+            elif self.distribution in ['SingularWishart_lowrank']:
+                M_proj = M_init[k]@np.linalg.inv(M_init[k].T@M_init[k]+self.gamma[k]*np.eye(M_init[k].shape[1]))@M_init[k].T
+            # M_proj = M_init[k]@np.linalg.inv(M_init[k].T@M_init[k])@M_init[k].T
             V_residual = V - M_proj@V
             M_extra = self.init_M_svd(V_residual,r=num_missing)
-            M[k] = np.concatenate([M_init[k],M_extra],axis=-1)
-        return M
+            if self.distribution in ['ACG_lowrank','MACG_lowrank']:
+                M[k] = np.concatenate([M_init[k],M_extra],axis=-1)
+            elif self.distribution in ['SingularWishart_lowrank']:
+                M[k] = np.concatenate([M_init[k],M_extra[0]],axis=-1)
+            return M
 
     def initialize(self,X,init_method,L=None):
         assert init_method in ['uniform','unif',
@@ -91,10 +96,10 @@ class DMMEMBaseModel():
                                'dc','diametrical_clustering','dc_seg','diametrical_clustering_seg',
                                'gc','grassmann_clustering','gc_seg','grassmann_clustering_seg',
                                'wgc','weighted_grassmann_clustering','wgc_seg','weighted_grassmann_clustering_seg']
-        assert self.distribution in ['Watson','ACG_lowrank','ACG_fullrank','MACG_lowrank','MACG_fullrank','SingularWishart_lowrank','SingularWishart_fullrank']
+        assert self.distribution in ['Watson','Complex_Watson','ACG_lowrank','ACG_fullrank','MACG_lowrank','MACG_fullrank','SingularWishart_lowrank','SingularWishart_fullrank']
 
         # for watson, always initialize kappa as ones, will be overwritten by 'seg' methods
-        if self.distribution == 'Watson':
+        if self.distribution in ['Watson','Complex_Watson']:
             self.kappa = np.ones(self.K)
         elif self.distribution == 'SingularWishart_lowrank':
             self.gamma = np.ones(self.K)
@@ -104,6 +109,9 @@ class DMMEMBaseModel():
             self.pi = np.array([1/self.K]*self.K)
             if self.distribution == 'Watson':
                 mu = np.random.uniform(size=(self.p,self.K))
+                self.mu = mu / np.linalg.norm(mu,axis=0)
+            elif self.distribution == 'Complex_Watson':
+                mu = np.random.uniform(size=(self.p,self.K),dtype=np.complex)
                 self.mu = mu / np.linalg.norm(mu,axis=0)
             elif self.distribution in ['ACG_lowrank', 'MACG_lowrank','SingularWishart_lowrank']:
                 self.M = np.random.uniform(size=(self.K,self.p,self.r))
@@ -144,7 +152,7 @@ class DMMEMBaseModel():
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
                 self.M = np.zeros((self.K,self.p,self.r))
                 for k in range(self.K):
-                    self.M[k] = self.init_M_svd(np.reshape(np.swapaxes(X[X_part==k]*np.sqrt(L[X_part==k][:,None,:]),0,1),(self.p,np.sum(X_part==k)*self.q)),self.r)
+                    self.M[k],self.gamma[k] = self.init_M_svd(np.reshape(np.swapaxes(X[X_part==k]*np.sqrt(L[X_part==k][:,None,:]),0,1),(self.p,np.sum(X_part==k)*self.q)),self.r)
             elif self.distribution in ['ACG_fullrank', 'MACG_fullrank','SingularWishart_fullrank']:
                 print('Initializing Lambda based on the clustering centroids')
                 self.Lambda = np.zeros((self.K,self.p,self.p))
@@ -172,7 +180,7 @@ class DMMEMBaseModel():
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
                 self.M = np.zeros((self.K,self.p,self.r))
                 for k in range(self.K):
-                    self.M[k] = self.init_M_svd(np.reshape(np.swapaxes(X[X_part==k]*np.sqrt(L[X_part==k][:,None,:]),0,1),(self.p,np.sum(X_part==k)*self.q)),self.r)
+                    self.M[k],self.gamma[k] = self.init_M_svd(np.reshape(np.swapaxes(X[X_part==k]*np.sqrt(L[X_part==k][:,None,:]),0,1),(self.p,np.sum(X_part==k)*self.q)),self.r)
             elif self.distribution in ['MACG_fullrank','SingularWishart_fullrank']:
                 print('Initializing Lambda based on the clustering centroids')
                 self.Lambda = np.zeros((self.K,self.p,self.p))
@@ -197,7 +205,7 @@ class DMMEMBaseModel():
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
                 self.M = np.zeros((self.K,self.p,self.r))
                 for k in range(self.K):
-                    self.M[k] = self.init_M_svd(np.reshape(np.swapaxes(X[X_part==k]*np.sqrt(L[X_part==k][:,None,:]),0,1),(self.p,np.sum(X_part==k)*self.q)),self.r)
+                    self.M[k],self.gamma[k] = self.init_M_svd(np.reshape(np.swapaxes(X[X_part==k]*np.sqrt(L[X_part==k][:,None,:]),0,1),(self.p,np.sum(X_part==k)*self.q)),self.r)
                     # self.gamma[k] = 
             elif self.distribution == 'SingularWishart_fullrank':
                 print('Initializing Lambda based on the clustering centroids')

@@ -87,6 +87,6 @@ if __name__=="__main__":
         run_experiment(extraoptions=options,suppress_output=True)
     else:
         modelnames = ['Watson','ACG','MACG','SingularWishart']
-        modelnames = ['Watson']
+        modelnames = ['ACG']
         for modelname in modelnames:
             run_experiment(extraoptions={'modelname':modelname},suppress_output=False)

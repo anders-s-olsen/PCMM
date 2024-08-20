@@ -18,4 +18,4 @@ conda activate hcp
 module load pandas
 module load h5py/3.10.0-python-3.10.13
 
-python3 experiments_phaserando/experiment_phase_controlled_initrandom_OHBM.py SingularWishart
+python3 experiments_phaserando/experiment_phase_controlled_initKmeans_OHBM.py ACG

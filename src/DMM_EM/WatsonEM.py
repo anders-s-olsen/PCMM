@@ -23,17 +23,22 @@ def kummer_log(k,a,c):
     return logkum
 
 class Watson(DMMEMBaseModel):
-    def __init__(self, p:int, K:int=1, params:dict=None):
+    def __init__(self, p:int, K:int=1, complex:bool=False, params:dict=None):
         super().__init__()
 
         self.K = K
         self.p = p
-        self.half_p = self.p/2
-        self.a = 0.5
-        self.distribution = 'Watson'
         
-        # precompute log-surface area of the unit hypersphere
-        self.logSA_sphere = loggamma(self.half_p) - np.log(2) -self.half_p* np.log(np.pi)
+        if complex:
+            self.distribution = 'Complex_Watson'
+            self.c = self.p-1
+            self.a = 1
+        else:
+            self.distribution = 'Watson'
+            self.c = self.p/2
+            self.a = 0.5
+
+        self.logSA_sphere = loggamma(self.c) - np.log(2) - self.c* np.log(np.pi)
 
         # initialize parameters
         if params is not None:            
@@ -42,11 +47,12 @@ class Watson(DMMEMBaseModel):
     def log_norm_constant(self):
         logkum = np.zeros(self.K)
         for idx,kappa in enumerate(self.kappa):
-            logkum[idx] = kummer_log(k=kappa,a=self.a,c=self.half_p)
+            logkum[idx] = kummer_log(k=kappa,a=self.a,c=self.c)
         return self.logSA_sphere - logkum
     
     def log_pdf(self, X):
-        log_pdf = self.log_norm_constant()[:,None] + self.kappa[:,None]*((self.mu.T@X.T)**2)
+        #the abs added for support of complex arrays
+        log_pdf = self.log_norm_constant()[:,None] + self.kappa[:,None]*(np.abs(self.mu.H@X.H)**2)
         return log_pdf
     
     def M_step_single_component(self,X,beta,mu,kappa,tol=1e-8):
@@ -65,26 +71,26 @@ class Watson(DMMEMBaseModel):
             elif kappa<0:
                 _,_,mu = svds(Q,k=1,which='SM',return_singular_vectors='vh')
 
-        rk = 1/np.sum(beta)*np.sum((mu@Q.T)**2)
-        LB = (rk*self.half_p-self.a)/(rk*(1-rk))*(1+(1-rk)/(self.half_p-self.a))
-        B  = (rk*self.half_p-self.a)/(2*rk*(1-rk))*(1+np.sqrt(1+4*(self.half_p+1)*rk*(1-rk)/(self.a*(self.half_p-self.a))))
-        UB = (rk*self.half_p-self.a)/(rk*(1-rk))*(1+rk/self.a)
+        rk = 1/np.sum(beta)*np.sum((mu@Q.H)**2)
+        LB = (rk*self.c-self.a)/(rk*(1-rk))*(1+(1-rk)/(self.c-self.a))
+        B  = (rk*self.c-self.a)/(2*rk*(1-rk))*(1+np.sqrt(1+4*(self.c+1)*rk*(1-rk)/(self.a*(self.c-self.a))))
+        UB = (rk*self.c-self.a)/(rk*(1-rk))*(1+rk/self.a)
 
         def f(kappa):
-            return ((self.a/self.half_p)*(np.exp(kummer_log(k=kappa,a=self.a+1,c=self.half_p+1)-kummer_log(k=kappa,a=self.a,c=self.half_p)))-rk)**2
+            return ((self.a/self.c)*(np.exp(kummer_log(k=kappa,a=self.a+1,c=self.c+1)-kummer_log(k=kappa,a=self.a,c=self.c)))-rk)**2
         options={}
         options['xatol'] = tol
-        if rk>self.a/self.half_p:
+        if rk>self.a/self.c:
             kappa = minimize_scalar(f, bounds=[LB, B],options=options,method='bounded')['x']
             if kappa<LB or kappa>B:
                 print('Probably a convergence problem for kappa')
                 return
-        elif rk<self.a/self.half_p:
+        elif rk<self.a/self.c:
             kappa = minimize_scalar(f, bounds=[B, UB],options=options,method='bounded')['x']
             if kappa<B or kappa>UB:
                 print('Probably a convergence problem for kappa')
                 return
-        elif rk==self.a/self.half_p:
+        elif rk==self.a/self.c:
             kappa = 0
         else:
             raise ValueError("kappa could not be optimized")
@@ -92,8 +98,11 @@ class Watson(DMMEMBaseModel):
     
     def M_step(self,X):
         # n,p = X.shape
-        beta = np.exp(self.log_density-self.logsum_density)
-        self.update_pi(beta)
+        if self.K!=1:
+            beta = np.exp(self.log_density-self.logsum_density)
+            self.update_pi(beta)
+        else:
+            beta = np.ones((1,X.shape[0]))
 
         for k in range(self.K):
             self.mu[:,k],self.kappa[k] = self.M_step_single_component(X=X,beta=beta[k],mu=self.mu[:,k],kappa=self.kappa[k])

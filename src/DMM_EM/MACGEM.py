@@ -42,7 +42,7 @@ class MACG(DMMEMBaseModel):
             return self.log_pdf_lowrank(X)
         elif self.distribution == 'MACG_fullrank':
             return self.log_pdf_fullrank(X)
-        
+
     def M_step_single_component(self,X,beta,M=None,Lambda=None,max_iter=int(1e5),tol=1e-8):
             
         if self.distribution == 'MACG_lowrank':
@@ -116,8 +116,11 @@ class MACG(DMMEMBaseModel):
             return Lambda
 
     def M_step(self,X):
-        beta = np.exp(self.log_density-self.logsum_density)
-        self.update_pi(beta)
+        if self.K!=1:
+            beta = np.exp(self.log_density-self.logsum_density)
+            self.update_pi(beta)
+        else:
+            beta = np.ones((1,X.shape[0]))
         for k in range(self.K):
             if self.distribution == 'MACG_lowrank':
                 self.M[k] = self.M_step_single_component(X,beta[k],self.M[k],None)
