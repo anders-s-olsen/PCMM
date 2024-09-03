@@ -42,15 +42,15 @@ Beginning EM loop
 
 ------------------------------------------------------------
 Sender: LSF System <lsfadmin@hpc.dtu.dk>
-Subject: Job 22473340: <HCPjob8GB> in cluster <dcc> Done
+Subject: Job 22605455: <HCPjob8GB> in cluster <dcc> Done
 
-Job <HCPjob8GB> was submitted from host <gbarlogin1> by user <ansol> in cluster <dcc> at Tue Aug 20 14:13:52 2024
-Job was executed on host(s) <2*n-62-28-30>, in queue <hpc>, as user <ansol> in cluster <dcc> at Tue Aug 20 14:13:53 2024
+Job <HCPjob8GB> was submitted from host <gbarlogin1> by user <ansol> in cluster <dcc> at Mon Sep  2 14:25:01 2024
+Job was executed on host(s) <2*n-62-30-23>, in queue <hpc>, as user <ansol> in cluster <dcc> at Mon Sep  2 14:25:01 2024
 </zhome/61/4/109113> was used as the home directory.
 </dtu-compute/HCP_dFC/2023/hcp_dfc> was used as the working directory.
-Started at Tue Aug 20 14:13:53 2024
-Terminated at Tue Aug 20 14:15:04 2024
-Results reported at Tue Aug 20 14:15:04 2024
+Started at Mon Sep  2 14:25:01 2024
+Terminated at Mon Sep  2 14:26:39 2024
+Results reported at Mon Sep  2 14:26:39 2024
 
 Your job looked like:
 
@@ -59,7 +59,7 @@ Your job looked like:
 #!/bin/sh
 #BSUB -J HCPjob8GB
 #BSUB -q hpc
-#BSUB -R "rusage[mem=32GB]"
+#BSUB -R "rusage[mem=64GB]"
 #BSUB -o experiments2/output/HCPjob_out_%J.txt
 #BSUB -e experiments2/output/HCPjob_err_%J.txt
 #BSUB -W 48:00 
@@ -71,8 +71,6 @@ export OMP_NUM_THREADS=$LSB_DJOB_NUMPROC
 
 source ~/miniconda3/bin/activate
 conda activate hcp
-module load pandas
-module load h5py/3.10.0-python-3.10.13
 
 python3 experiments2/experiment_sequential_init_100.py Watson 1
 
@@ -82,16 +80,16 @@ Successfully completed.
 
 Resource usage summary:
 
-    CPU time :                                   64.69 sec.
-    Max Memory :                                 1122 MB
-    Average Memory :                             1016.00 MB
-    Total Requested Memory :                     65536.00 MB
-    Delta Memory :                               64414.00 MB
+    CPU time :                                   78.50 sec.
+    Max Memory :                                 2864 MB
+    Average Memory :                             1924.67 MB
+    Total Requested Memory :                     131072.00 MB
+    Delta Memory :                               128208.00 MB
     Max Swap :                                   -
     Max Processes :                              4
-    Max Threads :                                6
-    Run time :                                   90 sec.
-    Turnaround time :                            72 sec.
+    Max Threads :                                9
+    Run time :                                   202 sec.
+    Turnaround time :                            98 sec.
 
 The output (if any) is above this job summary.
 
@@ -99,5 +97,5 @@ The output (if any) is above this job summary.
 
 PS:
 
-Read file <experiments2/output/HCPjob_err_22473340.txt> for stderr output of this job.
+Read file <experiments2/output/HCPjob_err_22605455.txt> for stderr output of this job.
 

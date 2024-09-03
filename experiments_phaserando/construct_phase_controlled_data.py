@@ -15,9 +15,8 @@ def butter_bandpass(lowcut, highcut, fs, order=5):
     b, a = butter(order, [low, high], btype="bandpass")
     return b, a
 
-# Apply Filter
-# Changed by Anders to be correct range (from 0.01-0.1 to 0.009-0.08)
-def butter_bandpass_filter(data, lowcut=0.009, highcut=0.08, fs=1 / 0.720, order=5):
+def butter_bandpass_filter(data, lowcut=0.03, highcut=0.07, fs=1 / 0.720, order=5):
+# def butter_bandpass_filter(data, lowcut=0.009, highcut=0.08, fs=1 / 0.720, order=5):
     b, a = butter_bandpass(lowcut, highcut, fs, order=order)
     y = filtfilt(b, a, data)
     return y
@@ -95,10 +94,10 @@ for sub in range(num_subs):
             new_phases[positive_frequency_content_indices] = phases
             new_phases[negative_frequency_content_indices] = -phases[::-1]
             # tmp = np.abs(signal_spec) * np.exp(1j*new_phases)
-            # tmp = np.abs(specs[window]) * np.exp(1j*new_phases)
-            new_amps = np.zeros(num_samples+num_add*2)
-            new_amps[mid_frequency] = 1
-            tmp = new_amps * np.exp(1j*new_phases)
+            tmp = np.abs(specs[window]) * np.exp(1j*new_phases)
+            # new_amps = np.zeros(num_samples+num_add*2)
+            # new_amps[mid_frequency] = 1
+            # tmp = new_amps * np.exp(1j*new_phases)
             
             # imaginary part is negligible
             new_signal = np.fft.ifft(tmp).real
@@ -110,27 +109,44 @@ for sub in range(num_subs):
 
 U_all = []
 L_all = []
+U_all_complex = []
+L_all_complex = []
 for sub in range(num_subs):
     phases = np.zeros((phase_reset_data_all[sub].shape[0], p))
     for i in range(p):
         phases[:,i] = np.angle(hilbert(phase_reset_data_all[sub][:,i]))
     U_all_sub = np.zeros((T,p,2))
     L_all_sub = np.zeros((T,2))
+    U_all_complex_sub = np.zeros((T,p,1), dtype=complex)
+    L_all_complex_sub = np.zeros((T,1))
     for t in range(T):
         c = np.cos(phases[t])
         s = np.sin(phases[t])
         U,S,_ = np.linalg.svd(np.c_[c,s], full_matrices=False)
+        # U,S,_ = np.linalg.svd(c+s*1j, full_matrices=False)
         U_all_sub[t] = U
         L_all_sub[t] = S**2
+        U_all_complex_sub[t,:,0] = (c+s*1j)/np.linalg.norm(c+s*1j)
+        L_all_complex_sub[t,0] = p
     U_all.append(U_all_sub)
     L_all.append(L_all_sub)
+    U_all_complex.append(U_all_complex_sub)
+    L_all_complex.append(L_all_complex_sub)
 U_tmp = np.concatenate(U_all, axis=0)
 L_tmp = np.concatenate(L_all, axis=0)
+U_complex_tmp = np.concatenate(U_all_complex, axis=0)
+L_complex_tmp = np.concatenate(L_all_complex, axis=0)
 
 # use h5py to save this data (U_all)
-with h5py.File('data/synthetic/one_frequency_phase_controlled_116data_eida.h5', 'w') as f:
+with h5py.File('data/synthetic/phase_narrowband_controlled_116data_eida.h5', 'w') as f:
 # with h5py.File('data/synthetic/phase_amplitude_controlled_116data_eida.h5', 'w') as f:
 # with h5py.File('data/synthetic/phase_controlled_116data_eida.h5', 'w') as f:
     f.create_dataset("U", data=U_tmp)
     f.create_dataset("L", data=L_tmp)
 print('Data saved')
+
+with h5py.File('data/synthetic/complex_phase_narrowband_controlled_116data_eida.h5', 'w') as f:
+# with h5py.File('data/synthetic/complex_phase_amplitude_controlled_116data_eida.h5', 'w') as f:
+# with h5py.File('data/synthetic/complex_phase_controlled_116data_eida.h5', 'w') as f:
+    f.create_dataset("U", data=U_complex_tmp)
+    f.create_dataset("L", data=L_complex_tmp)

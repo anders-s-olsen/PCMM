@@ -49,11 +49,21 @@ def train_model(data_train,L_train,K,options,params=None,suppress_output=False,s
             model = Watson_EM(K=K,p=p,params=params)
         else:
             model = Watson_torch(K=K,p=p,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
+    elif options['modelname'] == 'Complex_Watson':
+        if options['LR']==0:
+            model = Watson_EM(K=K,p=p,complex=True,params=params)
+        else:
+            model = Watson_torch(K=K,p=p,complex=True,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
     elif options['modelname'] == 'ACG':
         if options['LR']==0:
             model = ACG_EM(K=K,p=p,rank=rank,params=params)
         else:
             model = ACG_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
+    elif options['modelname'] == 'Complex_ACG':
+        if options['LR']==0:
+            model = ACG_EM(K=K,p=p,rank=rank,complex=True,params=params)
+        else:
+            model = ACG_torch(K=K,p=p,rank=rank,complex=True,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
     elif options['modelname'] == 'MACG':
         if options['LR']==0:
             model = MACG_EM(K=K,p=p,q=2,rank=rank,params=params)
@@ -89,8 +99,14 @@ def test_model(data_test,L_test,params,K,options):
         if options['modelname'] == 'Watson':    
             model = Watson_EM(K=K,p=p,params=params)
             X = data_test
+        elif options['modelname'] == 'Complex_Watson':
+            model = Watson_EM(K=K,p=p,complex=True,params=params)
+            X = data_test
         elif options['modelname'] == 'ACG':
             model = ACG_EM(K=K,p=p,rank=rank,params=params)
+            X = data_test
+        elif options['modelname'] == 'Complex_ACG':
+            model = ACG_EM(K=K,p=p,complex=True,rank=rank,params=params)
             X = data_test
         elif options['modelname'] == 'MACG':
             model = MACG_EM(K=K,p=p,q=2,rank=rank,params=params)
@@ -98,12 +114,20 @@ def test_model(data_test,L_test,params,K,options):
         elif options['modelname'] == 'SingularWishart':
             model = SingularWishart_EM(K=K,p=p,q=2,rank=rank,params=params)
             X = data_test*np.sqrt(L_test[:,None,:])
+        else:
+            raise ValueError("Problem, modelname:",options['modelname'])
     else:
         if options['modelname'] == 'Watson':
             model = Watson_torch(K=K,p=p,params=params)
             X = data_test
+        elif options['modelname'] == 'Complex_Watson':
+            model = Watson_torch(K=K,p=p,complex=True,params=params)
+            X = data_test
         elif options['modelname'] == 'ACG':
             model = ACG_torch(K=K,p=p,rank=rank,params=params) 
+            X = data_test
+        elif options['modelname'] == 'Complex_ACG':
+            model = ACG_torch(K=K,p=p,complex=True,rank=rank,params=params) 
             X = data_test
         elif options['modelname'] == 'MACG':
             model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params) 
@@ -111,6 +135,8 @@ def test_model(data_test,L_test,params,K,options):
         elif options['modelname'] == 'SingularWishart':
             model = SingularWishart_torch(K=K,p=p,q=2,rank=rank,params=params)
             X = data_test*np.sqrt(L_test[:,None,:])
+        else:
+            raise ValueError("Problem, modelname:",options['modelname'])
     test_loglik = model.test_log_likelihood(X=X)  
     test_posterior = model.posterior(X=X)
     return test_loglik,test_posterior

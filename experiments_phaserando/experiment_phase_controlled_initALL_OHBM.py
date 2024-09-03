@@ -13,7 +13,7 @@ def run(data_train,L_train,K,P,df,options,params=None,suppress_output=False,inne
     df.to_csv(options['outfolder']+'/'+options['experiment_name']+'.csv')
     return params,df
 
-def run_experiment(extraoptions={},suppress_output=False):
+def run_experiment(extraoptions={},dataset='phase_controlled',suppress_output=False):
     # options pertaining to current experiment
     options = {}
     options['tol'] = 1e-10
@@ -22,7 +22,7 @@ def run_experiment(extraoptions={},suppress_output=False):
     options['max_iter'] = 100000
     options['outfolder'] = 'data/results/torchvsEM_phase_controlled_results'
     options['num_subjects'] = 1
-    options['data_type'] = 'phase_controlled'
+    options['data_type'] = dataset
     options['threads'] = 8
     options.update(extraoptions) #modelname, LR, init controlled in shell script
     os.makedirs(options['outfolder'],exist_ok=True)
@@ -31,14 +31,18 @@ def run_experiment(extraoptions={},suppress_output=False):
     ranks = [1,5,15]
     P = np.double(make_true_mat(options['num_subjects']))
 
-    # load data using h5
-    options['experiment_name'] = 'phase_amplitude_controlled_'+options['modelname']+'_initALL'
-    with h5.File('data/synthetic/phase_amplitude_controlled_116data_eida.h5','r') as f:
-    # options['experiment_name'] = 'phase_controlled_'+options['modelname']+'_initALL'
-    # with h5.File('data/synthetic/phase_controlled_116data_eida.h5','r') as f:
+    data_folder = 'data/synthetic/'
+    options['experiment_name'] = dataset+'_'+options['modelname']+'_initALL'
+    if options['modelname'] in ['Complex_Watson','Complex_ACG']:
+        add_complex = 'complex_'
+    else:
+        add_complex = ''
+    data_file = data_folder+add_complex+dataset+'_116data_eida.h5'
+    with h5.File(data_file,'r') as f:
         data = f['U'][:]
         L = f['L'][:]
-    if options['modelname']=='Watson' or options['modelname']=='ACG':
+
+    if options['modelname'] in ['Watson','Complex_Watson','ACG','Complex_ACG']:
         data = data[:,:,0]
     data = data[:1200*options['num_subjects']]
     L = L[:1200*options['num_subjects']]
@@ -64,7 +68,7 @@ def run_experiment(extraoptions={},suppress_output=False):
 
                     if LR==0: #restart initialization
                         params_MM = None
-                        if options['modelname'] in ['Watson','ACG']:
+                        if options['modelname'] in ['Watson','Complex_Watson','ACG','Complex_ACG']:
                             options['init'] = 'dc_seg' #rank 1 model
                         elif options['modelname']=='MACG':
                             options['init'] = 'gc_seg'
@@ -87,7 +91,7 @@ def run_experiment(extraoptions={},suppress_output=False):
                         _,df = run(data_train=data_train,L_train=L_train,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
 
                 else:
-                    if options['modelname'] == 'Watson':        
+                    if options['modelname'] in ['Watson','Complex_Watson']:        
                         break
                     print('Running model:',options['modelname'],'rank:',rank,'LR:',LR,'inner:',inner)
                     options['init'] = 'no'
@@ -115,9 +119,9 @@ if __name__=="__main__":
         print(sys.argv)
         options = {}
         options['modelname'] = sys.argv[1]
-        run_experiment(extraoptions=options,suppress_output=True)
+        run_experiment(extraoptions=options,dataset=sys.argv[2],suppress_output=True)
     else:
-        modelnames = ['Watson','ACG','MACG','SingularWishart']
-        modelnames = ['ACG']
+        modelnames = ['Watson','Complex_Watson','ACG','Complex_ACG','MACG','SingularWishart']
+        modelnames = ['Complex_ACG']
         for modelname in modelnames:
-            run_experiment(extraoptions={'modelname':modelname},suppress_output=False)
+            run_experiment(extraoptions={'modelname':modelname},dataset='phase_narrowband_controlled',suppress_output=False)

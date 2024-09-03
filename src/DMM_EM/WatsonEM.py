@@ -31,12 +31,12 @@ class Watson(DMMEMBaseModel):
         
         if complex:
             self.distribution = 'Complex_Watson'
-            self.c = self.p-1
             self.a = 1
+            self.c = self.p
         else:
             self.distribution = 'Watson'
-            self.c = self.p/2
             self.a = 0.5
+            self.c = self.p/2
 
         self.logSA_sphere = loggamma(self.c) - np.log(2) - self.c* np.log(np.pi)
 
@@ -52,7 +52,7 @@ class Watson(DMMEMBaseModel):
     
     def log_pdf(self, X):
         #the abs added for support of complex arrays
-        log_pdf = self.log_norm_constant()[:,None] + self.kappa[:,None]*(np.abs(self.mu.H@X.H)**2)
+        log_pdf = self.log_norm_constant()[:,None] + self.kappa[:,None]*(np.abs(X@self.mu.conj())**2).T
         return log_pdf
     
     def M_step_single_component(self,X,beta,mu,kappa,tol=1e-8):
@@ -71,7 +71,7 @@ class Watson(DMMEMBaseModel):
             elif kappa<0:
                 _,_,mu = svds(Q,k=1,which='SM',return_singular_vectors='vh')
 
-        rk = 1/np.sum(beta)*np.sum((mu@Q.H)**2)
+        rk = 1/np.sum(beta)*np.sum(np.abs(mu.conj()@Q.T)**2)
         LB = (rk*self.c-self.a)/(rk*(1-rk))*(1+(1-rk)/(self.c-self.a))
         B  = (rk*self.c-self.a)/(2*rk*(1-rk))*(1+np.sqrt(1+4*(self.c+1)*rk*(1-rk)/(self.a*(self.c-self.a))))
         UB = (rk*self.c-self.a)/(rk*(1-rk))*(1+rk/self.a)

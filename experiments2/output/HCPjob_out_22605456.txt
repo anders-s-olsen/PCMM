@@ -1,0 +1,101 @@
+['experiments2/experiment_sequential_init_100.py', 'Complex_Watson', '1']
+Running model: Complex_Watson rank: 1 inner: 0
+Running diametrical clustering initialization
+Initializing mu based on the clustering centroid
+Beginning EM loop
+Running model: Complex_Watson rank: 1 inner: 1
+Running diametrical clustering initialization
+Initializing mu based on the clustering centroid
+Beginning EM loop
+Running model: Complex_Watson rank: 1 inner: 2
+Running diametrical clustering initialization
+Initializing mu based on the clustering centroid
+Beginning EM loop
+Running model: Complex_Watson rank: 1 inner: 3
+Running diametrical clustering initialization
+Initializing mu based on the clustering centroid
+Beginning EM loop
+Running model: Complex_Watson rank: 1 inner: 4
+Running diametrical clustering initialization
+Initializing mu based on the clustering centroid
+Beginning EM loop
+Running model: Complex_Watson rank: 1 inner: 5
+Running diametrical clustering initialization
+Initializing mu based on the clustering centroid
+Beginning EM loop
+Running model: Complex_Watson rank: 1 inner: 6
+Running diametrical clustering initialization
+Initializing mu based on the clustering centroid
+Beginning EM loop
+Running model: Complex_Watson rank: 1 inner: 7
+Running diametrical clustering initialization
+Initializing mu based on the clustering centroid
+Beginning EM loop
+Running model: Complex_Watson rank: 1 inner: 8
+Running diametrical clustering initialization
+Initializing mu based on the clustering centroid
+Beginning EM loop
+Running model: Complex_Watson rank: 1 inner: 9
+Running diametrical clustering initialization
+Initializing mu based on the clustering centroid
+Beginning EM loop
+
+------------------------------------------------------------
+Sender: LSF System <lsfadmin@hpc.dtu.dk>
+Subject: Job 22605456: <HCPjob8GB> in cluster <dcc> Done
+
+Job <HCPjob8GB> was submitted from host <gbarlogin1> by user <ansol> in cluster <dcc> at Mon Sep  2 14:25:02 2024
+Job was executed on host(s) <2*n-62-31-14>, in queue <hpc>, as user <ansol> in cluster <dcc> at Mon Sep  2 14:25:04 2024
+</zhome/61/4/109113> was used as the home directory.
+</dtu-compute/HCP_dFC/2023/hcp_dfc> was used as the working directory.
+Started at Mon Sep  2 14:25:04 2024
+Terminated at Mon Sep  2 14:27:12 2024
+Results reported at Mon Sep  2 14:27:12 2024
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+#!/bin/sh
+#BSUB -J HCPjob8GB
+#BSUB -q hpc
+#BSUB -R "rusage[mem=64GB]"
+#BSUB -o experiments2/output/HCPjob_out_%J.txt
+#BSUB -e experiments2/output/HCPjob_err_%J.txt
+#BSUB -W 48:00 
+#BSUB -n 2
+#BSUB -R "span[hosts=1]"
+
+# -- commands you want to execute -- 
+export OMP_NUM_THREADS=$LSB_DJOB_NUMPROC
+
+source ~/miniconda3/bin/activate
+conda activate hcp
+
+python3 experiments2/experiment_sequential_init_100.py Complex_Watson 1
+
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :                                   155.33 sec.
+    Max Memory :                                 149 MB
+    Average Memory :                             116.67 MB
+    Total Requested Memory :                     131072.00 MB
+    Delta Memory :                               130923.00 MB
+    Max Swap :                                   -
+    Max Processes :                              4
+    Max Threads :                                5
+    Run time :                                   190 sec.
+    Turnaround time :                            130 sec.
+
+The output (if any) is above this job summary.
+
+
+
+PS:
+
+Read file <experiments2/output/HCPjob_err_22605456.txt> for stderr output of this job.
+

@@ -28,7 +28,7 @@ figure('Position',[50,50,500,300])
 plot(t_fMRI/60,V_subs5(1:numel(t_fMRI),:)+0.05*[-5,0,0,0,4:3:18],'k-','LineWidth',1.5)
 set(gca,'box','off')
 xlim([-.1 5.1])
-yticks(0.05*[-5,16.5]),yticklabels({'P','1'}),ylabel('Voxel (j)'),xlabel('Time (i) [min]'),%title('fMRI time-series')
+yticks(0.05*[-5,16.5]),yticklabels({'p','1'}),ylabel('Voxel (j)'),xlabel('Time (t) [min]'),%title('fMRI time-series')
 exportgraphics(gca,[ff,'methods_ts_fMRI.png'],'Resolution',300,'BackgroundColor','none')
 
 %% Hilbert figure, fMRI
@@ -44,9 +44,9 @@ plot(t_fMRI/60,0.5+normc(V_phase(1:numel(t_fMRI),voxidx)),'k-.','LineWidth',1.5)
 set(gca,'box','off')
 xlim([-.1 5.1])
 ylim([0.3,1.7])
-yticks([0.5,0.75,1.2,1.5]),yticklabels({'\theta_j(i)','a_j(i)','s_j^{(h)}(i)','s_j(i)'})
+yticks([0.5,0.75,1.2,1.5]),yticklabels({'\theta_j(t)','a_j(t)','s_j^{(h)}(t)','s_j(t)'})
 %title('Hilbert transform'),
-xlabel('Time (i) [min]')
+xlabel('Time (t) [min]')
 % xlabel('Time [s]')
 % yticks([0,5,15]),yticklabels({'Hilbert \theta(t)','Hilbert a(t)','BOLD s(t)'})
 exportgraphics(gca,[ff,'methods_hilbertts_fMRI.png'],'Resolution',300,'BackgroundColor','none')
@@ -104,6 +104,66 @@ for i = 1:numel(timeidx)
     exportgraphics(gca,[ff,'cohmat_fMRI_',num2str(i),'.png'],'Resolution',300)
     close
 end
+
+%% Many phase vectors, including cosine and sine
+timeidx = [10,15,20];
+regidx = round(linspace(1,10000,116));
+for i = 1:numel(timeidx)
+    ROIs = 1:length(regidx);
+    for ii = 1:3
+        figure('Position',[50,50,75,200]),
+        if ii==1
+            x = V_phase(timeidx(i),regidx);
+        elseif ii==2
+            x = cos(V_phase(timeidx(i),regidx));
+        elseif ii==3
+            x = sin(V_phase(timeidx(i),regidx));
+        end
+        pos = x>0;neg = x<0;
+        minposwidth = min(diff(ROIs(pos)));
+        if isempty(minposwidth)
+            widthpos = 0.5;
+        else
+            widthpos = 0.5/minposwidth;
+        end
+
+        barh(ROIs(pos),x(:,pos),widthpos,'r','LineWidth',0.001),hold on
+        barh(ROIs(neg),x(:,neg),0.5,'b','LineWidth',0.001)
+        yticks([])
+        if i==1
+            if ii==1
+                xlim([-pi pi])
+                xticks([-pi, pi])
+                xticklabels({'-\pi','\pi'})
+            elseif ii==2
+                xlim([-1 1])
+                xticks([-1, 1])
+                xticklabels({'-1','1'})
+            elseif ii==3
+                xlim([-1 1])
+                xticks([-1, 1])
+                xticklabels({'-1','1'})
+            end
+        else xticks([])
+        end
+        a = get(gca,'XTickLabel');  
+        set(gca,'XTickLabel',a,'fontsize',6)
+        % ylabel('Brain region')
+        % yticks(20:20:100)
+%         box off
+%         axis off
+        %     box on
+        if ii==1
+        exportgraphics(gcf,[ff,'phasevec_fMRI_',num2str(i),'.png'],'Resolution',300,'BackgroundColor','none')
+        elseif ii==2
+            exportgraphics(gcf,[ff,'cosphasevec_fMRI_',num2str(i),'.png'],'Resolution',300,'BackgroundColor','none')
+        elseif ii==3
+            exportgraphics(gcf,[ff,'sinphasevec_fMRI_',num2str(i),'.png'],'Resolution',300,'BackgroundColor','none')
+        end
+        close
+    end
+end
+
 %% many leading eigenvectors
 
 timeidx = [10,15,20];
@@ -115,7 +175,7 @@ for i = 1:numel(timeidx)
     [V2,~] = eigs(cohmat,2);
 
     ROIs = 1:size(V2,1);
-    figure('Position',[50,50,100,300]),
+    figure('Position',[50,50,100,200]),
     tiledlayout(1,2,'TileSpacing','none')
     for ii = 1:2
         nexttile
@@ -129,16 +189,20 @@ for i = 1:numel(timeidx)
 
         barh(ROIs(pos),V2(pos,ii),widthpos,'r','LineWidth',0.001),hold on
         barh(ROIs(neg),V2(neg,ii),0.5,'b','LineWidth',0.001)
-        xlim([-0.03 0.03])
+        xlim([-0.15 0.15])
         yticks([])
         if i==1
             xticks([-0.1 0.1])
         else xticks([])
         end
+        a = get(gca,'XTickLabel');  
+        set(gca,'XTickLabel',a,'fontsize',6)
+        set(gca,'XTickLabelRotation',45)
         % ylabel('Brain region')
         % yticks(20:20:100)
-        box off
-        axis off
+%         box off
+%         box on
+%         axis off
     end
     %     box on
 

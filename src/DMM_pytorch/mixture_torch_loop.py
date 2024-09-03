@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 from src.DMM_EM.DMMEMBaseModel import DMMEMBaseModel
+from copy import deepcopy
 
 def mixture_torch_loop(model,data,L=None,tol=1e-8,max_iter=100000,num_repl=1,init=None,LR=0.1,suppress_output=False,threads=8):
     torch.set_num_threads(threads)
@@ -21,12 +22,15 @@ def mixture_torch_loop(model,data,L=None,tol=1e-8,max_iter=100000,num_repl=1,ini
             if init not in ['unif','uniform']:
                 model.initialize_transition_matrix(X=X)
 
-        if model.distribution in ['ACG_lowrank','MACG_lowrank','SingularWishart_lowrank']:
+        if model.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank','SingularWishart_lowrank']:
             if model.M.shape[-1]!=model.r:
-                model2 = model.clone()
+                model2 = deepcopy(model)
                 model2.r = model2.M.shape[-1]
                 Beta = model2.posterior(X=X)
-                M = DMMEMBaseModel.init_M_svd_given_M_init(X=X.numpy(),M_init=model.M.detach().numpy(),Beta=Beta.numpy())
+                if model.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
+                    M = DMMEMBaseModel.init_M_svd_given_M_init(X=X.numpy(),M_init=model.M.detach().numpy(),Beta=Beta.numpy())
+                elif model.distribution in ['SingularWishart_lowrank']:
+                    M = DMMEMBaseModel.init_M_svd_given_M_init(X=X.numpy(),M_init=model.M.detach().numpy(),Beta=Beta.numpy(),gamma=model.gamma.detach().numpy())
                 model.M = torch.nn.Parameter(torch.tensor(M))
 
         optimizer = torch.optim.Adam(model.parameters(),lr=LR)

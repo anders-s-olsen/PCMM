@@ -9,14 +9,14 @@ class DMMEMBaseModel():
     def unpack_params(self,params):
 
         # distribution-specific settings
-        if self.distribution == 'Watson':
+        if self.distribution in ['Watson','Complex_Watson']:
             self.mu = params['mu']
             self.kappa = params['kappa']
-        elif self.distribution in ['ACG_lowrank','MACG_lowrank','SingularWishart_lowrank']:
+        elif self.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank','SingularWishart_lowrank']:
             self.M = params['M']
             if self.M.ndim==2 and self.K==1:
                 self.M = self.M[None,:,:]
-        elif self.distribution in ['ACG_fullrank','MACG_fullrank','SingularWishart_fullrank']:
+        elif self.distribution in ['ACG_fullrank','Complex_ACG_fullrank','MACG_fullrank','SingularWishart_fullrank']:
             self.Lambda = params['Lambda']
         else:
             raise ValueError('Invalid distribution')
@@ -40,7 +40,7 @@ class DMMEMBaseModel():
         else:
             epsilon = np.sum(S[r:]**2)/(V.shape[1]-r)
         
-        if self.distribution in ['ACG_lowrank','MACG_lowrank']:
+        if self.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
             M = U[:,:r]@np.diag(np.sqrt((S[:r]**2-epsilon)/epsilon))
             return M
         elif self.distribution in ['SingularWishart_lowrank']:
@@ -65,7 +65,11 @@ class DMMEMBaseModel():
         # M_init_orth,_ = np.linalg.qr(M_init)
 
         # initialize remainder using the svd of the residual of X after subtracting the projection on M_init
-        M = np.zeros((self.K,self.p,self.r))
+        if self.distribution == 'Complex_ACG_lowrank':
+            M = np.zeros((self.K,self.p,self.r),dtype=complex)
+        else:
+            M = np.zeros((self.K,self.p,self.r))
+        
         for k in range(self.K):
             if X.ndim==2:
                 V = (beta[k][:,None]*X).T
@@ -73,7 +77,7 @@ class DMMEMBaseModel():
                 V = np.reshape(np.swapaxes(beta[k][:,None,None]*X,0,1),(self.p,self.q*X.shape[0]))
                 
             # projection matrix of M
-            if self.distribution in ['ACG_lowrank','MACG_lowrank']:
+            if self.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
                 gamma = 1/(1+np.linalg.norm(M_init[k],'fro')**2/self.p)
                 M_init[k] = np.sqrt(gamma)*M_init[k]
                 M_proj = M_init[k]@np.linalg.inv(M_init[k].T@M_init[k]+np.eye(M_init[k].shape[1]))@M_init[k].T
@@ -82,11 +86,11 @@ class DMMEMBaseModel():
             # M_proj = M_init[k]@np.linalg.inv(M_init[k].T@M_init[k])@M_init[k].T
             V_residual = V - M_proj@V
             M_extra = self.init_M_svd(V_residual,r=num_missing)
-            if self.distribution in ['ACG_lowrank','MACG_lowrank']:
+            if self.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
                 M[k] = np.concatenate([M_init[k],M_extra],axis=-1)
             elif self.distribution in ['SingularWishart_lowrank']:
                 M[k] = np.concatenate([M_init[k],M_extra[0]],axis=-1)
-            return M
+        return M
 
     def initialize(self,X,init_method,L=None):
         assert init_method in ['uniform','unif',
@@ -96,7 +100,11 @@ class DMMEMBaseModel():
                                'dc','diametrical_clustering','dc_seg','diametrical_clustering_seg',
                                'gc','grassmann_clustering','gc_seg','grassmann_clustering_seg',
                                'wgc','weighted_grassmann_clustering','wgc_seg','weighted_grassmann_clustering_seg']
-        assert self.distribution in ['Watson','Complex_Watson','ACG_lowrank','ACG_fullrank','MACG_lowrank','MACG_fullrank','SingularWishart_lowrank','SingularWishart_fullrank']
+        assert self.distribution in ['Watson','Complex_Watson',
+                                     'ACG_lowrank','ACG_fullrank',
+                                     'Complex_ACG_lowrank','Complex_ACG_fullrank',
+                                     'MACG_lowrank','MACG_fullrank',
+                                     'SingularWishart_lowrank','SingularWishart_fullrank']
 
         # for watson, always initialize kappa as ones, will be overwritten by 'seg' methods
         if self.distribution in ['Watson','Complex_Watson']:
@@ -111,12 +119,20 @@ class DMMEMBaseModel():
                 mu = np.random.uniform(size=(self.p,self.K))
                 self.mu = mu / np.linalg.norm(mu,axis=0)
             elif self.distribution == 'Complex_Watson':
-                mu = np.random.uniform(size=(self.p,self.K),dtype=np.complex)
+                mu = np.random.uniform(size=(self.p,self.K))+1j*np.random.uniform(size=(self.p,self.K))
                 self.mu = mu / np.linalg.norm(mu,axis=0)
             elif self.distribution in ['ACG_lowrank', 'MACG_lowrank','SingularWishart_lowrank']:
                 self.M = np.random.uniform(size=(self.K,self.p,self.r))
             elif self.distribution in ['ACG_fullrank', 'MACG_fullrank','SingularWishart_fullrank']:
                 M = np.random.uniform(size=(self.K,self.p,self.p))
+                self.Lambda = np.zeros((self.K,self.p,self.p))
+                for k in range(self.K):
+                    self.Lambda[k] = M[k]@M[k].T+np.eye(self.p)
+                    self.Lambda[k] = self.p*self.Lambda[k]/np.trace(self.Lambda[k])
+            elif self.distribution == 'Complex_ACG_lowrank':
+                self.M = np.random.uniform(size=(self.K,self.p,self.r))+1j*np.random.uniform(size=(self.K,self.p,self.r))
+            elif self.distribution == 'Complex_ACG_fullrank':
+                M = np.random.uniform(size=(self.K,self.p,self.p))+1j*np.random.uniform(size=(self.K,self.p,self.p))
                 self.Lambda = np.zeros((self.K,self.p,self.p))
                 for k in range(self.K):
                     self.Lambda[k] = M[k]@M[k].T+np.eye(self.p)
@@ -135,12 +151,17 @@ class DMMEMBaseModel():
                 print('Running diametrical clustering initialization')
                 mu,X_part,_ = diametrical_clustering(X=X2,K=self.K,max_iter=100000,num_repl=1,init='++')
             
-            if self.distribution == 'Watson':
+            if self.distribution in ['Watson','Complex_Watson']:
                 print('Initializing mu based on the clustering centroid')
                 self.mu = mu
             elif self.distribution == 'ACG_lowrank':
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
                 self.M = np.zeros((self.K,self.p,self.r))
+                for k in range(self.K):
+                    self.M[k] = self.init_M_svd(X[X_part==k].T,self.r)
+            elif self.distribution == 'Complex_ACG_lowrank':
+                print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
+                self.M = np.zeros((self.K,self.p,self.r),dtype=complex)
                 for k in range(self.K):
                     self.M[k] = self.init_M_svd(X[X_part==k].T,self.r)
             elif self.distribution == 'MACG_lowrank':
@@ -156,6 +177,12 @@ class DMMEMBaseModel():
             elif self.distribution in ['ACG_fullrank', 'MACG_fullrank','SingularWishart_fullrank']:
                 print('Initializing Lambda based on the clustering centroids')
                 self.Lambda = np.zeros((self.K,self.p,self.p))
+                for k in range(self.K):
+                    self.Lambda[k] = np.outer(mu[:,k],mu[:,k])+np.eye(self.p)
+                    self.Lambda[k] = self.p*self.Lambda[k]/np.trace(self.Lambda[k])
+            elif self.distribution == 'Complex_ACG_fullrank':
+                print('Initializing Lambda based on the clustering centroids')
+                self.Lambda = np.zeros((self.K,self.p,self.p),dtype=complex)
                 for k in range(self.K):
                     self.Lambda[k] = np.outer(mu[:,k],mu[:,k])+np.eye(self.p)
                     self.Lambda[k] = self.p*self.Lambda[k]/np.trace(self.Lambda[k])
@@ -220,8 +247,15 @@ class DMMEMBaseModel():
         if '_seg' in init_method:
             print('Estimating single component models as initialization')
             # run a single-component model on each segment
-            if self.distribution=='Watson':
+            if self.distribution == 'Watson':
                 mu = np.zeros((self.p,self.K))
+                kappa = np.zeros(self.K)
+                for k in range(self.K):
+                    mu[:,k],kappa[k] = self.M_step_single_component(X=X[X_part==k],beta=np.ones(np.sum(X_part==k)),mu=self.mu[:,k],kappa=self.kappa[k])
+                self.mu = mu
+                self.kappa = kappa
+            elif self.distribution == 'Complex_Watson':
+                mu = np.zeros((self.p,self.K),dtype=complex)
                 kappa = np.zeros(self.K)
                 for k in range(self.K):
                     mu[:,k],kappa[k] = self.M_step_single_component(X=X[X_part==k],beta=np.ones(np.sum(X_part==k)),mu=self.mu[:,k],kappa=self.kappa[k])
@@ -232,8 +266,18 @@ class DMMEMBaseModel():
                 for k in range(self.K):
                     M[k] = self.M_step_single_component(X=X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=self.M[k],Lambda=None)
                 self.M = M
+            elif self.distribution == 'Complex_ACG_lowrank':
+                M = np.zeros((self.K,self.p,self.r),dtype=complex)
+                for k in range(self.K):
+                    M[k] = self.M_step_single_component(X=X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=self.M[k],Lambda=None)
+                self.M = M
             elif self.distribution in ['ACG_fullrank','MACG_fullrank']:
                 Lambda = np.zeros((self.K,self.p,self.p))
+                for k in range(self.K):
+                    Lambda[k] = self.M_step_single_component(X=X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=None, Lambda=self.Lambda[k])
+                self.Lambda=Lambda
+            elif self.distribution == 'Complex_ACG_fullrank':
+                Lambda = np.zeros((self.K,self.p,self.p),dtype=complex)
                 for k in range(self.K):
                     Lambda[k] = self.M_step_single_component(X=X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=None, Lambda=self.Lambda[k])
                 self.Lambda=Lambda
@@ -287,13 +331,13 @@ class DMMEMBaseModel():
         return self.posterior_MM(log_pdf)
 
     def get_params(self):
-        if self.distribution == 'Watson':
+        if self.distribution in ['Watson','Complex_Watson']:
             return {'mu':self.mu,'kappa':self.kappa,'pi':self.pi}
-        elif self.distribution in ['ACG_lowrank','MACG_lowrank']:
+        elif self.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
             return {'M':self.M,'pi':self.pi}
         elif self.distribution == 'SingularWishart_lowrank':
             return {'M':self.M,'pi':self.pi,'gamma':self.gamma}
-        elif self.distribution in ['ACG_fullrank','MACG_fullrank','SingularWishart_fullrank']:
+        elif self.distribution in ['ACG_fullrank','Complex_ACG_fullrank','MACG_fullrank','SingularWishart_fullrank']:
             return {'Lambda':self.Lambda,'pi':self.pi}
         
     def set_params(self,params):

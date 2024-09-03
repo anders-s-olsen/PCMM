@@ -4,7 +4,7 @@ from scipy.cluster.vq import kmeans2
 import pandas as pd
 import matplotlib.pyplot as plt
 df = pd.DataFrame()
-num_repeats = 5
+num_repeats = 25
 num_points_per_cluster = 1000
 
 # make noise levels from 0 to 2pi in 8 steps
@@ -45,7 +45,6 @@ for scale in range(len(levels)):
     print('Working on '+str(levels[scale]))
     noise_scale = levels[scale]
 
-
     theta1 = np.array([0,np.pi/2,np.pi])
     theta2 = np.array([0,np.pi,np.pi/2])
 
@@ -53,6 +52,8 @@ for scale in range(len(levels)):
     l_all1 = np.zeros((num_points_per_cluster,2))
     u_all2 = np.zeros((num_points_per_cluster,3,2))
     l_all2 = np.zeros((num_points_per_cluster,2))
+    u_all_complex1 = np.zeros((num_points_per_cluster,3),dtype=complex)
+    u_all_complex2 = np.zeros((num_points_per_cluster,3),dtype=complex)
     for n in range(num_points_per_cluster):
         random_point = np.random.random(3)*noise_scale-noise_scale/2
         theta_random = theta1+random_point
@@ -65,6 +66,10 @@ for scale in range(len(levels)):
         u_all1[n,:,1] = u[:,order[1]]
         l_all1[n,1] = l[order[1]]
 
+        coh_map_complex = np.outer(np.exp(1j*theta_random),np.exp(-1j*theta_random))
+        l,u = np.linalg.eig(coh_map_complex)
+        u_all_complex1[n,:] = u[:,np.argmax(l)]
+
         random_point = np.random.random(3)*noise_scale-noise_scale/2
         theta_random = theta2+random_point
         # theta_random = np.array([theta2[0]+np.random.random()*scale,theta2[1]+np.random.random()*scale,theta2[2]+np.random.random()*scale])
@@ -75,12 +80,20 @@ for scale in range(len(levels)):
         l_all2[n,0] = l[order[0]]
         u_all2[n,:,1] = u[:,order[1]]
         l_all2[n,1] = l[order[1]]
+
+        coh_map_complex = np.outer(np.exp(1j*theta_random),np.exp(-1j*theta_random))
+        l,u = np.linalg.eig(coh_map_complex)
+        u_all_complex2[n,:] = u[:,np.argmax(l)]
+
     u_all = np.concatenate((u_all1,u_all2),axis=0)
     l_all = np.concatenate((l_all1,l_all2),axis=0)
+    u_all_complex = np.concatenate((u_all_complex1,u_all_complex2),axis=0)
     true_labels = np.zeros((2,num_points_per_cluster*2))
     true_labels[0,:num_points_per_cluster] = 1
     true_labels[1,num_points_per_cluster:] = 1
 
+    ######################################################3
+    # Kmeans
     u_in = u_all[:,:,0]
     for n in range(num_points_per_cluster*2):
         if np.sum(u_in[n]>0)>1:
@@ -95,6 +108,8 @@ for scale in range(len(levels)):
         nmi = calc_NMI(true_labels,labels)
         df = pd.concat([df,pd.DataFrame({'method':'kmeans','repeat':i,'centroids':[kmeans_cluster_centers],'nmi':nmi,'label':[labels],'noise':scale})])
 
+    ######################################################
+    # diametrical clustering (real)
     from src.DMM_EM.riemannian_clustering import diametrical_clustering
     u_in = u_all[:,:,0]
     for i in range(num_repeats):
@@ -105,6 +120,19 @@ for scale in range(len(levels)):
         nmi = calc_NMI(true_labels,labels)
         df = pd.concat([df,pd.DataFrame({'method':'diametrical','repeat':i,'centroids':[C],'nmi':nmi,'label':[labels],'noise':scale})])
 
+    ######################################################
+    # diametrical clustering (complex)
+    u_in = u_all_complex
+    for i in range(num_repeats):
+        C,part,obj = diametrical_clustering(u_in,2)
+        labels = np.zeros((2,num_points_per_cluster*2))
+        labels[0,part==0] = 1
+        labels[1,part==1] = 1
+        nmi = calc_NMI(true_labels,labels)
+        df = pd.concat([df,pd.DataFrame({'method':'diametrical_complex','repeat':i,'centroids':[C],'nmi':nmi,'label':[labels],'noise':scale})])
+
+    ######################################################
+    # grassmann clustering
     from src.DMM_EM.riemannian_clustering import grassmann_clustering
     u_in = u_all
     for i in range(num_repeats):
@@ -115,6 +143,8 @@ for scale in range(len(levels)):
         nmi = calc_NMI(true_labels,labels)
         df = pd.concat([df,pd.DataFrame({'method':'grassmann','repeat':i,'centroids':[C],'nmi':nmi,'label':[labels],'noise':scale})])
 
+    ######################################################
+    # weighted grassmann clustering
     from src.DMM_EM.riemannian_clustering import weighted_grassmann_clustering
     u_in = u_all
     l_in = l_all
@@ -126,6 +156,8 @@ for scale in range(len(levels)):
         nmi = calc_NMI(true_labels,labels)
         df = pd.concat([df,pd.DataFrame({'method':'weighted_grassmann','repeat':i,'centroids':[C],'centroids_weights':[C_weights],'nmi':nmi,'label':[labels],'noise':scale})])
 
+    ######################################################
+    # mixture models
     from src.helper_functions import train_model
     options = {}
     options['init'] = 'dc_seg'
@@ -138,30 +170,55 @@ for scale in range(len(levels)):
     if options['LR']!=0:
         import torch
         u_all = torch.tensor(u_all)
+        l_all = torch.tensor(l_all)
+        u_all_complex = torch.tensor(u_all_complex)
 
+    ######################################################
+    # Watson (real)
     u_in = u_all[:,:,0]
     options['modelname'] = 'Watson'
-    options['threads'] = 8
     options['rank'] = 1
     for i in range(num_repeats):
         params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=None,K=2,options=options)
         train_NMI = calc_NMI(true_labels,np.double(np.array(train_posterior)))
         df = pd.concat([df,pd.DataFrame({'method':'Watson','repeat':i,'centroids':[params],'nmi':train_NMI,'label':[labels],'noise':scale})])
 
+    ######################################################
+    # Watson (complex)
+    u_in = u_all_complex
+    options['modelname'] = 'Complex_Watson'
+    options['rank'] = 1
+    for i in range(num_repeats):
+        params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=None,K=2,options=options)
+        train_NMI = calc_NMI(true_labels,np.double(np.array(train_posterior)))
+        df = pd.concat([df,pd.DataFrame({'method':'Complex_Watson','repeat':i,'centroids':[params],'nmi':train_NMI,'label':[labels],'noise':scale})])
+
+    ######################################################
+    # ACG (real)
     u_in = u_all[:,:,0]
     options['modelname'] = 'ACG'
-    options['threads'] = 8
     options['rank'] = 'fullrank'
     for i in range(num_repeats):
         params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=None,K=2,options=options)
         train_NMI = calc_NMI(true_labels,np.double(np.array(train_posterior)))
-        # Lambda = params['M']@np.swapaxes(params['M'],-2,-1)+np.eye(3)
         Lambda=params['Lambda']
         df = pd.concat([df,pd.DataFrame({'method':'ACG_fullrank','repeat':i,'centroids':[Lambda],'nmi':train_NMI,'label':[labels],'noise':scale})])
 
+    ######################################################
+    # ACG (complex)
+    u_in = u_all_complex
+    options['modelname'] = 'Complex_ACG'
+    options['rank'] = 'fullrank'
+    for i in range(num_repeats):
+        params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=None,K=2,options=options)
+        train_NMI = calc_NMI(true_labels,np.double(np.array(train_posterior)))
+        Lambda=params['Lambda']
+        df = pd.concat([df,pd.DataFrame({'method':'Complex_ACG_fullrank','repeat':i,'centroids':[Lambda],'nmi':train_NMI,'label':[labels],'noise':scale})])
+
+    ######################################################
+    # MACG
     u_in = u_all
     options['modelname'] = 'MACG'
-    options['threads'] = 8
     options['rank'] = 'fullrank'
     for i in range(num_repeats):
         params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=None,K=2,options=options)
@@ -170,10 +227,11 @@ for scale in range(len(levels)):
         Sigma = params['Lambda']
         df = pd.concat([df,pd.DataFrame({'method':'MACG_fullrank','repeat':i,'centroids':[Sigma],'nmi':train_NMI,'label':[labels],'noise':scale})])
 
+    ######################################################
+    # SingularWishart
     u_in = u_all
     l_in = l_all
     options['modelname'] = 'SingularWishart'
-    options['threads'] = 8
     options['rank'] = 'fullrank'
     for i in range(num_repeats):
         params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=l_in,K=2,options=options)

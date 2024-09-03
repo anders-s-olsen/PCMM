@@ -10,9 +10,12 @@ def run(data_train,L_train,data_test,L_test,K,df,options,params=None,suppress_ou
     test_loglik,test_posterior = test_model(data_test=data_test,L_test=L_test,params=params,K=K,options=options)
     entry = {'modelname':options['modelname'],'init_method':options['init'],'LR':options['LR'],'HMM':str(options['HMM']),
              'K':K,'p':p,'rank':options['rank'],'inner':inner,'iter':len(loglik_curve),
-             'train_loglik':loglik_curve[-1],'test_loglik':test_loglik,'train_posterior':train_posterior,'test_posterior':test_posterior}
+             'train_loglik':loglik_curve[-1],'test_loglik':test_loglik}
+    #save the posterior as txt
+    # np.savetxt(options['outfolder']+'/posteriors/'+options['experiment_name']+'_train_posterior_rank'+str(options['rank'])+'_inner'+str(inner)+'.txt',train_posterior)
+    # np.savetxt(options['outfolder']+'/posteriors/'+options['experiment_name']+'_test_posterior_rank'+str(options['rank'])+'_inner'+str(inner)+'.txt',test_posterior)
     df = pd.concat([df,pd.DataFrame([entry])],ignore_index=True)
-    df.to_csv(options['outfolder']+'/'+options['experiment_name']+'.csv')
+    # df.to_csv(options['outfolder']+'/'+options['experiment_name']+'.csv')
     return params,df
 
 def run_experiment(extraoptions={},suppress_output=False):
@@ -36,14 +39,19 @@ def run_experiment(extraoptions={},suppress_output=False):
     options['experiment_name'] = 'realdata_'+options['modelname']+'_K='+str(K)
     options['LR'] = 0
 
-    # load data using h5
-    with h5.File('data/processed/fMRI_SchaeferTian116_GSR.h5','r') as f:
+    data_folder = 'data/processed/'
+    if options['modelname'] in ['Complex_Watson','Complex_ACG']:
+        add_complex = '_complex'
+    else:
+        add_complex = ''
+    data_file = data_folder+'fMRI_SchaeferTian116_GSR'+add_complex+'.h5'
+    with h5.File(data_file,'r') as f:
         data_train = f['U_train'][:]
         L_train = f['L_train'][:]
         data_test = f['U_test'][:]
         L_test = f['L_test'][:]
 
-    if options['modelname']=='Watson' or options['modelname']=='ACG':
+    if options['modelname'] in ['Watson','Complex_Watson','ACG','Complex_ACG']:
         data_train = data_train[:,:,0]
         data_test = data_test[:,:,0]
 
@@ -61,7 +69,7 @@ def run_experiment(extraoptions={},suppress_output=False):
                 print('Running model:',options['modelname'],'rank:',rank,'inner:',inner)
 
                 params_MM = None
-                if options['modelname'] in ['Watson','ACG']:
+                if options['modelname'] in ['Watson','ACG','Complex_Watson','Complex_ACG']:
                     options['init'] = 'dc' #rank 1 model
                 elif options['modelname']=='MACG':
                     options['init'] = 'gc'
@@ -72,7 +80,7 @@ def run_experiment(extraoptions={},suppress_output=False):
                 np.save(options['outfolder']+'/params/'+options['modelname']+'_rank'+str(rank)+'_K'+str(K)+'_params.npy',params)
 
             else:
-                if options['modelname'] == 'Watson':        
+                if options['modelname'] in ['Watson','Complex_Watson']:        
                     break
                 print('Running model:',options['modelname'],'rank:',rank,'inner:',inner)
                 options['init'] = 'no'
@@ -92,8 +100,8 @@ if __name__=="__main__":
         options['K'] = int(sys.argv[2])
         run_experiment(extraoptions=options,suppress_output=True)
     else:
-        modelnames = ['Watson','ACG','MACG','SingularWishart']
+        modelnames = ['Watson','ACG','MACG','SingularWishart','Complex_Watson','Complex_ACG']
         modelnames = ['SingularWishart']
-        K = 1
+        K = 4
         for modelname in modelnames:
             run_experiment(extraoptions={'modelname':modelname,'K':K},suppress_output=False)

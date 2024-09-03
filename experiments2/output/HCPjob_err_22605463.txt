@@ -1,0 +1,1 @@
+/zhome/61/4/109113/.lsbatch/1725279911.22605463.shell: line 17: 3503571 Killed                  python3 experiments2/experiment_sequential_init_100.py Complex_Watson 4

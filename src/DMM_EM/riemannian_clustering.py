@@ -27,7 +27,7 @@ def plusplus_initialization(X,K,X_weights=None,dist='diametrical'):
 
     for k in range(K):
         if dist == 'diametrical':
-            dis = 1-(X@C)**2 
+            dis = 1-np.abs(X@C.conj())**2  #abs for complex support
             dis = np.clip(dis,0,None)
         elif dist == 'grassmann':
             dis = 1/np.sqrt(2)*(2*q-2*np.linalg.norm(np.swapaxes(X[:,None],-2,-1)@C[:k+1][None],axis=(-2,-1)))
@@ -68,7 +68,10 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
         if init is None or init=='++' or init=='plusplus' or init == 'diametrical_clustering_plusplus':
             C,_,_ = plusplus_initialization(X,K,X_weights=None,dist='diametrical')
         elif init=='uniform' or init=='unif':
-            C = np.random.uniform(size=(p,K))
+            if X.dtype == 'complex':
+                C = np.random.uniform(size=(p,K))+1j*np.random.uniform(size=(p,K))
+            else:
+                C = np.random.uniform(size=(p,K))
             C = C/np.linalg.norm(C,axis=0)
         
         iter = 0
@@ -76,7 +79,7 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
         partsum = np.zeros((max_iter,K))
         while True:
             # E-step
-            sim = (X@C)**2
+            sim = np.abs(X@C.conj())**2 #abs for complex support
             maxsim = np.max(sim,axis=1)
             X_part = np.argmax(sim,axis=1)
             obj.append(np.mean(maxsim))
@@ -98,7 +101,7 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
                 #     continue
                 
                 # # Establish covariance matrix
-                A = X[idx_k].T@X[idx_k]
+                A = X[idx_k].T@X[idx_k].conj()
                 C[:,k] = A@C[:,k]
 
             C = C/np.linalg.norm(C,axis=0)

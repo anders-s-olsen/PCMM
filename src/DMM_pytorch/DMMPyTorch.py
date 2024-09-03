@@ -18,10 +18,10 @@ class DMMPyTorchBaseModel(nn.Module):
                 params[key] = torch.tensor(params[key])
         
         # distribution-specific settings
-        if self.distribution == 'Watson':
+        if self.distribution in ['Watson','Complex_Watson']:
             self.mu = nn.Parameter(params['mu'])
             self.kappa = nn.Parameter(params['kappa'])
-        elif self.distribution in ['ACG_lowrank','MACG_lowrank','SingularWishart_lowrank']:
+        elif self.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank','SingularWishart_lowrank']:
             self.M = params['M']
         else:
             raise ValueError('Invalid distribution')
@@ -65,8 +65,16 @@ class DMMPyTorchBaseModel(nn.Module):
             WatsonEM = Watson(p=self.p.numpy(),K=self.K.numpy())
             WatsonEM.initialize(X.numpy(),init_method=init_method)
             self.unpack_params(WatsonEM.get_params())
+        elif self.distribution == 'Complex_Watson':
+            WatsonEM = Watson(p=self.p.numpy(),K=self.K.numpy(),complex=True)
+            WatsonEM.initialize(X.numpy(),init_method=init_method)
+            self.unpack_params(WatsonEM.get_params())
         elif self.distribution == 'ACG_lowrank':
             ACGEM = ACG(p=self.p.numpy(),K=self.K.numpy(),rank=self.r.numpy())
+            ACGEM.initialize(X.numpy(),init_method=init_method)
+            self.unpack_params(ACGEM.get_params())
+        elif self.distribution == 'Complex_ACG_lowrank':
+            ACGEM = ACG(p=self.p.numpy(),K=self.K.numpy(),rank=self.r.numpy(),complex=True)
             ACGEM.initialize(X.numpy(),init_method=init_method)
             self.unpack_params(ACGEM.get_params())
         elif self.distribution == 'MACG_lowrank':
@@ -198,9 +206,9 @@ class DMMPyTorchBaseModel(nn.Module):
                 return self.posterior_MM(log_pdf)
     
     def get_params(self):
-        if self.distribution == 'Watson':
+        if self.distribution in ['Watson','Complex_Watson']:
             return {'mu':self.mu.detach(),'kappa':self.kappa.detach(),'pi':self.pi.detach()}
-        elif self.distribution in ['ACG_lowrank','MACG_lowrank']:
+        elif self.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
             return {'M':self.M.detach(),'pi':self.pi.detach()}
         elif self.distribution == 'SingularWishart_lowrank':
             return {'M':self.M.detach(),'gamma':self.gamma.detach(),'pi':self.pi.detach()}

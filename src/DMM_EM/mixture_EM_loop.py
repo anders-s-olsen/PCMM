@@ -17,15 +17,15 @@ def mixture_EM_loop(model,data,L=None,tol=1e-8,max_iter=10000,num_repl=1,init=No
         if init != 'no':
             model.initialize(X=data,L=L,init_method=init) #NB using 'data', not 'X'
 
-        if model.distribution in ['ACG_lowrank','MACG_lowrank','SingularWishart_lowrank']:
+        if model.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank','SingularWishart_lowrank']:
             if model.M.shape[-1]!=model.r:
                 model2 = deepcopy(model)
                 model2.r = model2.M.shape[-1]
                 beta = model2.posterior(X=X)
-                if model.distribution in ['ACG_lowrank','MACG_lowrank']:
+                if model.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
                     model.M = model.init_M_svd_given_M_init(X=X,M_init=model2.M,beta=beta)
                 elif model.distribution in ['SingularWishart_lowrank']:
-                    model.M,model.gamma = model.init_M_svd_given_M_init(X=X,M_init=model2.M,beta=beta,gamma=model2.gamma)
+                    model.M = model.init_M_svd_given_M_init(X=X,M_init=model2.M,beta=beta,gamma=model2.gamma)
 
         loglik = []
         params = []

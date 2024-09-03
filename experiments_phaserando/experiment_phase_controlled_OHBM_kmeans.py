@@ -6,7 +6,7 @@ import h5py as h5
 from src.DMM_EM.riemannian_clustering import *
 from scipy.cluster.vq import kmeans2
 
-def run_experiment(extraoptions={},suppress_output=False):
+def run_experiment(extraoptions={},dataset='phase_controlled',suppress_output=False):
     # options pertaining to current experiment
     options = {}
     options['tol'] = 1e-10
@@ -15,29 +15,31 @@ def run_experiment(extraoptions={},suppress_output=False):
     options['max_iter'] = 100000
     options['outfolder'] = 'data/results/torchvsEM_phase_controlled_results'
     options['num_subjects'] = 1
-    options['data_type'] = 'phase_controlled'
+    options['data_type'] = dataset
     options['threads'] = 8
     options.update(extraoptions) #modelname, LR, init controlled in shell script
     os.makedirs(options['outfolder'],exist_ok=True)
     p = 116
     K = 5
 
-    # load data using h5
-    # with h5.File('data/synthetic/one_frequency_phase_controlled_116data_eida.h5','r') as f:
-    # options['experiment_name'] = 'phase_amplitude_controlled_'+options['modelname']
-    # with h5.File('data/synthetic/phase_amplitude_controlled_116data_eida.h5','r') as f:
-    options['experiment_name'] = 'phase_controlled_'+options['modelname']
-    with h5.File('data/synthetic/phase_controlled_116data_eida.h5','r') as f:
+    data_folder = 'data/synthetic/'
+    options['experiment_name'] = dataset+'_'+options['modelname']
+    if options['modelname'] == 'Complex_diametrical':
+        add_complex = 'complex_'
+    else:
+        add_complex = ''
+    data_file = data_folder+add_complex+dataset+'_116data_eida.h5'
+    with h5.File(data_file,'r') as f:
+        data = f['U'][:]
+        L = f['L'][:]
 
-        data_train = f['U'][:]
-        L_train = f['L'][:]
     if options['modelname']=='euclidean':
-        data_train = data_train[:,:,0]
-        data_train[np.sum(data_train,axis=-1)>p//2]=-data_train[np.sum(data_train,axis=-1)>p//2]
-    elif options['modelname']=='diametrical':
-        data_train = data_train[:,:,0]
-    data_train = data_train[:1200*options['num_subjects']]
-    L_train = L_train[:1200*options['num_subjects']]
+        data = data[:,:,0]
+        data[np.sum(data,axis=-1)>p//2]=-data[np.sum(data,axis=-1)>p//2]
+    elif options['modelname'] in ['diametrical','Complex_diametrical']:
+        data = data[:,:,0]
+    data = data[:1200*options['num_subjects']]
+    L = L[:1200*options['num_subjects']]
 
     df = pd.DataFrame()
     P = np.double(make_true_mat(options['num_subjects']))
@@ -46,13 +48,15 @@ def run_experiment(extraoptions={},suppress_output=False):
     for inner in range(options['num_repl_outer']):
         print('Running experiment: ',options['experiment_name'],' inner: ',inner)
         if options['modelname']=='euclidean':
-            _,labels = kmeans2(data_train,k=K,minit='++')
+            _,labels = kmeans2(data,k=K,minit='++')
         elif options['modelname']=='diametrical':
-            C,labels,obj = diametrical_clustering(data_train,K=K,max_iter=10000,num_repl=1,init=options['init'],tol=1e-16)
+            C,labels,obj = diametrical_clustering(data,K=K,max_iter=10000,num_repl=1,init=options['init'],tol=1e-16)
+        elif options['modelname']=='Complex_diametrical':
+            C,labels,obj = diametrical_clustering(data,K=K,max_iter=10000,num_repl=1,init=options['init'],tol=1e-16)
         elif options['modelname']=='grassmann':
-            C,labels,obj = grassmann_clustering(data_train,K=K,max_iter=10000,num_repl=1,init=options['init'],tol=1e-16)
+            C,labels,obj = grassmann_clustering(data,K=K,max_iter=10000,num_repl=1,init=options['init'],tol=1e-16)
         elif options['modelname']=='weighted_grassmann':
-            C,S,labels,obj = weighted_grassmann_clustering(data_train,L_train,K=K,max_iter=10000,num_repl=1,init=options['init'],tol=1e-16)
+            C,S,labels,obj = weighted_grassmann_clustering(data,L,K=K,max_iter=10000,num_repl=1,init=options['init'],tol=1e-16)
         labels = np.eye(K)[labels]
         labels = labels.T
         train_NMI = calc_NMI(P,np.double(np.array(labels)))
@@ -66,13 +70,15 @@ def run_experiment(extraoptions={},suppress_output=False):
         if options['modelname']=='euclidean':
             init_matrix = np.random.random((K,p))
             init_matrix = init_matrix/np.linalg.norm(init_matrix,axis=-1)[:,np.newaxis]
-            _,labels = kmeans2(data_train,k=init_matrix,minit='matrix')
+            _,labels = kmeans2(data,k=init_matrix,minit='matrix')
         elif options['modelname']=='diametrical':
-            C,labels,obj = diametrical_clustering(data_train,K=K,max_iter=10000,num_repl=1,init=options['init'],tol=1e-16)
+            C,labels,obj = diametrical_clustering(data,K=K,max_iter=10000,num_repl=1,init=options['init'],tol=1e-16)
+        elif options['modelname']=='Complex_diametrical':
+            C,labels,obj = diametrical_clustering(data,K=K,max_iter=10000,num_repl=1,init=options['init'],tol=1e-16)
         elif options['modelname']=='grassmann':
-            C,labels,obj = grassmann_clustering(data_train,K=K,max_iter=10000,num_repl=1,init=options['init'],tol=1e-16)
+            C,labels,obj = grassmann_clustering(data,K=K,max_iter=10000,num_repl=1,init=options['init'],tol=1e-16)
         elif options['modelname']=='weighted_grassmann':
-            C,S,labels,obj = weighted_grassmann_clustering(data_train,L_train,K=K,max_iter=10000,num_repl=1,init=options['init'],tol=1e-16)
+            C,S,labels,obj = weighted_grassmann_clustering(data,L,K=K,max_iter=10000,num_repl=1,init=options['init'],tol=1e-16)
         labels = np.eye(K)[labels]
         labels = labels.T
         train_NMI = calc_NMI(P,np.double(np.array(labels)))
@@ -86,9 +92,9 @@ if __name__=="__main__":
         print(sys.argv)
         options = {}
         options['modelname'] = sys.argv[1]
-        run_experiment(extraoptions=options,suppress_output=True)
+        run_experiment(extraoptions=options,dataset=sys.argv[2],suppress_output=True)
     else:
-        modelnames = ['euclidean','diametrical','grassmann','weighted_grassmann']
-        # modelnames = ['diametrical']
+        modelnames = ['euclidean','diametrical','Complex_diametrical','grassmann','weighted_grassmann']
+        # modelnames = ['Complex_diametrical']
         for modelname in modelnames:
-            run_experiment(extraoptions={'modelname':modelname},suppress_output=False)
+            run_experiment(extraoptions={'modelname':modelname},dataset='phase_narrowband_controlled',suppress_output=False)

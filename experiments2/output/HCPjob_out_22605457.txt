@@ -1,0 +1,661 @@
+['experiments2/experiment_sequential_init_100.py', 'ACG', '1']
+Running model: ACG rank: 1 inner: 0
+Running diametrical clustering initialization
+Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering
+Beginning EM loop
+Running model: ACG rank: 3 inner: 0
+Beginning EM loop
+Running model: ACG rank: 5 inner: 0
+Beginning EM loop
+Running model: ACG rank: 7 inner: 0
+Beginning EM loop
+Running model: ACG rank: 9 inner: 0
+Beginning EM loop
+Running model: ACG rank: 11 inner: 0
+Beginning EM loop
+Running model: ACG rank: 13 inner: 0
+Beginning EM loop
+Running model: ACG rank: 15 inner: 0
+Beginning EM loop
+Running model: ACG rank: 17 inner: 0
+Beginning EM loop
+Running model: ACG rank: 19 inner: 0
+Beginning EM loop
+Running model: ACG rank: 21 inner: 0
+Beginning EM loop
+Running model: ACG rank: 23 inner: 0
+Beginning EM loop
+Running model: ACG rank: 25 inner: 0
+Beginning EM loop
+Running model: ACG rank: 27 inner: 0
+Beginning EM loop
+Running model: ACG rank: 29 inner: 0
+Beginning EM loop
+Running model: ACG rank: 31 inner: 0
+Beginning EM loop
+Running model: ACG rank: 33 inner: 0
+Beginning EM loop
+Running model: ACG rank: 35 inner: 0
+Beginning EM loop
+Running model: ACG rank: 37 inner: 0
+Beginning EM loop
+Running model: ACG rank: 39 inner: 0
+Beginning EM loop
+Running model: ACG rank: 41 inner: 0
+Beginning EM loop
+Running model: ACG rank: 43 inner: 0
+Beginning EM loop
+Running model: ACG rank: 45 inner: 0
+Beginning EM loop
+Running model: ACG rank: 47 inner: 0
+Beginning EM loop
+Running model: ACG rank: 49 inner: 0
+Beginning EM loop
+Running model: ACG rank: 51 inner: 0
+Beginning EM loop
+Running model: ACG rank: 53 inner: 0
+Beginning EM loop
+Running model: ACG rank: 55 inner: 0
+Beginning EM loop
+Running model: ACG rank: 57 inner: 0
+Beginning EM loop
+Running model: ACG rank: 1 inner: 1
+Running diametrical clustering initialization
+Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering
+Beginning EM loop
+Running model: ACG rank: 3 inner: 1
+Beginning EM loop
+Running model: ACG rank: 5 inner: 1
+Beginning EM loop
+Running model: ACG rank: 7 inner: 1
+Beginning EM loop
+Running model: ACG rank: 9 inner: 1
+Beginning EM loop
+Running model: ACG rank: 11 inner: 1
+Beginning EM loop
+Running model: ACG rank: 13 inner: 1
+Beginning EM loop
+Running model: ACG rank: 15 inner: 1
+Beginning EM loop
+Running model: ACG rank: 17 inner: 1
+Beginning EM loop
+Running model: ACG rank: 19 inner: 1
+Beginning EM loop
+Running model: ACG rank: 21 inner: 1
+Beginning EM loop
+Running model: ACG rank: 23 inner: 1
+Beginning EM loop
+Running model: ACG rank: 25 inner: 1
+Beginning EM loop
+Running model: ACG rank: 27 inner: 1
+Beginning EM loop
+Running model: ACG rank: 29 inner: 1
+Beginning EM loop
+Running model: ACG rank: 31 inner: 1
+Beginning EM loop
+Running model: ACG rank: 33 inner: 1
+Beginning EM loop
+Running model: ACG rank: 35 inner: 1
+Beginning EM loop
+Running model: ACG rank: 37 inner: 1
+Beginning EM loop
+Running model: ACG rank: 39 inner: 1
+Beginning EM loop
+Running model: ACG rank: 41 inner: 1
+Beginning EM loop
+Running model: ACG rank: 43 inner: 1
+Beginning EM loop
+Running model: ACG rank: 45 inner: 1
+Beginning EM loop
+Running model: ACG rank: 47 inner: 1
+Beginning EM loop
+Running model: ACG rank: 49 inner: 1
+Beginning EM loop
+Running model: ACG rank: 51 inner: 1
+Beginning EM loop
+Running model: ACG rank: 53 inner: 1
+Beginning EM loop
+Running model: ACG rank: 55 inner: 1
+Beginning EM loop
+Running model: ACG rank: 57 inner: 1
+Beginning EM loop
+Running model: ACG rank: 1 inner: 2
+Running diametrical clustering initialization
+Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering
+Beginning EM loop
+Running model: ACG rank: 3 inner: 2
+Beginning EM loop
+Running model: ACG rank: 5 inner: 2
+Beginning EM loop
+Running model: ACG rank: 7 inner: 2
+Beginning EM loop
+Running model: ACG rank: 9 inner: 2
+Beginning EM loop
+Running model: ACG rank: 11 inner: 2
+Beginning EM loop
+Running model: ACG rank: 13 inner: 2
+Beginning EM loop
+Running model: ACG rank: 15 inner: 2
+Beginning EM loop
+Running model: ACG rank: 17 inner: 2
+Beginning EM loop
+Running model: ACG rank: 19 inner: 2
+Beginning EM loop
+Running model: ACG rank: 21 inner: 2
+Beginning EM loop
+Running model: ACG rank: 23 inner: 2
+Beginning EM loop
+Running model: ACG rank: 25 inner: 2
+Beginning EM loop
+Running model: ACG rank: 27 inner: 2
+Beginning EM loop
+Running model: ACG rank: 29 inner: 2
+Beginning EM loop
+Running model: ACG rank: 31 inner: 2
+Beginning EM loop
+Running model: ACG rank: 33 inner: 2
+Beginning EM loop
+Running model: ACG rank: 35 inner: 2
+Beginning EM loop
+Running model: ACG rank: 37 inner: 2
+Beginning EM loop
+Running model: ACG rank: 39 inner: 2
+Beginning EM loop
+Running model: ACG rank: 41 inner: 2
+Beginning EM loop
+Running model: ACG rank: 43 inner: 2
+Beginning EM loop
+Running model: ACG rank: 45 inner: 2
+Beginning EM loop
+Running model: ACG rank: 47 inner: 2
+Beginning EM loop
+Running model: ACG rank: 49 inner: 2
+Beginning EM loop
+Running model: ACG rank: 51 inner: 2
+Beginning EM loop
+Running model: ACG rank: 53 inner: 2
+Beginning EM loop
+Running model: ACG rank: 55 inner: 2
+Beginning EM loop
+Running model: ACG rank: 57 inner: 2
+Beginning EM loop
+Running model: ACG rank: 1 inner: 3
+Running diametrical clustering initialization
+Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering
+Beginning EM loop
+Running model: ACG rank: 3 inner: 3
+Beginning EM loop
+Running model: ACG rank: 5 inner: 3
+Beginning EM loop
+Running model: ACG rank: 7 inner: 3
+Beginning EM loop
+Running model: ACG rank: 9 inner: 3
+Beginning EM loop
+Running model: ACG rank: 11 inner: 3
+Beginning EM loop
+Running model: ACG rank: 13 inner: 3
+Beginning EM loop
+Running model: ACG rank: 15 inner: 3
+Beginning EM loop
+Running model: ACG rank: 17 inner: 3
+Beginning EM loop
+Running model: ACG rank: 19 inner: 3
+Beginning EM loop
+Running model: ACG rank: 21 inner: 3
+Beginning EM loop
+Running model: ACG rank: 23 inner: 3
+Beginning EM loop
+Running model: ACG rank: 25 inner: 3
+Beginning EM loop
+Running model: ACG rank: 27 inner: 3
+Beginning EM loop
+Running model: ACG rank: 29 inner: 3
+Beginning EM loop
+Running model: ACG rank: 31 inner: 3
+Beginning EM loop
+Running model: ACG rank: 33 inner: 3
+Beginning EM loop
+Running model: ACG rank: 35 inner: 3
+Beginning EM loop
+Running model: ACG rank: 37 inner: 3
+Beginning EM loop
+Running model: ACG rank: 39 inner: 3
+Beginning EM loop
+Running model: ACG rank: 41 inner: 3
+Beginning EM loop
+Running model: ACG rank: 43 inner: 3
+Beginning EM loop
+Running model: ACG rank: 45 inner: 3
+Beginning EM loop
+Running model: ACG rank: 47 inner: 3
+Beginning EM loop
+Running model: ACG rank: 49 inner: 3
+Beginning EM loop
+Running model: ACG rank: 51 inner: 3
+Beginning EM loop
+Running model: ACG rank: 53 inner: 3
+Beginning EM loop
+Running model: ACG rank: 55 inner: 3
+Beginning EM loop
+Running model: ACG rank: 57 inner: 3
+Beginning EM loop
+Running model: ACG rank: 1 inner: 4
+Running diametrical clustering initialization
+Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering
+Beginning EM loop
+Running model: ACG rank: 3 inner: 4
+Beginning EM loop
+Running model: ACG rank: 5 inner: 4
+Beginning EM loop
+Running model: ACG rank: 7 inner: 4
+Beginning EM loop
+Running model: ACG rank: 9 inner: 4
+Beginning EM loop
+Running model: ACG rank: 11 inner: 4
+Beginning EM loop
+Running model: ACG rank: 13 inner: 4
+Beginning EM loop
+Running model: ACG rank: 15 inner: 4
+Beginning EM loop
+Running model: ACG rank: 17 inner: 4
+Beginning EM loop
+Running model: ACG rank: 19 inner: 4
+Beginning EM loop
+Running model: ACG rank: 21 inner: 4
+Beginning EM loop
+Running model: ACG rank: 23 inner: 4
+Beginning EM loop
+Running model: ACG rank: 25 inner: 4
+Beginning EM loop
+Running model: ACG rank: 27 inner: 4
+Beginning EM loop
+Running model: ACG rank: 29 inner: 4
+Beginning EM loop
+Running model: ACG rank: 31 inner: 4
+Beginning EM loop
+Running model: ACG rank: 33 inner: 4
+Beginning EM loop
+Running model: ACG rank: 35 inner: 4
+Beginning EM loop
+Running model: ACG rank: 37 inner: 4
+Beginning EM loop
+Running model: ACG rank: 39 inner: 4
+Beginning EM loop
+Running model: ACG rank: 41 inner: 4
+Beginning EM loop
+Running model: ACG rank: 43 inner: 4
+Beginning EM loop
+Running model: ACG rank: 45 inner: 4
+Beginning EM loop
+Running model: ACG rank: 47 inner: 4
+Beginning EM loop
+Running model: ACG rank: 49 inner: 4
+Beginning EM loop
+Running model: ACG rank: 51 inner: 4
+Beginning EM loop
+Running model: ACG rank: 53 inner: 4
+Beginning EM loop
+Running model: ACG rank: 55 inner: 4
+Beginning EM loop
+Running model: ACG rank: 57 inner: 4
+Beginning EM loop
+Running model: ACG rank: 1 inner: 5
+Running diametrical clustering initialization
+Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering
+Beginning EM loop
+Running model: ACG rank: 3 inner: 5
+Beginning EM loop
+Running model: ACG rank: 5 inner: 5
+Beginning EM loop
+Running model: ACG rank: 7 inner: 5
+Beginning EM loop
+Running model: ACG rank: 9 inner: 5
+Beginning EM loop
+Running model: ACG rank: 11 inner: 5
+Beginning EM loop
+Running model: ACG rank: 13 inner: 5
+Beginning EM loop
+Running model: ACG rank: 15 inner: 5
+Beginning EM loop
+Running model: ACG rank: 17 inner: 5
+Beginning EM loop
+Running model: ACG rank: 19 inner: 5
+Beginning EM loop
+Running model: ACG rank: 21 inner: 5
+Beginning EM loop
+Running model: ACG rank: 23 inner: 5
+Beginning EM loop
+Running model: ACG rank: 25 inner: 5
+Beginning EM loop
+Running model: ACG rank: 27 inner: 5
+Beginning EM loop
+Running model: ACG rank: 29 inner: 5
+Beginning EM loop
+Running model: ACG rank: 31 inner: 5
+Beginning EM loop
+Running model: ACG rank: 33 inner: 5
+Beginning EM loop
+Running model: ACG rank: 35 inner: 5
+Beginning EM loop
+Running model: ACG rank: 37 inner: 5
+Beginning EM loop
+Running model: ACG rank: 39 inner: 5
+Beginning EM loop
+Running model: ACG rank: 41 inner: 5
+Beginning EM loop
+Running model: ACG rank: 43 inner: 5
+Beginning EM loop
+Running model: ACG rank: 45 inner: 5
+Beginning EM loop
+Running model: ACG rank: 47 inner: 5
+Beginning EM loop
+Running model: ACG rank: 49 inner: 5
+Beginning EM loop
+Running model: ACG rank: 51 inner: 5
+Beginning EM loop
+Running model: ACG rank: 53 inner: 5
+Beginning EM loop
+Running model: ACG rank: 55 inner: 5
+Beginning EM loop
+Running model: ACG rank: 57 inner: 5
+Beginning EM loop
+Running model: ACG rank: 1 inner: 6
+Running diametrical clustering initialization
+Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering
+Beginning EM loop
+Running model: ACG rank: 3 inner: 6
+Beginning EM loop
+Running model: ACG rank: 5 inner: 6
+Beginning EM loop
+Running model: ACG rank: 7 inner: 6
+Beginning EM loop
+Running model: ACG rank: 9 inner: 6
+Beginning EM loop
+Running model: ACG rank: 11 inner: 6
+Beginning EM loop
+Running model: ACG rank: 13 inner: 6
+Beginning EM loop
+Running model: ACG rank: 15 inner: 6
+Beginning EM loop
+Running model: ACG rank: 17 inner: 6
+Beginning EM loop
+Running model: ACG rank: 19 inner: 6
+Beginning EM loop
+Running model: ACG rank: 21 inner: 6
+Beginning EM loop
+Running model: ACG rank: 23 inner: 6
+Beginning EM loop
+Running model: ACG rank: 25 inner: 6
+Beginning EM loop
+Running model: ACG rank: 27 inner: 6
+Beginning EM loop
+Running model: ACG rank: 29 inner: 6
+Beginning EM loop
+Running model: ACG rank: 31 inner: 6
+Beginning EM loop
+Running model: ACG rank: 33 inner: 6
+Beginning EM loop
+Running model: ACG rank: 35 inner: 6
+Beginning EM loop
+Running model: ACG rank: 37 inner: 6
+Beginning EM loop
+Running model: ACG rank: 39 inner: 6
+Beginning EM loop
+Running model: ACG rank: 41 inner: 6
+Beginning EM loop
+Running model: ACG rank: 43 inner: 6
+Beginning EM loop
+Running model: ACG rank: 45 inner: 6
+Beginning EM loop
+Running model: ACG rank: 47 inner: 6
+Beginning EM loop
+Running model: ACG rank: 49 inner: 6
+Beginning EM loop
+Running model: ACG rank: 51 inner: 6
+Beginning EM loop
+Running model: ACG rank: 53 inner: 6
+Beginning EM loop
+Running model: ACG rank: 55 inner: 6
+Beginning EM loop
+Running model: ACG rank: 57 inner: 6
+Beginning EM loop
+Running model: ACG rank: 1 inner: 7
+Running diametrical clustering initialization
+Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering
+Beginning EM loop
+Running model: ACG rank: 3 inner: 7
+Beginning EM loop
+Running model: ACG rank: 5 inner: 7
+Beginning EM loop
+Running model: ACG rank: 7 inner: 7
+Beginning EM loop
+Running model: ACG rank: 9 inner: 7
+Beginning EM loop
+Running model: ACG rank: 11 inner: 7
+Beginning EM loop
+Running model: ACG rank: 13 inner: 7
+Beginning EM loop
+Running model: ACG rank: 15 inner: 7
+Beginning EM loop
+Running model: ACG rank: 17 inner: 7
+Beginning EM loop
+Running model: ACG rank: 19 inner: 7
+Beginning EM loop
+Running model: ACG rank: 21 inner: 7
+Beginning EM loop
+Running model: ACG rank: 23 inner: 7
+Beginning EM loop
+Running model: ACG rank: 25 inner: 7
+Beginning EM loop
+Running model: ACG rank: 27 inner: 7
+Beginning EM loop
+Running model: ACG rank: 29 inner: 7
+Beginning EM loop
+Running model: ACG rank: 31 inner: 7
+Beginning EM loop
+Running model: ACG rank: 33 inner: 7
+Beginning EM loop
+Running model: ACG rank: 35 inner: 7
+Beginning EM loop
+Running model: ACG rank: 37 inner: 7
+Beginning EM loop
+Running model: ACG rank: 39 inner: 7
+Beginning EM loop
+Running model: ACG rank: 41 inner: 7
+Beginning EM loop
+Running model: ACG rank: 43 inner: 7
+Beginning EM loop
+Running model: ACG rank: 45 inner: 7
+Beginning EM loop
+Running model: ACG rank: 47 inner: 7
+Beginning EM loop
+Running model: ACG rank: 49 inner: 7
+Beginning EM loop
+Running model: ACG rank: 51 inner: 7
+Beginning EM loop
+Running model: ACG rank: 53 inner: 7
+Beginning EM loop
+Running model: ACG rank: 55 inner: 7
+Beginning EM loop
+Running model: ACG rank: 57 inner: 7
+Beginning EM loop
+Running model: ACG rank: 1 inner: 8
+Running diametrical clustering initialization
+Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering
+Beginning EM loop
+Running model: ACG rank: 3 inner: 8
+Beginning EM loop
+Running model: ACG rank: 5 inner: 8
+Beginning EM loop
+Running model: ACG rank: 7 inner: 8
+Beginning EM loop
+Running model: ACG rank: 9 inner: 8
+Beginning EM loop
+Running model: ACG rank: 11 inner: 8
+Beginning EM loop
+Running model: ACG rank: 13 inner: 8
+Beginning EM loop
+Running model: ACG rank: 15 inner: 8
+Beginning EM loop
+Running model: ACG rank: 17 inner: 8
+Beginning EM loop
+Running model: ACG rank: 19 inner: 8
+Beginning EM loop
+Running model: ACG rank: 21 inner: 8
+Beginning EM loop
+Running model: ACG rank: 23 inner: 8
+Beginning EM loop
+Running model: ACG rank: 25 inner: 8
+Beginning EM loop
+Running model: ACG rank: 27 inner: 8
+Beginning EM loop
+Running model: ACG rank: 29 inner: 8
+Beginning EM loop
+Running model: ACG rank: 31 inner: 8
+Beginning EM loop
+Running model: ACG rank: 33 inner: 8
+Beginning EM loop
+Running model: ACG rank: 35 inner: 8
+Beginning EM loop
+Running model: ACG rank: 37 inner: 8
+Beginning EM loop
+Running model: ACG rank: 39 inner: 8
+Beginning EM loop
+Running model: ACG rank: 41 inner: 8
+Beginning EM loop
+Running model: ACG rank: 43 inner: 8
+Beginning EM loop
+Running model: ACG rank: 45 inner: 8
+Beginning EM loop
+Running model: ACG rank: 47 inner: 8
+Beginning EM loop
+Running model: ACG rank: 49 inner: 8
+Beginning EM loop
+Running model: ACG rank: 51 inner: 8
+Beginning EM loop
+Running model: ACG rank: 53 inner: 8
+Beginning EM loop
+Running model: ACG rank: 55 inner: 8
+Beginning EM loop
+Running model: ACG rank: 57 inner: 8
+Beginning EM loop
+Running model: ACG rank: 1 inner: 9
+Running diametrical clustering initialization
+Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering
+Beginning EM loop
+Running model: ACG rank: 3 inner: 9
+Beginning EM loop
+Running model: ACG rank: 5 inner: 9
+Beginning EM loop
+Running model: ACG rank: 7 inner: 9
+Beginning EM loop
+Running model: ACG rank: 9 inner: 9
+Beginning EM loop
+Running model: ACG rank: 11 inner: 9
+Beginning EM loop
+Running model: ACG rank: 13 inner: 9
+Beginning EM loop
+Running model: ACG rank: 15 inner: 9
+Beginning EM loop
+Running model: ACG rank: 17 inner: 9
+Beginning EM loop
+Running model: ACG rank: 19 inner: 9
+Beginning EM loop
+Running model: ACG rank: 21 inner: 9
+Beginning EM loop
+Running model: ACG rank: 23 inner: 9
+Beginning EM loop
+Running model: ACG rank: 25 inner: 9
+Beginning EM loop
+Running model: ACG rank: 27 inner: 9
+Beginning EM loop
+Running model: ACG rank: 29 inner: 9
+Beginning EM loop
+Running model: ACG rank: 31 inner: 9
+Beginning EM loop
+Running model: ACG rank: 33 inner: 9
+Beginning EM loop
+Running model: ACG rank: 35 inner: 9
+Beginning EM loop
+Running model: ACG rank: 37 inner: 9
+Beginning EM loop
+Running model: ACG rank: 39 inner: 9
+Beginning EM loop
+Running model: ACG rank: 41 inner: 9
+Beginning EM loop
+Running model: ACG rank: 43 inner: 9
+Beginning EM loop
+Running model: ACG rank: 45 inner: 9
+Beginning EM loop
+Running model: ACG rank: 47 inner: 9
+Beginning EM loop
+Running model: ACG rank: 49 inner: 9
+Beginning EM loop
+Running model: ACG rank: 51 inner: 9
+Beginning EM loop
+Running model: ACG rank: 53 inner: 9
+Beginning EM loop
+Running model: ACG rank: 55 inner: 9
+Beginning EM loop
+Running model: ACG rank: 57 inner: 9
+Beginning EM loop
+
+------------------------------------------------------------
+Sender: LSF System <lsfadmin@hpc.dtu.dk>
+Subject: Job 22605457: <HCPjob8GB> in cluster <dcc> Done
+
+Job <HCPjob8GB> was submitted from host <gbarlogin1> by user <ansol> in cluster <dcc> at Mon Sep  2 14:25:04 2024
+Job was executed on host(s) <2*n-62-11-58>, in queue <hpc>, as user <ansol> in cluster <dcc> at Mon Sep  2 14:25:05 2024
+</zhome/61/4/109113> was used as the home directory.
+</dtu-compute/HCP_dFC/2023/hcp_dfc> was used as the working directory.
+Started at Mon Sep  2 14:25:05 2024
+Terminated at Mon Sep  2 20:07:51 2024
+Results reported at Mon Sep  2 20:07:51 2024
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+#!/bin/sh
+#BSUB -J HCPjob8GB
+#BSUB -q hpc
+#BSUB -R "rusage[mem=64GB]"
+#BSUB -o experiments2/output/HCPjob_out_%J.txt
+#BSUB -e experiments2/output/HCPjob_err_%J.txt
+#BSUB -W 48:00 
+#BSUB -n 2
+#BSUB -R "span[hosts=1]"
+
+# -- commands you want to execute -- 
+export OMP_NUM_THREADS=$LSB_DJOB_NUMPROC
+
+source ~/miniconda3/bin/activate
+conda activate hcp
+
+python3 experiments2/experiment_sequential_init_100.py ACG 1
+
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :                                   29598.05 sec.
+    Max Memory :                                 1107 MB
+    Average Memory :                             909.27 MB
+    Total Requested Memory :                     131072.00 MB
+    Delta Memory :                               129965.00 MB
+    Max Swap :                                   -
+    Max Processes :                              4
+    Max Threads :                                9
+    Run time :                                   20577 sec.
+    Turnaround time :                            20567 sec.
+
+The output (if any) is above this job summary.
+
+
+
+PS:
+
+Read file <experiments2/output/HCPjob_err_22605457.txt> for stderr output of this job.
+

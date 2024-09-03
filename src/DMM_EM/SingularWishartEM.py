@@ -76,7 +76,7 @@ class SingularWishart(DMMEMBaseModel):
 
             #precompute
             beta_sum = np.sum(beta)
-            beta_Q = beta[:,None,None]*Q[:,:,:,None]
+            beta_Q = (beta[:,None,None]*Q)[:,:,:,None]
 
             for j in range(max_iter):
 
