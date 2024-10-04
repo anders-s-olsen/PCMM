@@ -4,7 +4,7 @@ from scipy.cluster.vq import kmeans2
 import pandas as pd
 import matplotlib.pyplot as plt
 df = pd.DataFrame()
-num_repeats = 25
+num_repeats = 1
 num_points_per_cluster = 1000
 
 # make noise levels from 0 to 2pi in 8 steps
@@ -179,6 +179,7 @@ for scale in range(len(levels)):
     options['modelname'] = 'Watson'
     options['rank'] = 1
     for i in range(num_repeats):
+        print('Watson, real, '+str(i))
         params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=None,K=2,options=options)
         train_NMI = calc_NMI(true_labels,np.double(np.array(train_posterior)))
         df = pd.concat([df,pd.DataFrame({'method':'Watson','repeat':i,'centroids':[params],'nmi':train_NMI,'label':[labels],'noise':scale})])
@@ -189,6 +190,7 @@ for scale in range(len(levels)):
     options['modelname'] = 'Complex_Watson'
     options['rank'] = 1
     for i in range(num_repeats):
+        print('Watson, complex, '+str(i))
         params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=None,K=2,options=options)
         train_NMI = calc_NMI(true_labels,np.double(np.array(train_posterior)))
         df = pd.concat([df,pd.DataFrame({'method':'Complex_Watson','repeat':i,'centroids':[params],'nmi':train_NMI,'label':[labels],'noise':scale})])
@@ -199,6 +201,7 @@ for scale in range(len(levels)):
     options['modelname'] = 'ACG'
     options['rank'] = 'fullrank'
     for i in range(num_repeats):
+        print('ACG, real, '+str(i))
         params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=None,K=2,options=options)
         train_NMI = calc_NMI(true_labels,np.double(np.array(train_posterior)))
         Lambda=params['Lambda']
@@ -210,6 +213,7 @@ for scale in range(len(levels)):
     options['modelname'] = 'Complex_ACG'
     options['rank'] = 'fullrank'
     for i in range(num_repeats):
+        print('ACG, complex, '+str(i))
         params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=None,K=2,options=options)
         train_NMI = calc_NMI(true_labels,np.double(np.array(train_posterior)))
         Lambda=params['Lambda']
@@ -221,6 +225,7 @@ for scale in range(len(levels)):
     options['modelname'] = 'MACG'
     options['rank'] = 'fullrank'
     for i in range(num_repeats):
+        print('MACG, real, '+str(i))
         params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=None,K=2,options=options)
         train_NMI = calc_NMI(true_labels,np.double(np.array(train_posterior)))
         # Sigma = params['M']@np.swapaxes(params['M'],-2,-1)+np.eye(3)
@@ -234,11 +239,106 @@ for scale in range(len(levels)):
     options['modelname'] = 'SingularWishart'
     options['rank'] = 'fullrank'
     for i in range(num_repeats):
+        print('SingularWishart, real, '+str(i))
         params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=l_in,K=2,options=options)
         train_NMI = calc_NMI(true_labels,np.double(np.array(train_posterior)))
         # Psi = params['M']@np.swapaxes(params['M'],-2,-1)+np.eye(3)
         Psi = params['Lambda']
         df = pd.concat([df,pd.DataFrame({'method':'SingularWishart_fullrank','repeat':i,'centroids':[Psi],'nmi':train_NMI,'label':[labels],'noise':scale})])
 
+    #%%
+    ######################################################
+    # Hidden Markov models
+    from src.helper_functions import train_model
+    options = {}
+    options['init'] = 'dc_seg'
+    options['LR'] = 0.1
+    options['tol'] = 1e-8
+    options['max_iter'] = 10000
+    options['num_repl_inner'] = 1
+    options['threads'] = 8
+    options['HMM'] = True
+    if options['LR']!=0:
+        import torch
+        u_all = torch.tensor(u_all)
+        l_all = torch.tensor(l_all)
+        u_all_complex = torch.tensor(u_all_complex)
+
+    ######################################################
+    # Watson (real)
+    u_in = u_all[:,:,0]
+    options['modelname'] = 'Watson'
+    options['rank'] = 1
+    for i in range(num_repeats):
+        print('HMM Watson, real, '+str(i))
+        params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=None,K=2,options=options)
+        train_NMI = calc_NMI(true_labels,np.double(np.array(train_posterior)))
+        df = pd.concat([df,pd.DataFrame({'method':'Watson','repeat':i,'centroids':[params],'nmi':train_NMI,'label':[labels],'noise':scale})])
+
+    ######################################################
+    # Watson (complex)
+    u_in = u_all_complex
+    options['modelname'] = 'Complex_Watson'
+    options['rank'] = 1
+    for i in range(num_repeats):
+        print('HMM Watson, complex, '+str(i))
+        params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=None,K=2,options=options)
+        train_NMI = calc_NMI(true_labels,np.double(np.array(train_posterior)))
+        df = pd.concat([df,pd.DataFrame({'method':'Complex_Watson','repeat':i,'centroids':[params],'nmi':train_NMI,'label':[labels],'noise':scale})])
+
+    ######################################################
+    # ACG (real)
+    u_in = u_all[:,:,0]
+    options['modelname'] = 'ACG'
+    options['rank'] = 'fullrank'
+    for i in range(num_repeats):
+        print('HMM ACG, real, '+str(i))
+        params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=None,K=2,options=options)
+        train_NMI = calc_NMI(true_labels,np.double(np.array(train_posterior)))
+        # Lambda=params['Lambda']
+        Lambda = params['M']@np.swapaxes(params['M'],-2,-1)+np.eye(3)
+        df = pd.concat([df,pd.DataFrame({'method':'ACG_fullrank','repeat':i,'centroids':[Lambda],'nmi':train_NMI,'label':[labels],'noise':scale})])
+
+    ######################################################
+    # ACG (complex)
+    u_in = u_all_complex
+    options['modelname'] = 'Complex_ACG'
+    options['rank'] = 'fullrank'
+    for i in range(num_repeats):
+        print('HMM ACG, complex, '+str(i))
+        params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=None,K=2,options=options)
+        train_NMI = calc_NMI(true_labels,np.double(np.array(train_posterior)))
+        # Lambda=params['Lambda']
+        Lambda = params['M']@np.swapaxes(params['M'],-2,-1).conj()+np.eye(3)
+        df = pd.concat([df,pd.DataFrame({'method':'Complex_ACG_fullrank','repeat':i,'centroids':[Lambda],'nmi':train_NMI,'label':[labels],'noise':scale})])
+
+    ######################################################
+    # MACG
+    u_in = u_all
+    options['modelname'] = 'MACG'
+    options['rank'] = 'fullrank'
+    for i in range(num_repeats):
+        print('HMM MACG, real, '+str(i))
+        params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=None,K=2,options=options)
+        train_NMI = calc_NMI(true_labels,np.double(np.array(train_posterior)))
+        Sigma = params['M']@np.swapaxes(params['M'],-2,-1)+np.eye(3)
+        # Sigma = params['Lambda']
+        df = pd.concat([df,pd.DataFrame({'method':'MACG_fullrank','repeat':i,'centroids':[Sigma],'nmi':train_NMI,'label':[labels],'noise':scale})])
+
+    ######################################################
+    # SingularWishart
+    u_in = u_all
+    l_in = l_all
+    options['modelname'] = 'SingularWishart'
+    options['rank'] = 'fullrank'
+    for i in range(num_repeats):
+        print('HMM SingularWishart, real, '+str(i))
+        params,train_posterior,loglik_curve = train_model(data_train=u_in,L_train=l_in,K=2,options=options)
+        train_NMI = calc_NMI(true_labels,np.double(np.array(train_posterior)))
+        Psi = params['M']@np.swapaxes(params['M'],-2,-1)+np.eye(3)
+        # Psi = params['Lambda']
+        df = pd.concat([df,pd.DataFrame({'method':'SingularWishart_fullrank','repeat':i,'centroids':[Psi],'nmi':train_NMI,'label':[labels],'noise':scale})])
+
+
 # %%
-df.to_pickle('src/visualization/fits/cluster_results_noise.pkl')
+df.to_pickle('src/visualization/fits/cluster_results_noise2.pkl')

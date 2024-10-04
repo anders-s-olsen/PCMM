@@ -35,7 +35,7 @@ def load_synthetic_data(options,p,K):
     #     data_test = np.ascontiguousarray(data_test)
     return data_train,data_test
 
-def train_model(data_train,L_train,K,options,params=None,suppress_output=False,samples_per_sequence=None):
+def train_model(data_train,L_train,K,options,params=None,suppress_output=False,samples_per_sequence=0):
 
     p = data_train.shape[1]
     if options['rank']=='fullrank':
@@ -80,7 +80,7 @@ def train_model(data_train,L_train,K,options,params=None,suppress_output=False,s
     if options['LR']==0: #EM
         params,posterior,loglik = mixture_EM_loop(model,data_train,L_train,tol=options['tol'],max_iter=options['max_iter'],
                                                 num_repl=options['num_repl_inner'],init=options['init'],
-                                                suppress_output=suppress_output,threads=options['threads'])
+                                                suppress_output=suppress_output)
     else:
         params,posterior,loglik = mixture_torch_loop(model,data_train,L_train,tol=options['tol'],max_iter=options['max_iter'],
                                         num_repl=options['num_repl_inner'],init=options['init'],LR=options['LR'],

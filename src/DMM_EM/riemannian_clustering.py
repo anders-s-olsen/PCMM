@@ -145,7 +145,7 @@ def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
                 partsum[iter,k] = np.sum(X_part==k)
             
             if iter>0:
-                if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or abs(obj[-1]-obj[-2])<tol:
+                if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or obj[-1]-obj[-2]<tol:
                     C_final.append(C)
                     obj_final.append(obj[-1])
                     part_final.append(X_part)             
@@ -211,7 +211,7 @@ def weighted_grassmann_clustering(X,X_weights,K,max_iter=10000,num_repl=1,tol=1e
             for k in range(K):
                 partsum[iter,k] = np.sum(X_part==k)
             if iter>0:
-                if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or abs(obj[-1]-obj[-2])<tol:
+                if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or obj[-1]-obj[-2]<tol:
                     C_final.append(C)
                     C_weights_final.append(C_weights)
                     obj_final.append(obj[-1])

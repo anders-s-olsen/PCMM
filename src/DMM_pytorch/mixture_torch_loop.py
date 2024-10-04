@@ -21,6 +21,8 @@ def mixture_torch_loop(model,data,L=None,tol=1e-8,max_iter=100000,num_repl=1,ini
         if model.HMM:
             if init not in ['unif','uniform']:
                 model.initialize_transition_matrix(X=X)
+            else:
+                model.T = torch.nn.Parameter(1/model.K.repeat(model.K,model.K))
 
         if model.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank','SingularWishart_lowrank']:
             if model.M.shape[-1]!=model.r:
@@ -69,9 +71,10 @@ def mixture_torch_loop(model,data,L=None,tol=1e-8,max_iter=100000,num_repl=1,ini
                     if optimizer.param_groups[0]['lr']<1e-1:
                         done = True
                     else:
-                        optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr']/10
-                        print('Learning rate reduced to:',optimizer.param_groups[0]['lr'],'after',epoch,'iterations')
-                        params = []
+                        done = True
+                        # optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr']/10
+                        # print('Learning rate reduced to:',optimizer.param_groups[0]['lr'],'after',epoch,'iterations')
+                        # params = []
                 pbar.set_description('Convergence towards tol: %.2e'%crit)
                 # pbar.set_postfix({'Epoch':epoch})
                 pbar.update(1)

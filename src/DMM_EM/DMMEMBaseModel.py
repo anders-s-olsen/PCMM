@@ -45,7 +45,8 @@ class DMMEMBaseModel():
             return M
         elif self.distribution in ['SingularWishart_lowrank']:
             M = U[:,:r]@np.diag(np.sqrt(((S[:r]**2-epsilon))))
-            return M/self.p*self.q,epsilon/V.shape[1]
+            # return M/self.p*self.q,epsilon/V.shape[1]
+            return M/self.p,epsilon/V.shape[1]
     
     def init_M_svd_given_M_init(self,X,M_init,beta=None,gamma=None):
         if beta is None:

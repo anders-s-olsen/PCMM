@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.special import loggamma
-import scipy
 from src.DMM_EM.DMMEMBaseModel import DMMEMBaseModel
+import time
 
 class SingularWishart(DMMEMBaseModel):
     def __init__(self, p:int,q:int, K:int=1, rank=None, params:dict=None):
@@ -19,8 +19,8 @@ class SingularWishart(DMMEMBaseModel):
             self.distribution = 'SingularWishart_lowrank'
 
         loggamma_k = (self.q*(self.q-1)/4)*np.log(np.pi)+np.sum(loggamma(self.q-np.arange(self.q)/2))
-        self.log_norm_constant = self.q*(self.q-self.p)*np.log(np.pi)-self.p*self.q/2*np.log(2)-loggamma_k
-        
+        self.log_norm_constant = self.q*(self.q-self.p)/2*np.log(np.pi)-self.p*self.q/2*np.log(2)-loggamma_k
+
         self.log_det_S11 = None
 
         # initialize parameters
@@ -38,10 +38,8 @@ class SingularWishart(DMMEMBaseModel):
         # while Q_q^T Q_q != U_q^T L U_q, their determinants are the same
         if self.log_det_S11 is None:
             self.log_det_S11 = self.logdet(np.swapaxes(Q[:,:self.q,:],-2,-1)@Q[:,:self.q,:])
-
-        QtM_tilde = np.swapaxes(Q,-2,-1)[None,:,:,:]@M_tilde[:,None,:,:]
         
-        v = 1/np.atleast_1d(self.gamma)[:,None]*(self.p - np.linalg.norm(QtM_tilde@D_sqrtinv[:,None],axis=(-2,-1))**2)
+        v = 1/np.atleast_1d(self.gamma)[:,None]*(self.p - np.linalg.norm(np.swapaxes(Q,-2,-1)[None,:,:,:]@M_tilde[:,None,:,:]@D_sqrtinv[:,None],axis=(-2,-1))**2)
         log_pdf = self.log_norm_constant - (self.q/2)*np.atleast_1d(log_det_D)[:,None] + (self.q-self.p-1)/2*self.log_det_S11[None] - 1/2*v
 
         return log_pdf
@@ -56,7 +54,7 @@ class SingularWishart(DMMEMBaseModel):
         elif self.distribution == 'SingularWishart_fullrank':
             return self.log_pdf_fullrank(Q)
         
-    def M_step_single_component(self,Q,beta,M=None,gamma=None,max_iter=int(1e5),tol=1e-8):
+    def M_step_single_component(self,Q,beta,M=None,gamma=None,max_iter=int(1e5),tol=1e-10):
             
         if self.distribution == 'SingularWishart_lowrank':
 
@@ -66,8 +64,8 @@ class SingularWishart(DMMEMBaseModel):
                 raise ValueError("gamma is not provided")
             
             M_tilde = M * np.sqrt(1/gamma)
-            QtM_tilde = np.swapaxes(Q,-2,-1)@M_tilde
             _,S1,V1t = np.linalg.svd(M_tilde)
+            D_inv = V1t.T@np.diag(1/(1+S1**2))@V1t
 
             trZt_oldZ_old = gamma**2*(np.sum(S1**4)+2*np.sum(S1**2)+self.p)
             gamma_old = gamma
@@ -76,18 +74,20 @@ class SingularWishart(DMMEMBaseModel):
 
             #precompute
             beta_sum = np.sum(beta)
-            beta_Q = (beta[:,None,None]*Q)[:,:,:,None]
+            beta_S = np.sum(beta[:,None,None]*Q@np.swapaxes(Q,-2,-1),axis=0)
 
             for j in range(max_iter):
 
                 # M_tilde update
-                D_inv = V1t.T@np.diag(1/(1+S1**2))@V1t
-                M_tilde = 1/(gamma*self.q*beta_sum)*np.sum(beta_Q*QtM_tilde[:,None,:,:],axis=(0,-2))@D_inv
+                # M_tilde = 1/(gamma*self.q*beta_sum)*np.sum(beta_Q*QtM_tilde[:,None,:,:],axis=(0,-2))@D_inv
+                M_tilde = 1/(gamma*self.q*beta_sum)*beta_S@M_tilde@D_inv
                 _,S1,V1t = np.linalg.svd(M_tilde)
+                D_inv = V1t.T@np.diag(1/(1+S1**2))@V1t
 
                 #gamma update
-                QtM_tilde = np.swapaxes(Q,-2,-1)@M_tilde
-                gamma = 1/(self.q*self.p*beta_sum)*np.sum(beta*(self.p-np.linalg.norm(QtM_tilde@V1t.T@np.diag(np.sqrt(1/(1+S1**2)))@V1t,axis=(-2,-1))**2))
+                # QtM_tilde = np.swapaxes(Q,-2,-1)@M_tilde
+                # gamma = 1/(self.q*self.p*beta_sum)*np.sum(beta*(self.p-np.linalg.norm(QtM_tilde@V1t.T@np.diag(np.sqrt(1/(1+S1**2)))@V1t,axis=(-2,-1))**2))
+                gamma = 1/(self.q*self.p*beta_sum)*(np.sum(beta*self.p)-np.trace(M_tilde@D_inv@M_tilde.T@beta_S))
 
                 # convergence criterion
                 trZtZ = gamma**2*(np.sum(S1**4)+2*np.sum(S1**2)+self.p)

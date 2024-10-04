@@ -2,7 +2,7 @@ import numpy as np
 from tqdm import tqdm
 from copy import deepcopy
 
-def mixture_EM_loop(model,data,L=None,tol=1e-8,max_iter=10000,num_repl=1,init=None,suppress_output=False,threads=8):
+def mixture_EM_loop(model,data,L=None,tol=1e-8,max_iter=10000,num_repl=1,init=None,suppress_output=False):
 
     best_loglik = -1000000
         

@@ -117,15 +117,14 @@ class DMMPyTorchBaseModel(nn.Module):
         """
         K,N = log_pdf.shape
         if samples_per_sequence == 0:
-            samples_per_sequence = N
-        elif samples_per_sequence.ndim==0:
+            Ns = N
+        elif torch.tensor(samples_per_sequence).ndim==0:
             Ns = samples_per_sequence
-            log_pdf_reshaped = log_pdf.T.view(N//samples_per_sequence,samples_per_sequence,K).swapaxes(-2,-1)
         elif len(samples_per_sequence.unique())==1:
             Ns = samples_per_sequence[0]
-            log_pdf_reshaped = log_pdf.T.view(N//samples_per_sequence,samples_per_sequence,K).swapaxes(-2,-1)
         else:
             return self.HMM_log_likelihood_seq_nonuniform_sequences(log_pdf,samples_per_sequence)
+        log_pdf_reshaped = log_pdf.T.view(N//Ns,Ns,K).swapaxes(-2,-1)
         
         log_T = self.LogSoftmax_T(self.T) # size KxK
         log_pi = self.LogSoftmax_pi(self.pi) #size K
@@ -163,10 +162,11 @@ class DMMPyTorchBaseModel(nn.Module):
     def viterbi2(self,log_pdf,samples_per_sequence):
         K,N = log_pdf.shape
         if samples_per_sequence == 0:
-            samples_per_sequence = N
+            samples_per_sequence = [torch.tensor(N)]
+            sequence_starts = torch.atleast_1d(torch.tensor(0))
         elif samples_per_sequence.ndim==0:
             samples_per_sequence = samples_per_sequence.repeat(N//samples_per_sequence)
-        sequence_starts = torch.hstack([torch.tensor(0),torch.cumsum(samples_per_sequence[:-1],0)])
+            sequence_starts = torch.hstack([torch.tensor(0),torch.cumsum(samples_per_sequence[:-1],0)])
         log_T = self.LogSoftmax_T(self.T) # size KxK
         log_pi = self.LogSoftmax_pi(self.pi) #size K
         

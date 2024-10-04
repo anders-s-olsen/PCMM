@@ -2,9 +2,13 @@
 rm /dtu-compute/HCP_dFC/2023/hcp_dfc/experiments2/output/*.txt
 rm /dtu-compute/HCP_dFC/2023/hcp_dfc/data/results/116_results/*.csv
 rm /dtu-compute/HCP_dFC/2023/hcp_dfc/data/results/116_results/posteriors/*.txt
-# modelnames=("Watson" "Complex_Watson" "ACG" "Complex_ACG" "MACG" "SingularWishart")
-modelnames=("Complex_ACG" "MACG" "SingularWishart")
-for K in 1 4 10
+rm /dtu-compute/HCP_dFC/2023/hcp_dfc/data/results/116_results/lls/*.txt
+rm /dtu-compute/HCP_dFC/2023/hcp_dfc/data/results/116_results/params/*.npy
+modelnames=("Watson" "Complex_Watson" "ACG" "Complex_ACG" "MACG" "SingularWishart")
+# modelnames=("Complex_ACG" "MACG" "SingularWishart")
+# modelnames=("Complex_Watson")
+# modelnames=("Complex_ACG")
+for K in 1
 do
 for m in "${modelnames[@]}"
 do

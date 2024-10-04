@@ -130,7 +130,7 @@ class ACG(DMMEMBaseModel):
     #         M_out = M_out/np.sqrt(gamma_out[:,None,None])
     #         return M_out
             
-    def M_step_single_component(self,X,beta,M=None,Lambda=None,max_iter=int(1e5),tol=1e-8):
+    def M_step_single_component(self,X,beta,M=None,Lambda=None,max_iter=int(1e5),tol=1e-10):
         n,p = X.shape
         if n<p*(p-1):
             Warning("Too high dimensionality compared to number of observations. Lambda cannot be calculated")
@@ -142,8 +142,6 @@ class ACG(DMMEMBaseModel):
             gamma = 1/(1+o/self.p)
             M = np.sqrt(gamma)*M #we control the scale of M to avoid numerical issues
             _,S1,V1h = np.linalg.svd(M,full_matrices=False)
-            # M_tilde = np.sqrt(gamma)*M #we control the scale of M to avoid numerical issues
-            # _,S1,V1h = np.linalg.svd(M_tilde,full_matrices=False)
             
             trZt_oldZ_old = np.sum(S1**4)+2*gamma*np.sum(S1**2)+gamma**2*self.p
             gamma_old = gamma

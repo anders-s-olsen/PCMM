@@ -34,9 +34,6 @@ for sub in subjects[:num_subs]:
 
     GS = np.mean(data[:,:59412], axis=1)
     data = data - GS[:,None]*(data.T@GS).T/(GS.T@GS)
-    
-            # GS = mean(data(:,1:59412),2);
-            # data = data-GS.*(data'*GS)'/(GS'*GS);
     # parcellate data in atlas
     parcellated_data = np.zeros((data.shape[0], atlas_data.max()))
     for i in range(1, atlas_data.max()+1):

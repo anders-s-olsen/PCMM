@@ -17,7 +17,7 @@ class SingularWishart(DMMPyTorchBaseModel):
         self.log_det_S11 = None
         
         loggamma_q = (self.q*(self.q-1)/4)*torch.log(torch.tensor(math.pi))+torch.sum(torch.lgamma(self.q-torch.arange(self.q)/2))
-        self.log_norm_constant = self.q*(self.q-self.p)*torch.log(torch.tensor(math.pi))-self.p*self.q/2*torch.log(torch.tensor(2))-loggamma_q
+        self.log_norm_constant = self.q*(self.q-self.p)/2*torch.log(torch.tensor(math.pi))-self.p*self.q/2*torch.log(torch.tensor(2))-loggamma_q
         
         # initialize parameters
         if params is not None:

@@ -1,5 +1,6 @@
 import numpy as np
 from src.DMM_EM.DMMEMBaseModel import DMMEMBaseModel
+from time import time
 
 class MACG(DMMEMBaseModel):
     def __init__(self, p:int,q:int, K:int=1, rank=None, params:dict=None):
@@ -43,7 +44,7 @@ class MACG(DMMEMBaseModel):
         elif self.distribution == 'MACG_fullrank':
             return self.log_pdf_fullrank(X)
 
-    def M_step_single_component(self,X,beta,M=None,Lambda=None,max_iter=int(1e5),tol=1e-8):
+    def M_step_single_component(self,X,beta,M=None,Lambda=None,max_iter=int(1e5),tol=1e-10):
             
         if self.distribution == 'MACG_lowrank':
             Q = beta[:,None,None]*X
@@ -60,11 +61,13 @@ class MACG(DMMEMBaseModel):
             M_old = M.copy()
 
             for j in range(max_iter):
-
-                XtM = np.swapaxes(X,-2,-1)@M
+                t0 = time()
                 D_sqrtinv = V1t.T@np.diag(np.sqrt(1/(1+S1**2)))@V1t
-                U2,S2,V2t = np.linalg.svd(XtM@D_sqrtinv,full_matrices=False)
+                t1 = time()
+                U2,S2,V2t = np.linalg.svd(np.swapaxes(X,-2,-1)@(M@D_sqrtinv),full_matrices=False)
+                t2 = time()
                 M = self.p/(self.q*np.sum(beta))*np.sum(Q@(U2*(S2/(1-S2**2))[:,None,:])@V2t,axis=0)@D_sqrtinv
+                t3 = time()
 
                 # Then we trace-normalize M
                 o = np.linalg.norm(M,'fro')**2
@@ -76,7 +79,8 @@ class MACG(DMMEMBaseModel):
                 trZtZ = np.sum(S1**4)+2*gamma*np.sum(S1**2)+gamma**2*self.p
                 trZtZt_old = np.linalg.norm(M.T@M_old)**2 + gamma_old*gamma*self.p + gamma_old*np.sum(S1**2) + gamma*np.sum(S1_old**2)
                 loss.append(trZtZ+trZt_oldZ_old-2*trZtZt_old)
-                
+                t4 = time()
+                # print(j,t1-t0,t2-t1,t3-t2,t4-t3)
                 if j>0:
                     if loss[-1]<tol:
                         if np.any(np.array(loss)<-tol):

@@ -55,23 +55,21 @@ class Watson(DMMEMBaseModel):
         log_pdf = self.log_norm_constant()[:,None] + self.kappa[:,None]*(np.abs(X@self.mu.conj())**2).T
         return log_pdf
     
-    def M_step_single_component(self,X,beta,mu,kappa,tol=1e-8):
+    def M_step_single_component(self,X,beta,mu,kappa,tol=1e-10):
         n,p = X.shape
-        Q = np.sqrt(beta)[:,None]*X
 
-        # the folllowing options are optimized for n>p but should work otherwise
         if n>p:
             if kappa>0:
-                _,_,mu = svds(Q,k=1,which='LM',v0=mu,return_singular_vectors='vh')
+                _,_,mu = svds(np.sqrt(beta)[:,None]*X,k=1,which='LM',v0=mu,return_singular_vectors='vh')
             elif kappa<0:
-                _,_,mu = svds(Q,k=1,which='SM',v0=mu,return_singular_vectors='vh')
-        else: #no start vector because? svds throws error
+                _,_,mu = svds(np.sqrt(beta)[:,None]*X,k=1,which='SM',v0=mu,return_singular_vectors='vh')
+        else: 
             if kappa>0:
-                _,_,mu = svds(Q,k=1,which='LM',return_singular_vectors='vh')
+                _,_,mu = svds(np.sqrt(beta)[:,None]*X,k=1,which='LM',return_singular_vectors='vh')
             elif kappa<0:
-                _,_,mu = svds(Q,k=1,which='SM',return_singular_vectors='vh')
+                _,_,mu = svds(np.sqrt(beta)[:,None]*X,k=1,which='SM',return_singular_vectors='vh')
 
-        rk = 1/np.sum(beta)*np.sum(np.abs(mu.conj()@Q.T)**2)
+        rk = 1/np.sum(beta)*np.sum(np.abs(mu.conj()@(np.sqrt(beta)[:,None]*X).T)**2)
         LB = (rk*self.c-self.a)/(rk*(1-rk))*(1+(1-rk)/(self.c-self.a))
         B  = (rk*self.c-self.a)/(2*rk*(1-rk))*(1+np.sqrt(1+4*(self.c+1)*rk*(1-rk)/(self.a*(self.c-self.a))))
         UB = (rk*self.c-self.a)/(rk*(1-rk))*(1+rk/self.a)
