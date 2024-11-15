@@ -1,101 +1,31 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-
-
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
-# DotEnv configuration
-.env
-
-# Database
-*.db
-*.rdb
-
-# Pycharm
-.idea
-
-# VS Code
-.vscode/
-
-# Spyder
-.spyproject/
-
-# Jupyter NB Checkpoints
-.ipynb_checkpoints/
-
-# Mac OS-specific storage files
-.DS_Store
-
-# vim
-*.swp
-*.swo
-
-# Mypy cache
-.mypy_cache/
 
 # Other
-submitfiles/**/*.txt
-models/atlas/*.mat
+.vscode/
+.env
+.gitignore
+src.egg-info/
 connectome_agg/
-data/results/
 data/
-02460/
-models/
-Schaefer_atlases_HCP/
 submitfiles/
-tmp/
-experiments_phaserando/output/
-experiments2/output/
+# any folder __pycache__/ in any subfolder
+**/__pycache__/
+# any folder output/ in any subfolder
+**/output/
+# any file prepended with unused_
+unused_*
+unused_*/
+# any shell script
+*.sh
+*.asv
+*.pkl
+*.npy
+experiments_phaserando/figures/
+experiments_realdata/figs/
+experiments_realdata/loss_curves
+src/cifti-matlab/
+synthetic_analysis/figs/
+synthetic_analysis/fits/
+#any __init__.py file
+**/__init__.py
+#any folder with unused_ in the name
+**/unused_*/
