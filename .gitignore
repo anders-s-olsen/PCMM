@@ -11,6 +11,7 @@ submitfiles/
 **/__pycache__/
 # any folder output/ in any subfolder
 **/output/
+**/figures/
 # any file prepended with unused_
 unused_*
 unused_*/
