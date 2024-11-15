@@ -17,6 +17,7 @@ unused_*
 unused_*/
 # any shell script
 *.sh
+**/*.sh
 *.asv
 *.pkl
 *.npy
