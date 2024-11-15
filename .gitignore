@@ -27,5 +27,6 @@ synthetic_analysis/figs/
 synthetic_analysis/fits/
 #any __init__.py file
 **/__init__.py
+src/__init__.py
 #any folder with unused_ in the name
 **/unused_*/
