@@ -1,7 +1,7 @@
 import torch
-from src.PCMM_pytorch.PCMMPyTorchBaseModel import PCMMPyTorchBaseModel
+from PCMM.PCMM_pytorch.PCMMPyTorchBaseModel import PCMMPyTorchBaseModel
 import math
-from src.PCMM_pytorch.sqrtm import sqrtm
+from PCMM.PCMM_pytorch.sqrtm import sqrtm
 
 class SingularWishart(PCMMPyTorchBaseModel):
     def __init__(self, p:int, q:int, rank:int, K:int=1, HMM:bool=False, samples_per_sequence=0, params:dict=None):

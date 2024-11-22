@@ -1,5 +1,5 @@
 import numpy as np
-from src.PCMM_EM.PCMMEMBaseModel import PCMMEMBaseModel
+from PCMM.PCMM_EM.PCMMEMBaseModel import PCMMEMBaseModel
 from scipy.sparse.linalg import svds
 from scipy.optimize import minimize_scalar
 from scipy.special import loggamma

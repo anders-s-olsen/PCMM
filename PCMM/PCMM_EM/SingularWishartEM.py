@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.special import loggamma
-from src.PCMM_EM.PCMMEMBaseModel import PCMMEMBaseModel
+from PCMM.PCMM_EM.PCMMEMBaseModel import PCMMEMBaseModel
 
 class SingularWishart(PCMMEMBaseModel):
     def __init__(self, p:int,q:int, K:int=1, rank=None, params:dict=None):

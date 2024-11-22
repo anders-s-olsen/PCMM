@@ -2,7 +2,7 @@
 #%%
 import numpy as np
 import h5py as h5
-from src.helper_functions import calc_NMI
+from PCMM.helper_functions import calc_NMI
 import pandas as pd
 import matplotlib.pyplot as plt
 df = pd.DataFrame()
@@ -67,14 +67,13 @@ with h5.File('src/visualization/fits/cluster_data.h5', 'w') as f:
     # f.create_dataset('evs', data=l_all)
 
 
-from src.helper_functions import train_model,test_model
+from PCMM.helper_functions import train_model,test_model
 options = {}
 options['init'] = 'dc'
 options['LR'] = 0
 options['tol'] = 1e-8
 options['max_iter'] = 1000
 options['num_repl_inner'] = 1
-options['threads'] = 8
 options['HMM'] = False
 if options['LR']!=0:
     import torch

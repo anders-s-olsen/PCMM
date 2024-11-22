@@ -1,7 +1,6 @@
 
 .vscode/
 .env
-src.egg-info/
 submitfiles/
 # any folder __pycache__/ in any subfolder
 **/__pycache__/
@@ -13,7 +12,6 @@ unused_*
 unused_*/
 # any shell script
 *.sh
-**/*.sh
 *.asv
 *.pkl
 *.npy

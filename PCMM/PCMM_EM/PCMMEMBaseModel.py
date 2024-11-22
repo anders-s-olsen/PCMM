@@ -1,5 +1,5 @@
 import numpy as np
-from src.riemannian_clustering import diametrical_clustering, plusplus_initialization, grassmann_clustering, weighted_grassmann_clustering
+from PCMM.riemannian_clustering import diametrical_clustering, plusplus_initialization, grassmann_clustering, weighted_grassmann_clustering
 from scipy.cluster.vq import kmeans2
 
 class PCMMEMBaseModel():

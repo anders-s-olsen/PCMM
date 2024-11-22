@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from src.helper_functions import train_model,test_model,calc_NMI
+from PCMM.helper_functions import train_model,test_model,calc_NMI
 import h5py as h5
 
 df = pd.DataFrame()
@@ -90,7 +90,6 @@ for scale in range(len(levels)):
     options['tol'] = 1e-8
     options['max_iter'] = 100000
     options['num_repl_inner'] = 1
-    options['threads'] = 8
     # options['HMM'] = False
     options['rank'] = 3#'fullrank'
     options['num_repl'] = 1

@@ -1,5 +1,5 @@
 import torch
-from src.PCMM_pytorch.PCMMPyTorchBaseModel import PCMMPyTorchBaseModel
+from PCMM.PCMM_pytorch.PCMMPyTorchBaseModel import PCMMPyTorchBaseModel
 import math
 
 class ACG(PCMMPyTorchBaseModel):

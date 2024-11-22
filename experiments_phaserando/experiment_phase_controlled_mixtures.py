@@ -1,4 +1,4 @@
-from src.helper_functions import train_model,calc_NMI,make_true_mat,test_model
+from PCMM.helper_functions import train_model,calc_NMI,make_true_mat,test_model
 import pandas as pd
 import numpy as np
 import torch
@@ -7,8 +7,8 @@ import h5py as h5
 
 def run(data_train,data_test1,data_test2,K,P,df,options,params=None,suppress_output=False,inner=None,p=116):
     params,train_posterior,loglik_curve = train_model(data_train,K=K,options=options,suppress_output=suppress_output,samples_per_sequence=1200,params=params)
-    test1_loglik,test1_posterior,_ = test_model(data_test=data_test1,params=params,K=K,options=options)
-    test2_loglik,test2_posterior,_ = test_model(data_test=data_test2,params=params,K=K,options=options)
+    test1_loglik,test1_posterior,_ = test_model(data_test=data_test1,params=params,K=K,options=options,samples_per_sequence=1200)
+    test2_loglik,test2_posterior,_ = test_model(data_test=data_test2,params=params,K=K,options=options,samples_per_sequence=1200)
     train_NMI = calc_NMI(P,np.double(np.array(train_posterior)))
     test1_NMI = calc_NMI(P,np.double(np.array(test1_posterior)))
     test2_NMI = calc_NMI(P,np.double(np.array(test2_posterior)))
@@ -28,8 +28,6 @@ def run_experiment(extraoptions={},dataset='phase_controlled',suppress_output=Fa
     options['max_iter'] = 100000
     options['outfolder'] = 'data/results/torchvsEM_phase_controlled_results'
     options['num_subjects'] = 1
-    options['data_type'] = dataset
-    options['threads'] = 8
     options.update(extraoptions) #modelname, LR, init controlled in shell script
     os.makedirs(options['outfolder'],exist_ok=True)
     p = 116

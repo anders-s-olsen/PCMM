@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
-from src.PCMM_EM.WatsonEM import Watson
-from src.PCMM_EM.ACGEM import ACG
-from src.PCMM_EM.MACGEM import MACG
-from src.PCMM_EM.SingularWishartEM import SingularWishart
-from src.PCMM_EM.NormalEM import Normal
+from PCMM.PCMM_EM.WatsonEM import Watson
+from PCMM.PCMM_EM.ACGEM import ACG
+from PCMM.PCMM_EM.MACGEM import MACG
+from PCMM.PCMM_EM.SingularWishartEM import SingularWishart
+from PCMM.PCMM_EM.NormalEM import Normal
 
 class PCMMPyTorchBaseModel(nn.Module):
 

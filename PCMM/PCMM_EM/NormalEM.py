@@ -1,5 +1,5 @@
 import numpy as np
-from src.PCMM_EM.PCMMEMBaseModel import PCMMEMBaseModel
+from PCMM.PCMM_EM.PCMMEMBaseModel import PCMMEMBaseModel
 
 class Normal(PCMMEMBaseModel):
     def __init__(self, p:int, rank:int=None, K:int=1, complex:bool=False, params:dict=None):

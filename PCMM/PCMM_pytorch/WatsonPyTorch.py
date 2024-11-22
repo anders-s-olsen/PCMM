@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from src.PCMM_pytorch.PCMMPyTorchBaseModel import PCMMPyTorchBaseModel
+from PCMM.PCMM_pytorch.PCMMPyTorchBaseModel import PCMMPyTorchBaseModel
 import math
 
 class Watson(PCMMPyTorchBaseModel):

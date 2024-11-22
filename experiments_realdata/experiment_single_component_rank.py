@@ -1,15 +1,14 @@
-from src.helper_functions import train_model,test_model,load_fMRI_data,calc_ll_per_sub
+from PCMM.helper_functions import train_model,test_model,load_fMRI_data,calc_ll_per_sub
 import pandas as pd
 import numpy as np
 import os
-import h5py as h5
 
 def run(data_train,data_test1,data_test2,K,df,options,params=None,suppress_output=False,inner=None,p=116):
     params,train_posterior,loglik_curve = train_model(data_train,K=K,options=options,suppress_output=suppress_output,samples_per_sequence=1200,params=params)
     
-    train_loglik,train_posterior,train_loglik_per_sample = test_model(data_test=data_train,params=params,K=K,options=options)
-    test1_loglik,test1_posterior,test1_loglik_per_sample = test_model(data_test=data_test1,params=params,K=K,options=options)
-    test2_loglik,test2_posterior,test2_loglik_per_sample = test_model(data_test=data_test2,params=params,K=K,options=options)
+    train_loglik,train_posterior,train_loglik_per_sample = test_model(data_test=data_train,params=params,K=K,options=options,samples_per_sequence=1200)
+    test1_loglik,test1_posterior,test1_loglik_per_sample = test_model(data_test=data_test1,params=params,K=K,options=options,samples_per_sequence=1200)
+    test2_loglik,test2_posterior,test2_loglik_per_sample = test_model(data_test=data_test2,params=params,K=K,options=options,samples_per_sequence=1200)
 
     train_ll,test1_ll,test2_ll = calc_ll_per_sub(train_loglik_per_sample,test1_loglik_per_sample,test2_loglik_per_sample)
     np.savetxt(options['outfolder']+'/lls/'+options['experiment_name']+'_rank='+str(options['rank'])+'_train_ll'+'_inner'+str(inner)+'.txt',train_ll)
@@ -36,8 +35,6 @@ def run_experiment(extraoptions={},suppress_output=False):
     options['num_repl_inner'] = 1
     options['max_iter'] = 100000
     options['outfolder'] = 'data/results/116_results'
-    options['data_type'] = 'real'
-    options['threads'] = 8
     options['HMM'] = False
     options.update(extraoptions) #modelname, LR, init controlled in shell script
     os.makedirs(options['outfolder'],exist_ok=True)
