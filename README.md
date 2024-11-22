@@ -1,6 +1,6 @@
 # Phase Coherence Mixture Modeling (PCMM)
 
-**PCMM** is a Python-based toolbox designed to facilitate multivariate mixture modeling for dynamic phase coherence analysis in functional brain imaging and beyond. This repository provides implementations of statistical models, including the **Complex Angular Central Gaussian (ACG)** distribution, tailored for analyzing both synthetic and real datasets. The framework offers tools for robust probabilistic clustering and Hidden Markov modeling (HMM) of complex-valued phase coherence data.
+**PCMM** is a Python-based toolbox designed to facilitate multivariate mixture modeling for multivariate dynamic phase coherence in functional brain imaging and beyond. This repository provides implementations of clustering using several statistical models, including the **Complex Angular Central Gaussian (ACG)** distribution, as well as analyses for both synthetic and real datasets pertaining to our paper [Uncovering dynamic human brain phase coherence networks](https://www.biorxiv.org/content/10.1101/2024.11.15.623830v1). 
 
 ## Table of Contents
 1. [Setup Instructions](#setup-instructions)
