@@ -61,10 +61,6 @@ f = np.fft.fftfreq(num_samples+num_add*2, TR)
 # find indices of frequencies above or equal to 0.008Hz and below or equal to 0.09Hz
 positive_frequency_content_indices = np.where((f>=0))[0]
 negative_frequency_content_indices = np.where((f<0))[0]
-# positive_frequency_content_indices = np.where((f>=0.03) & (f<=0.07))[0]
-# negative_frequency_content_indices = np.where((f<=-0.03) & (f>=-0.07))[0]
-# positive_frequency_content_indices = np.where((f>=0.008) & (f<=0.09))[0]
-# negative_frequency_content_indices = np.where((f<=-0.008) & (f>=-0.09))[0]
 mid_frequency = np.argmin(np.abs(f-0.05))
 num_phases = len(positive_frequency_content_indices)
 
@@ -105,11 +101,7 @@ for scan in range(len(filtered_data_all)):
             new_phases[positive_frequency_content_indices] = phases
             new_phases[negative_frequency_content_indices] = -phases[::-1]
             tmp = np.abs(signal_spec) * np.exp(1j*new_phases)
-            # tmp = np.abs(specs[window]) * np.exp(1j*new_phases)
-            # new_amps = np.zeros(num_samples+num_add*2)
-            # new_amps[mid_frequency] = 1
-            # tmp = new_amps * np.exp(1j*new_phases)
-            
+
             # imaginary part is negligible
             new_signal = np.fft.ifft(tmp).real
             if num_add>0:
@@ -152,8 +144,6 @@ S_tmp = np.concatenate(phase_reset_data_all, axis=0)
 
 # use h5py to save this data (U_all)
 with h5py.File('data/synthetic/phase_narrowband_controlled_116data_eida.h5', 'w') as f:
-# with h5py.File('data/synthetic/phase_amplitude_controlled_116data_eida.h5', 'w') as f:
-# with h5py.File('data/synthetic/phase_controlled_116data_eida.h5', 'w') as f:
     f.create_dataset("U", data=U_tmp)
     f.create_dataset("L", data=L_tmp)
     f.create_dataset("U_complex", data=U_complex_tmp)

@@ -9,7 +9,7 @@ from src.PCMM_EM.ACGEM import ACG as ACG_EM
 from src.PCMM_EM.MACGEM import MACG as MACG_EM
 from src.PCMM_EM.SingularWishartEM import SingularWishart as SingularWishart_EM
 from src.PCMM_EM.NormalEM import Normal as Normal_EM
-from src.PCMM_EM.riemannian_clustering import *
+from src.riemannian_clustering import *
 
 from src.PCMM_pytorch.mixture_torch_loop import mixture_torch_loop
 from src.PCMM_pytorch.WatsonPyTorch import Watson as Watson_torch
@@ -212,7 +212,6 @@ def make_true_mat(num_subs=10,K=5):
             row[k,num_samples_per_cluster*k:num_samples_per_cluster*(k+1)] = True
         rows.append(row)
     return np.hstack(rows)
-
 
 def load_fMRI_data(data_file,options,only_some_points=False):
     assert options['modelname'] in ['Watson','ACG','MACG','SingularWishart','Complex_Watson','Complex_ACG','Normal','Complex_Normal','euclidean','diametrical','complex_diametrical','grassmann','weighted_grassmann']

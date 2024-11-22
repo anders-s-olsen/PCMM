@@ -140,31 +140,3 @@ class ACG(PCMMEMBaseModel):
                 self.M[k] = self.M_step_single_component(X,beta[k],self.M[k],None)
             elif self.distribution in ['ACG_fullrank','Complex_ACG_fullrank']:
                 self.Lambda[k] = self.M_step_single_component(X,beta[k],None,self.Lambda[k])
-        # if self.distribution == 'ACG_lowrank':
-        #     self.M = self.M_step_more_components(X,beta,self.M)
-        # elif self.distribution == 'ACG_fullrank':
-        #     for k in range(self.K):
-        #         self.Lambda[k] = self.M_step_single_component(X,beta[k],None,self.Lambda[k])
-
-
-if __name__ == "__main__":
-    import scipy
-    # unit test
-    ACG_model = ACG(p=2, K=1, rank=1,params={'M':np.array([[1,0]]).T})
-    ACG_pdf = lambda phi: float(np.exp(ACG_model.log_pdf(np.array([[np.cos(phi), np.sin(phi)]]))))
-    acg_result2d_lowrank = scipy.integrate.quad(ACG_pdf, 0., 2*np.pi)
-
-    ACG_model = ACG(p=2, K=1, rank=None,params={'Lambda':np.array([[1,0]])@np.array([[1,0]]).T+np.eye(2)})
-    ACG_pdf = lambda phi: float(np.exp(ACG_model.log_pdf(np.array([[np.cos(phi), np.sin(phi)]]))))
-    acg_result2d_fullrank = scipy.integrate.quad(ACG_pdf, 0., 2*np.pi)
-
-    # in 3d
-    ACG_model = ACG(p=3, K=1, rank=1,params={'M':np.array([[1,0,0]]).T})
-    ACG_pdf = lambda phi, theta: float(np.exp(ACG_model.log_pdf(np.array([[np.cos(theta)*np.cos(phi), np.sin(theta)*np.cos(phi), np.sin(phi)]]))))
-    acg_result3d_lowrank = scipy.integrate.dblquad(ACG_pdf, 0., np.pi, 0., 2*np.pi)
-
-    ACG_model = ACG(p=3, K=1, rank=None,params={'Lambda':np.array([[1,0,0]])@np.array([[1,0,0]]).T+np.eye(3)})
-    ACG_pdf = lambda phi, theta: float(np.exp(ACG_model.log_pdf(np.array([[np.cos(theta)*np.cos(phi), np.sin(theta)*np.cos(phi), np.sin(phi)]]))))
-    acg_result3d_fullrank = scipy.integrate.dblquad(ACG_pdf, 0., np.pi, 0., 2*np.pi)
-
-    print(acg_result2d_lowrank[0], acg_result2d_fullrank[0], acg_result3d_lowrank[0], acg_result3d_fullrank[0])

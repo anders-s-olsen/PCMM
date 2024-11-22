@@ -66,10 +66,10 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                     if optimizer.param_groups[0]['lr']<1e-1:
                         done = True
                     else:
-                        done = True
-                        # optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr']/10
-                        # print('Learning rate reduced to:',optimizer.param_groups[0]['lr'],'after',epoch,'iterations')
-                        # params = []
+                        # done = True
+                        optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr']/10
+                        print('Learning rate reduced to:',optimizer.param_groups[0]['lr'],'after',epoch,'iterations')
+                        params = []
                 pbar.set_description('Convergence towards tol: %.2e'%crit)
                 # pbar.set_postfix({'Epoch':epoch})
                 pbar.update(1)

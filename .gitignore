@@ -1,10 +1,7 @@
 
 .vscode/
 .env
-.gitignore
 src.egg-info/
-connectome_agg/
-data/
 submitfiles/
 # any folder __pycache__/ in any subfolder
 **/__pycache__/
@@ -26,8 +23,14 @@ experiments_realdata/loss_curves
 src/cifti-matlab/
 synthetic_analysis/figs/
 synthetic_analysis/fits/
-#any __init__.py file
-**/__init__.py
-src/__init__.py
 #any folder with unused_ in the name
 **/unused_*/
+*.h5
+
+data/external/*
+!data/external/Schaefer2018_100Parcels_7Networks_order_Tian_Subcortex_S1.dlabel.nii
+!data/external/Schaefer2018_100Parcels_7Networks_order_Tian_Subcortex_S1_label.txt
+data/processed/*
+data/raw/*
+data/results/*
+data/synthetic/*

@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import os
 import h5py as h5
-from src.PCMM_EM.riemannian_clustering import *
+from src.riemannian_clustering import *
 
 def run(data_train,data_test1,data_test2,K,P,df,options,params=None,suppress_output=False,inner=None,p=116):
     params,train_posterior,loglik_curve = train_model(data_train,K=K,options=options,suppress_output=suppress_output,samples_per_sequence=1200,params=params)
@@ -18,7 +18,6 @@ def run(data_train,data_test1,data_test2,K,P,df,options,params=None,suppress_out
     df = pd.concat([df,pd.DataFrame([entry])],ignore_index=True)
     df.to_csv(options['outfolder']+'/'+options['experiment_name']+'.csv')
     return params,df
-
 
 def run_experiment(extraoptions={},dataset='phase_controlled',suppress_output=False):
     # options pertaining to current experiment
@@ -57,11 +56,6 @@ def run_experiment(extraoptions={},dataset='phase_controlled',suppress_output=Fa
     data_test1 = data[1200:2400]
     data_test2 = data[2400:3600]
     df = pd.DataFrame()
-
-    # if options['modelname']=='euclidean':
-    #     data_train[(data_train>p//2).sum(axis=1)] = -data_train[(data_train>p//2).sum(axis=1)]
-    #     data_test1[(data_test1>p//2).sum(axis=1)] = -data_test1[(data_test1>p//2).sum(axis=1)]
-    #     data_test2[(data_test2>p//2).sum(axis=1)] = -data_test2[(data_test2>p//2).sum(axis=1)]
 
     P = np.double(make_true_mat(options['num_subjects']))
 

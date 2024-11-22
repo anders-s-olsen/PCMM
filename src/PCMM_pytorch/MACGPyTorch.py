@@ -30,4 +30,4 @@ class MACG(PCMMPyTorchBaseModel):
         v = torch.sum(torch.log(1/(S2**2)-1),dim=-1)+2*torch.sum(torch.log(S2),dim=-1)
         
         log_pdf = - (self.q/2)*log_det_D[:,None] - self.p/2*v
-        return log_pdf #works
+        return log_pdf

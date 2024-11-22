@@ -2,9 +2,7 @@
 #%%
 import numpy as np
 import h5py as h5
-# from sklearn.cluster import KMeans
-from scipy.cluster.vq import kmeans2
-# from kmeans import KMeans
+from src.helper_functions import calc_NMI
 import pandas as pd
 import matplotlib.pyplot as plt
 df = pd.DataFrame()
@@ -13,21 +11,7 @@ scale = 0.1
 scale2 = 3*np.pi/4
 num_points_per_cluster = 1000
 
-# %%
-def calc_MI(Z1,Z2):
-    P=Z1@Z2.T
-    PXY=P/np.sum(P)
-    PXPY=np.outer(np.sum(PXY,axis=1),np.sum(PXY,axis=0))
-    ind=np.where(PXY>0)
-    MI=np.sum(PXY[ind]*np.log(PXY[ind]/PXPY[ind]))
-    return MI
-
-def calc_NMI(Z1,Z2):
-    Z1 = np.double(Z1)
-    Z2 = np.double(Z2)
-    #Z1 and Z2 are two partition matrices of size (KxN) where K is number of components and N is number of samples
-    NMI = (2*calc_MI(Z1,Z2))/(calc_MI(Z1,Z1)+calc_MI(Z2,Z2))
-    return NMI
+# %% NMI
 
 def plot_coh_matrix2(coh_map1):
     fig = plt.figure(figsize=(5,5))
@@ -68,18 +52,6 @@ for traintest in range(2):
     signal7[2] = np.sin(2*np.pi*t)
     u_all1[:,:,traintest] = ((signal6+noises)/np.linalg.norm(signal6+noises,axis=0)).T
     u_all2[:,:,traintest] = ((signal7+noises)/np.linalg.norm(signal7+noises,axis=0)).T
-        # #draw a phase from the possible phases
-        # theta1 = np.random.choice(possible_phases,1).item()
-        # random_point = np.random.random(2)*scale-scale/2
-        # random_random = np.random.random(1)*scale2-scale2/2
-        # theta_random = np.array([theta1+random_point[0],random_random[0],theta1+random_point[1]])
-        # u_all1[n,:,traintest] = np.cos(theta_random)/np.linalg.norm(np.cos(theta_random))
-
-        # theta2 = np.random.choice(possible_phases,1).item()
-        # random_point = np.random.random(2)*scale-scale/2
-        # random_random = np.random.random(1)*scale2-scale2/2
-        # theta_random = np.array([theta2+random_point[0],theta2+random_point[1],random_random[0]])
-        # u_all2[n,:,traintest] = np.cos(theta_random)/np.linalg.norm(np.cos(theta_random))
         
 u_all_train = np.concatenate((u_all1[:,:,0],u_all2[:,:,0]),axis=0)
 u_all_test = np.concatenate((u_all1[:,:,1],u_all2[:,:,1]),axis=0)

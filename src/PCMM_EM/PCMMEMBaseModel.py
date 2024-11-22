@@ -1,5 +1,5 @@
 import numpy as np
-from src.PCMM_EM.riemannian_clustering import diametrical_clustering, plusplus_initialization, grassmann_clustering, weighted_grassmann_clustering
+from src.riemannian_clustering import diametrical_clustering, plusplus_initialization, grassmann_clustering, weighted_grassmann_clustering
 from scipy.cluster.vq import kmeans2
 
 class PCMMEMBaseModel():
@@ -34,38 +34,13 @@ class PCMMEMBaseModel():
         else:
             self.pi = np.array([1/self.K]*self.K)
 
-    # def init_M_svd(self,V,r):
-    #     U,S,_ = np.linalg.svd(V,full_matrices=False)
-    #     if V.shape[1]>=self.p:
-    #         epsilon = np.sum(S[r:]**2)/(self.p-r)
-    #     else:
-    #         epsilon = np.sum(S[r:]**2)/(V.shape[1]-r)
-        
-    #     # if 'ACG_lowrank' in self.distribution: #also covers MACG
-    #     # M = U[:,:r]@np.diag(np.sqrt((S[:r]**2-epsilon)/epsilon))
-    #     #     return M
-    #     # else:
-    #     M = U[:,:r]@np.diag(np.sqrt(((S[:r]**2-epsilon)/epsilon)))
-    #     #     M = U[:,:r]@np.diag(np.sqrt((S[:r]**2-epsilon)/epsilon))
-    #     #     return M/self.p*self.q,epsilon/V.shape[1]
-    #     return M/self.p,epsilon/V.shape[1]
-    #     # return M,epsilon/V.shape[1]
-
     def init_M_svd(self,V,r):
         U,S,_ = np.linalg.svd(V,full_matrices=False)
         if V.shape[1]>=self.p:
             epsilon = np.sum(S[r:])/(self.p-r)
         else:
             epsilon = np.sum(S[r:])/(V.shape[1]-r)
-        
-        # if 'ACG_lowrank' in self.distribution: #also covers MACG
-        # M = U[:,:r]@np.diag(np.sqrt((S[:r]**2-epsilon)/epsilon))
-        #     return M
-        # else:
         M = U[:,:r]@np.diag(np.sqrt(((S[:r]-epsilon)/epsilon)))
-        #     M = U[:,:r]@np.diag(np.sqrt((S[:r]**2-epsilon)/epsilon))
-        #     return M/self.p*self.q,epsilon/V.shape[1]
-        # return M/self.p,epsilon/V.shape[1]
 
         if 'Normal' in self.distribution and self.r==1:
             return M,epsilon#/V.shape[1]        
@@ -85,9 +60,6 @@ class PCMMEMBaseModel():
 
         if self.r == 1:
             raise ValueError('r=1 not implemented')
-        
-        # #orthgonalize M_init
-        # M_init_orth,_ = np.linalg.qr(M_init)
 
         # initialize remainder using the svd of the residual of X after subtracting the projection on M_init
         if 'Complex' in self.distribution:
@@ -178,8 +150,6 @@ class PCMMEMBaseModel():
                     pi = np.bincount(X_part)/X_part.shape[0]
                     if not np.any(pi<1/(self.K*4)):
                         break
-                    # if np.unique(X_part).size==self.K:
-                    #     break   
                 mu = mu.T
             
             if 'Watson' in self.distribution:

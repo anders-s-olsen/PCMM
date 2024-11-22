@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from src.helper_functions import train_model,test_model
+from src.helper_functions import train_model,test_model,calc_NMI
 import h5py as h5
 
 df = pd.DataFrame()
@@ -17,33 +16,6 @@ levels = np.linspace(np.pi/16,np.pi,16)
 true_labels = np.zeros((K,num_points_per_cluster*K))
 true_labels[0,:num_points_per_cluster] = 1
 true_labels[1,num_points_per_cluster:] = 1
-
-def calc_MI(Z1,Z2):
-    P=Z1@Z2.T
-    PXY=P/np.sum(P)
-    PXPY=np.outer(np.sum(PXY,axis=1),np.sum(PXY,axis=0))
-    ind=np.where(PXY>0)
-    MI=np.sum(PXY[ind]*np.log(PXY[ind]/PXPY[ind]))
-    return MI
-
-def calc_NMI(Z1,Z2):
-    Z1 = np.double(Z1)
-    Z2 = np.double(Z2)
-    #Z1 and Z2 are two partition matrices of size (KxN) where K is number of components and N is number of samples
-    NMI = (2*calc_MI(Z1,Z2))/(calc_MI(Z1,Z1)+calc_MI(Z2,Z2))
-    return NMI
-
-def plot_coh_matrix2(coh_map1):
-    fig = plt.figure(figsize=(5,5))
-    ax = fig.add_subplot(111)
-    ax.imshow(coh_map1, vmin=-1,vmax=1, cmap='bwr')
-    # add numbers in text for each cell
-    for i in range(3):
-        for j in range(3):
-            ax.text(j,i, np.round(coh_map1[i,j],2), ha='center', va='center', color='k', fontsize=20)
-    ax.set_xticks([])
-    ax.set_yticks([])
-    return ax
 
 def fill_df(df,method,repeat,centroids,train_labels,noise,true_labels,train_obj,test_labels=None,test_obj=None,HMM=False):
     if train_labels.ndim!=2: #binary, kmeans

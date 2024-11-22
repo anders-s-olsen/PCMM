@@ -53,8 +53,6 @@ class PCMMPyTorchBaseModel(nn.Module):
         T = T/T.sum(dim=1)[:,None]
         self.T = nn.Parameter(T)
 
-
-
     def initialize(self,X,init_method=None):
         # initialize using analytical optimization only
         if self.distribution == 'Watson':
