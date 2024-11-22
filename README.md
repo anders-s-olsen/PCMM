@@ -18,14 +18,26 @@
     conda create -n PCMM python
     conda activate PCMM
     ```
-
-2. **Clone the Repository**:
+    
+2. **Install necessary dependencies**
+    PCMM requirements (pytorch scripts only developed for cpu):
+    ```bash
+    conda install scipy pytorch cpuonly -c pytorch
+    pip install tqdm
+    ```
+    Requirements for running analysis scripts
+    ```bash
+    conda install ipykernel h5py matplotlib seaborn nilearn pandas 
+    pip install networkx
+    ```
+    
+4. **Clone the Repository**:
     ```bash
     git clone https://github.com/anders-s-olsen/PCMM.git
     cd PCMM
     ```
 
-3. **Install the Package**:
+5. **Install PCMM as a package**:
     - For standard installation:
         ```bash
         pip install .
