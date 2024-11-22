@@ -128,10 +128,10 @@ The test script requires the estimated parameters as well as input:
 test_loglik,test_posterior,test_loglik_per_sample = test_model(data_test,params,K,options)
 ```
 
-# Data specifications
+### Data specifications
 The input data should always be an array of size either `nxp` (Watson, ACG, Normal, diametrical, euclidean) or `nxpxq` (MACG, SingularWishart, grassmann, weighted_grassmann). Here `n` corresponds to the number of observations, `p` is the data dimensionality (e.g., number of brain regions), and `q` is the number of frames in the orthonormal matrix (in our paper, q=2). Only Watson, ACG, and diametrical_clustering are implemented to also handle complex-valued input data. 
 
-# Initialization strategies:
+### Initialization strategies:
 - K-means models (implemented in `PCMM.riemannian_clustering.py`) are by default initialized using their `++`-equivalents.
 - Probabilistic mixture models may be initialized using K-means models:
     - `dc` = Diametrical clustering (for real or complex-valued input data)
