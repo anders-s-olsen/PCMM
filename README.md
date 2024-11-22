@@ -53,7 +53,7 @@ Only the **`PCMM/`** folder contains files necessary for implementation in other
 ## Using the Models
 
 ### Input Requirements
-The models require input signals formatted as a NumPy array of shape `(observations, dimensions)`.
+Most models require input signals formatted as a NumPy array of shape `(observations, dimensions)`.
 
 ### Example Workflow
 To fit a **Complex ACG Mixture Model** with `K=3`, `p=10`, `rank=5`:
