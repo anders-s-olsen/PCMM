@@ -25,7 +25,7 @@
     conda install scipy pytorch cpuonly -c pytorch
     pip install tqdm
     ```
-    Requirements for running analysis scripts
+    Requirements for running analysis notebooks
     ```bash
     conda install ipykernel h5py matplotlib seaborn nilearn pandas 
     pip install networkx
@@ -42,7 +42,7 @@
         ```bash
         pip install .
         ```
-    - For editable installation (allows for edits in the 'src' folder):
+    - For editable installation (allows for edits in the 'PCMM' folder):
         ```bash
         pip install -e .
         ```
