@@ -24,6 +24,7 @@ synthetic_analysis/fits/
 #any folder with unused_ in the name
 **/unused_*/
 *.h5
+PCMM.egg-info
 
 data/external/*
 !data/external/Schaefer2018_100Parcels_7Networks_order_Tian_Subcortex_S1.dlabel.nii
