@@ -37,7 +37,7 @@
     cd PCMM
     ```
 
-5. **Install PCMM as a package**:
+5. **Install the PCMM subfolder as a package**:
     - For standard installation:
         ```bash
         pip install .
@@ -53,10 +53,10 @@
 
 - **`PCMM/`**: Contains the source code for the PCMM library, including model implementations and utility scripts.
 - **`synthetic analysis/`**: Includes scripts for generating and analyzing synthetic datasets (manuscript Figs 1-3).
-- **`experiments_phaserando/`**: Contains scripts and resources for running experiments involving phase-randomized data (Manuscript Fig 4).
-- **`experiments_real/`**: Includes scripts for processing human connectome project (HCP) fMRI data (Manuscript Figs 5-8).
-- **`data/`**: A guide to obtaining, preprocessing, and using datasets. See `data/README.md` for more details.
-- **`atlas_figure/`**: Script for visualizing the Schaefer-100 atlas.
+- **`experiments_phaserando/`**: Contains scripts and resources for running experiments involving phase-randomized data (manuscript Fig 4).
+- **`experiments_real/`**: Includes scripts for processing and analyzing human connectome project (HCP) fMRI data (manuscript Figs 5-8).
+- **`data/`**: Data preprocessing (filtering, GSR, phase calculation)
+- **`atlas_figure/`**: Script for visualizing the Schaefer-100 atlas (manuscript Figs 5-6,8).
 
 Only the **`PCMM/`** folder contains files necessary for implementation in other projects. The other folders contain analysis scripts and notebooks specific to generating the results in our manuscript. 
 
@@ -117,7 +117,7 @@ To fit a **Complex ACG Mixture Model** with `K=3`, `p=10`, `rank=5`:
 The PCMM folder also includes `helper_functions`, which include train and test scripts:
 ``` python
 from PCMM.helper_functions import train_model,test_model
-params,posterior,loglik = train_model(data_train,K,options,params,suppress_output,samples_per_sequence)
+params,posterior,loglik = train_model(X,K,options,params,suppress_output,samples_per_sequence)
 ```
 The inputs for the train function are:
 - `data_train` (input data specifications below)
@@ -132,7 +132,7 @@ The inputs for the train function are:
     - `options['max_iter']` (defaults to 1e6) Maximum number of estimation loop iterations
     - `options['max_repl_inner']` (defaults to 1) Number of independent replications to choose the best estimate from.
 - `params` (defaults to None) Parameter set from which to start model estimation (e.g., a lower-rank equivalent of the model)
-- `suppress_output` (defaults to False) Whether to write estimated log-likelihood for each iteration
+- `suppress_output` (defaults to False) Whether to print estimated log-likelihood for each iteration
 - `samples_per_sequence` (defaults to 0) Only for HMM - the number of samples in each sequence. Can be either an integer or a list of integers. If zero, it corresponds to all data being the same sequence. 
 
 The test script requires the estimated parameters as well as input:
