@@ -67,12 +67,12 @@ Only the **`PCMM/`** folder contains files necessary for implementation in other
 ### Input Requirements
 Most models require input signals formatted as a NumPy array of shape `(observations, dimensions)`.
 
-### Example Workflow
+### Example Workflow using EM estimation
 To fit a **Complex ACG Mixture Model** with `K=3`, `p=10`, `rank=5`:
 1. **Define the Model**:
     ```python
     from PCMM.PCMM_EM.ACGEM import ACG_EM
-    X = ...
+    X = ... # Data
     K = 3  # Number of clusters to be inferred
     p = X.shape[1]  # Signal dimensionality
     rank = 5  # Model rank (should be rank<=p)
@@ -84,10 +84,8 @@ To fit a **Complex ACG Mixture Model** with `K=3`, `p=10`, `rank=5`:
     options = {
         'tol': 1e-10,  # Tolerance for stopping estimation
         'max_iter': 100000,  # Maximum iterations
-        'LR': 0,  # 0 for EM estimation; >0 for PyTorch-based
-        'HMM': False,  # Enable Hidden Markov estimation (PyTorch only)
         'num_repl_inner': 1,  # Independent replications from which the best estimate is selected
-        'init': '++',  # Initialization method
+        'init': 'dc++',  # Initialization method, here diametrical clustering ++
     }
     ```
 
@@ -130,7 +128,7 @@ The inputs for the train function are:
     - `options['init']` of either `['uniform','dc','dc++','dc_seg','dc++_seg','gc','gc++','gc_seg','gc++_seg','wgc','wgc++','wgc_seg','wgc++_seg','euclidean','euclidean_seg']`
     - `options['tol']` (defaults to 1e-10) Tolerance at which to stop estimation
     - `options['max_iter']` (defaults to 1e6) Maximum number of estimation loop iterations
-    - `options['max_repl_inner']` (defaults to 1) Number of independent replications to choose the best estimate from.
+    - `options['max_repl_inner']` (defaults to 1) Number of independent clustering replications to choose the best estimate from.
 - `params` (defaults to None) Parameter set from which to start model estimation (e.g., a lower-rank equivalent of the model)
 - `suppress_output` (defaults to False) Whether to print estimated log-likelihood for each iteration
 - `samples_per_sequence` (defaults to 0) Only for HMM - the number of samples in each sequence. Can be either an integer or a list of integers. If zero, it corresponds to all data being the same sequence. 
