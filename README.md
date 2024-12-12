@@ -72,11 +72,12 @@ To fit a **Complex ACG Mixture Model** with `K=3`, `p=10`, `rank=5`:
 1. **Define the Model**:
     ```python
     from PCMM.PCMM_EM.ACGEM import ACG_EM
-    X = ... # Data
+    X = ... # Data as np.array of size (observations, dimensions)
     K = 3  # Number of clusters to be inferred
-    p = X.shape[1]  # Signal dimensionality
+    p = X.shape[1]  # Data dimensionality
     rank = 5  # Model rank (should be rank<=p)
-    model = ACG_EM(K=K, p=p, rank=rank, complex=True, params=None) #params can be included to start estimation from a specific parameter setting
+    params = None #params can be included to start estimation from a specific parameter setting
+    model = ACG_EM(K=K, p=p, rank=rank, complex=True, params=params) 
     ```
 
 2. **Set Estimation Options**:
@@ -92,7 +93,6 @@ To fit a **Complex ACG Mixture Model** with `K=3`, `p=10`, `rank=5`:
 3. **Run the Estimation**:
     ```python
     from PCMM.PCMM_EM.mixture_EM_loop import mixture_EM_loop
-
     params, posterior, loglik = mixture_EM_loop(
         model=model,
         data=X, 
