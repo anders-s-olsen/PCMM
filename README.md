@@ -115,7 +115,8 @@ To fit a **Complex ACG Mixture Model** with `K=3`, `p=10`, `rank=5`:
 The PCMM folder also includes `helper_functions`, which include train and test scripts:
 ``` python
 from PCMM.helper_functions import train_model,test_model
-params,posterior,loglik = train_model(X,K,options,params,suppress_output,samples_per_sequence)
+params,posterior,loglik = train_model(X_train,K,options,params,suppress_output,samples_per_sequence)
+test_loglik,test_posterior,test_loglik_per_sample = test_model(X_test,params,K,options,samples_per_sequence)
 ```
 The inputs for the train function are:
 - `data_train` (input data specifications below)
@@ -133,10 +134,7 @@ The inputs for the train function are:
 - `suppress_output` (defaults to False) Whether to print estimated log-likelihood for each iteration
 - `samples_per_sequence` (defaults to 0) Only for HMM - the number of samples in each sequence. Can be either an integer or a list of integers. If zero, it corresponds to all data being the same sequence. 
 
-The test script requires the estimated parameters as well as input:
-``` python
-test_loglik,test_posterior,test_loglik_per_sample = test_model(data_test,params,K,options)
-```
+The inputs for the test function are the same, except `params` is a required input and `K` is no longer required. 
 
 ### Data specifications
 The input data should always be an array of size either `nxp` (Watson, ACG, Normal, diametrical, euclidean) or `nxpxq` (MACG, SingularWishart, grassmann, weighted_grassmann). Here `n` corresponds to the number of observations, `p` is the data dimensionality (e.g., number of brain regions), and `q` is the number of frames in the orthonormal matrix (in our paper, q=2). Only Watson, ACG, and diametrical_clustering are implemented to also handle complex-valued input data. 
