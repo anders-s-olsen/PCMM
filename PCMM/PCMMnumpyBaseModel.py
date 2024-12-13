@@ -17,7 +17,7 @@ class PCMMnumpyBaseModel():
             if self.M.ndim==2 and self.K==1:
                 self.M = self.M[None,:,:]
         elif 'fullrank' in self.distribution:
-            self.Lambda = params['Lambda']
+            self.Psi = params['Lambda']
         else:
             raise ValueError('Invalid distribution')
         
@@ -123,14 +123,16 @@ class PCMMnumpyBaseModel():
                 else:
                     M = np.random.uniform(size=(self.K,self.p,self.r))
                 if 'fullrank' in self.distribution:
-                    self.Lambda = np.zeros((self.K,self.p,self.p),dtype=M.dtype)
+                    self.Psi = np.zeros((self.K,self.p,self.p),dtype=M.dtype)
                     for k in range(self.K):
-                        self.Lambda[k] = M[k]@M[k].T.conj()+np.eye(self.p)
-                        self.Lambda[k] = self.p*self.Lambda[k]/np.trace(self.Lambda[k])
+                        self.Psi[k] = M[k]@M[k].T.conj()+np.eye(self.p)
+                        self.Psi[k] = self.p*self.Psi[k]/np.trace(self.Psi[k])
                 else:
                     self.M = M
             return           
         elif init_method in ['ls','ls_seg','diametrical_clustering_plusplus','dc++','dc++_seg','diametrical_clustering_plusplus_seg','dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
+            # for clustering methods on projective hyperplane or 
+
             if X.ndim==3:
                 X2 = X[:,:,0]
             else:
@@ -172,13 +174,14 @@ class PCMMnumpyBaseModel():
                     self.gamma = gamma
             elif 'fullrank' in self.distribution:
                 print('Initializing Lambda based on the clustering centroids')
-                self.Lambda = np.zeros((self.K,self.p,self.p),dtype=X.dtype)
+                self.Psi = np.zeros((self.K,self.p,self.p),dtype=X.dtype)
                 for k in range(self.K):
-                    self.Lambda[k] = np.outer(mu[:,k],mu[:,k])+np.eye(self.p)
+                    self.Psi[k] = np.outer(mu[:,k],mu[:,k])+np.eye(self.p)
                     if self.distribution in ['ACG_fullrank','MACG_fullrank','Complex_ACG_fullrank']:
-                        self.Lambda[k] = self.p*self.Lambda[k]/np.trace(self.Lambda[k])
+                        self.Psi[k] = self.p*self.Psi[k]/np.trace(self.Psi[k])
             
         elif init_method in ['grassmann_clustering','grassmann_clustering_seg','gc','gc_seg','grassmann_clustering_plusplus','gc++','grassmann_clustering_plusplus_seg','gc++_seg']:
+            # for clustering methods on the Grassmann manifold
             if X.ndim!=3:
                 raise ValueError('Grassmann methods are only implemented for 3D data')
             
@@ -199,15 +202,17 @@ class PCMMnumpyBaseModel():
                     self.gamma = gamma
             elif 'fullrank' in self.distribution:
                 print('Initializing Lambda based on the clustering centroids')
-                self.Lambda = np.zeros((self.K,self.p,self.p),dtype=X.dtype)
+                self.Psi = np.zeros((self.K,self.p,self.p),dtype=X.dtype)
                 for k in range(self.K):
-                    self.Lambda[k] = C[k]@C[k].T.conj()+np.eye(self.p)
+                    self.Psi[k] = C[k]@C[k].T.conj()+np.eye(self.p)
                     if self.distribution in ['ACG_fullrank','MACG_fullrank','Complex_ACG_fullrank']:
-                        self.Lambda[k] = self.p*self.Lambda[k]/np.trace(self.Lambda[k])
+                        self.Psi[k] = self.p*self.Psi[k]/np.trace(self.Psi[k])
 
         elif init_method in ['weighted_grassmann_clustering','weighted_grassmann_clustering_seg','wgc','wgc_seg','weighted_grassmann_clustering_plusplus','wgc++','weighted_grassmann_clustering_plusplus_seg','wgc++_seg']:
+            # For clustering methods on the symmetric positive definite matrix manifold
+
             if X.ndim!=3:
-                raise ValueError('Grassmann methods are only implemented for 3D data')
+                raise ValueError('SPSD methods are only implemented for 3D data')
             
             if init_method in ['weighted_grassmann_clustering_plusplus','wgc++','weighted_grassmann_clustering_plusplus_seg','wgc++_seg']:
                 print('Running weighted grassmann clustering ++ initialization')
@@ -226,9 +231,9 @@ class PCMMnumpyBaseModel():
                     self.gamma = gamma
             elif 'fullrank' in self.distribution:
                 print('Initializing Lambda based on the clustering centroids')
-                self.Lambda = np.zeros((self.K,self.p,self.p),dtype=X.dtype)
+                self.Psi = np.zeros((self.K,self.p,self.p),dtype=X.dtype)
                 for k in range(self.K):
-                    self.Lambda[k] = C[k]@np.diag(C_weights[k])@C[k].T.conj()+np.eye(self.p)
+                    self.Psi[k] = C[k]@np.diag(C_weights[k])@C[k].T.conj()+np.eye(self.p)
         else:
             raise ValueError('Invalid init_method')
         
@@ -245,13 +250,13 @@ class PCMMnumpyBaseModel():
                     self.M[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=self.M[k],Lambda=None)
             elif self.distribution in ['ACG_fullrank','MACG_fullrank','Complex_ACG_fullrank']:
                 for k in range(self.K):
-                    self.Lambda[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=None, Lambda=self.Lambda[k])
+                    self.Psi[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=None, Lambda=self.Psi[k])
             elif self.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
                 for k in range(self.K):
                     self.M[k],self.gamma[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=self.M[k],gamma=self.gamma[k])
             elif self.distribution in ['SingularWishart_fullrank','Normal_fullrank','Complex_Normal_fullrank']:
                 for k in range(self.K):
-                    self.Lambda[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=None)
+                    self.Psi[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=None)
 
     def logdet(self,B):
         logdetsign,logdet = np.linalg.slogdet(B)
@@ -303,7 +308,7 @@ class PCMMnumpyBaseModel():
         elif self.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
             return {'M':self.M,'pi':self.pi,'gamma':self.gamma}
         elif 'fullrank' in self.distribution:
-            return {'Lambda':self.Lambda,'pi':self.pi}
+            return {'Lambda':self.Psi,'pi':self.pi}
         
     def set_params(self,params):
         self.unpack_params(params)

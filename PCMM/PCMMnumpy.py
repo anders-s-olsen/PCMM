@@ -144,8 +144,8 @@ class ACG(PCMMnumpyBaseModel):
         return log_pdf
     
     def log_pdf_fullrank(self, X):
-        XtLX = np.real(np.sum(X.conj()@np.linalg.inv(self.Lambda)*X,axis=-1)) #should be real
-        log_det_L = np.atleast_1d(np.real(self.logdet(self.Lambda)))[:,None] #should be real
+        XtLX = np.real(np.sum(X.conj()@np.linalg.inv(self.Psi)*X,axis=-1)) #should be real
+        log_det_L = np.atleast_1d(np.real(self.logdet(self.Psi)))[:,None] #should be real
         log_pdf = self.logSA_sphere - self.a * log_det_L -self.c*np.log(XtLX)
         return log_pdf
 
@@ -241,7 +241,7 @@ class ACG(PCMMnumpyBaseModel):
             if self.distribution in ['ACG_lowrank','Complex_ACG_lowrank']:
                 self.M[k] = self.M_step_single_component(X,beta[k],self.M[k],None)
             elif self.distribution in ['ACG_fullrank','Complex_ACG_fullrank']:
-                self.Lambda[k] = self.M_step_single_component(X,beta[k],None,self.Lambda[k])
+                self.Psi[k] = self.M_step_single_component(X,beta[k],None,self.Psi[k])
 
 class MACG(PCMMnumpyBaseModel):
     def __init__(self, p:int,q:int, K:int=1, rank=None, params:dict=None):
@@ -275,8 +275,8 @@ class MACG(PCMMnumpyBaseModel):
         return log_pdf
 
     def log_pdf_fullrank(self, X):
-        logdetXtLX = self.logdet(np.swapaxes(X,-2,-1)[None,:,:,:]@np.linalg.inv(self.Lambda)[:,None,:,:]@X)
-        log_pdf = - (self.q/2)*np.atleast_1d(self.logdet(self.Lambda))[:,None] - self.p/2*logdetXtLX
+        logdetXtLX = self.logdet(np.swapaxes(X,-2,-1)[None,:,:,:]@np.linalg.inv(self.Psi)[:,None,:,:]@X)
+        log_pdf = - (self.q/2)*np.atleast_1d(self.logdet(self.Psi))[:,None] - self.p/2*logdetXtLX
         return log_pdf
 
     def log_pdf(self, X):
@@ -374,7 +374,7 @@ class MACG(PCMMnumpyBaseModel):
             if self.distribution == 'MACG_lowrank':
                 self.M[k] = self.M_step_single_component(X,beta[k],self.M[k],None)
             elif self.distribution == 'MACG_fullrank':
-                self.Lambda[k] = self.M_step_single_component(X,beta[k],None,self.Lambda[k])
+                self.Psi[k] = self.M_step_single_component(X,beta[k],None,self.Psi[k])
 
 class SingularWishart(PCMMnumpyBaseModel):
     def __init__(self, p:int,q:int, K:int=1, rank=None, params:dict=None):
@@ -418,7 +418,7 @@ class SingularWishart(PCMMnumpyBaseModel):
         return log_pdf
 
     def log_pdf_fullrank(self, Q):
-        log_pdf = self.log_norm_constant - (self.q/2)*np.atleast_1d(self.logdet(self.Lambda))[:,None] - 1/2*np.trace(np.swapaxes(Q,-2,-1)[None,:]@np.linalg.inv(self.Lambda)[:,None]@Q[None,:],axis1=-2,axis2=-1)
+        log_pdf = self.log_norm_constant - (self.q/2)*np.atleast_1d(self.logdet(self.Psi))[:,None] - 1/2*np.trace(np.swapaxes(Q,-2,-1)[None,:]@np.linalg.inv(self.Psi)[:,None]@Q[None,:],axis1=-2,axis2=-1)
         return log_pdf
 
     def log_pdf(self, Q):
@@ -502,7 +502,7 @@ class SingularWishart(PCMMnumpyBaseModel):
             if self.distribution == 'SingularWishart_lowrank':
                 self.M[k],self.gamma[k] = self.M_step_single_component(X,beta[k],self.M[k],gamma=self.gamma[k])
             elif self.distribution == 'SingularWishart_fullrank':
-                self.Lambda[k] = self.M_step_single_component(X,beta[k])
+                self.Psi[k] = self.M_step_single_component(X,beta[k])
 
 class Normal(PCMMnumpyBaseModel):
     def __init__(self, p:int, rank:int=None, K:int=1, complex:bool=False, params:dict=None):
@@ -549,8 +549,8 @@ class Normal(PCMMnumpyBaseModel):
         return log_pdf
 
     def log_pdf_fullrank(self, X):
-        XtLX = np.real(np.sum(X.conj()@np.linalg.inv(self.Lambda)*X,axis=-1)) #should be real
-        log_det_L = np.atleast_1d(np.real(self.logdet(self.Lambda)))[:,None] #should be real
+        XtLX = np.real(np.sum(X.conj()@np.linalg.inv(self.Psi)*X,axis=-1)) #should be real
+        log_det_L = np.atleast_1d(np.real(self.logdet(self.Psi)))[:,None] #should be real
         log_pdf = self.log_norm_constant - self.a * log_det_L -self.a*XtLX
         return log_pdf
 
@@ -641,4 +641,4 @@ class Normal(PCMMnumpyBaseModel):
             if 'lowrank' in self.distribution:
                 self.M[k],self.gamma[k] = self.M_step_single_component(X,beta[k],self.M[k],gamma=self.gamma[k])
             elif 'fullrank' in self.distribution:
-                self.Lambda[k] = self.M_step_single_component(X,beta[k])
+                self.Psi[k] = self.M_step_single_component(X,beta[k])
