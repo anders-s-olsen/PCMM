@@ -56,7 +56,7 @@
 ### Input Requirements
 Most models require input signals formatted as a NumPy array of shape `(observations, dimensions)`.
 
-### Example Workflow using EM estimation
+### Example Workflow using EM estimation (only mixture models)
 To fit a **Complex ACG Mixture Model** with `K=3`, `p=10`, `rank=5`:
 1. **Define the Model**:
     ```python
