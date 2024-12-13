@@ -25,11 +25,6 @@
     conda install scipy pytorch cpuonly -c pytorch
     pip install tqdm
     ```
-    Requirements for running analysis notebooks
-    ```bash
-    conda install ipykernel h5py matplotlib seaborn nilearn pandas 
-    pip install networkx
-    ```
     
 4. **Clone the Repository**:
     ```bash
@@ -52,13 +47,7 @@
 ## Repository Structure
 
 - **`PCMM/`**: Contains the source code for the PCMM library, including model implementations and utility scripts.
-- **`synthetic analysis/`**: Includes scripts for generating and analyzing synthetic datasets (manuscript Figs 1-3).
-- **`experiments_phaserando/`**: Contains scripts and resources for running experiments involving phase-randomized data (manuscript Fig 4).
-- **`experiments_real/`**: Includes scripts for processing and analyzing human connectome project (HCP) fMRI data (manuscript Figs 5-8).
-- **`data/`**: Data preprocessing (filtering, GSR, phase calculation)
-- **`atlas_figure/`**: Script for visualizing the Schaefer-100 atlas (manuscript Figs 5-6,8).
-
-Only the **`PCMM/`** folder contains files necessary for implementation in other projects. The other folders contain analysis scripts and notebooks specific to generating the results in our manuscript. 
+- **`paper/`**: Contains scripts for experiments and analysis pertaining to our paper (see paper/README.md)
 
 ---
 
