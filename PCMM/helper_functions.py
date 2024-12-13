@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.cluster.vq import kmeans2
 import torch
 from PCMM.mixture_EM_loop import mixture_EM_loop
 from PCMM.PCMMnumpy import Watson as Watson_numpy
@@ -68,15 +67,16 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
             model = Normal_numpy(K=K,p=p,rank=rank,params=params,complex=True)
         else:
             model = Normal_torch(K=K,p=p,rank=rank,params=params,complex=True,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
-    elif options['modelname'] == 'euclidean':
-        X = data_train
-        X[(X>0).sum(axis=1)>p/2] = -X[(X>0).sum(axis=1)>p/2]
-        C,labels = kmeans2(X,k=K,minit=options['init'])
+    elif options['modelname'] == 'least_squares':
+        C,labels,obj = least_squares_sign_flip(data_train,K=K,max_iter=options['max_iter'],num_repl=1,init=options['init'],tol=options['tol'])
+        # X = data_train
+        # X[(X>0).sum(axis=1)>p/2] = -X[(X>0).sum(axis=1)>p/2]
+        # C,labels = kmeans2(X,k=K,minit=options['init'])
         labels = np.eye(K)[labels].T
         params = {'C':C}
         #euclidean distance
-        sim = -np.sum((X[:,None]-params['C'][None])**2,axis=-1)
-        obj = np.mean(np.max(sim,axis=1))
+        # sim = -np.sum((X[:,None]-params['C'][None])**2,axis=-1)
+        # obj = np.mean(np.max(sim,axis=1))
         return params,labels,[obj]
     elif options['modelname'] in ['diametrical','complex_diametrical']:
         C,labels,obj = diametrical_clustering(data_train,K=K,max_iter=options['max_iter'],num_repl=1,init=options['init'],tol=options['tol'])
@@ -113,7 +113,7 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
         params,posterior,loglik = mixture_torch_loop(model,data_train,tol=options['tol'],max_iter=options['max_iter'],
                                         num_repl=options['num_repl_inner'],init=options['init'],LR=options['LR'],
                                         suppress_output=suppress_output,threads=options['threads'])
-    return 
+    return params,posterior,loglik
     
 def test_model(data_test,params,K,options,samples_per_sequence=0):
     p = data_test.shape[1]
@@ -172,8 +172,8 @@ def test_model(data_test,params,K,options,samples_per_sequence=0):
                 model = Normal_torch(K=K,p=p,rank=rank,params=params,complex=True,samples_per_sequence=samples_per_sequence)
         test_loglik, test_loglik_per_sample = model.test_log_likelihood(X=data_test)
         test_posterior = model.posterior(X=data_test)
-    elif options['modelname'] in ['euclidean','diametrical','complex_diametrical','grassmann','weighted_grassmann']:
-        if options['modelname'] == 'euclidean':
+    elif options['modelname'] in ['least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann']:
+        if options['modelname'] == 'least_squares':
             #eucdliean distance
             X=data_test
             X[(X>0).sum(axis=1)>p/2] = -X[(X>0).sum(axis=1)>p/2]
