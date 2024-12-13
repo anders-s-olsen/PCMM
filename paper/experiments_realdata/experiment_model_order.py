@@ -44,6 +44,7 @@ def load_fMRI_data(data_file,options,only_some_points=False):
         data_test1 = data_test1[:1000]
         data_test2 = data_test2[:1000]
     return data_train,data_test1,data_test2
+
 def run(data_train,data_test1,data_test2,K,df,options,params=None,suppress_output=False,inner=None,p=116):
     params,train_posterior,loglik_curve = train_model(data_train,K=K,options=options,suppress_output=suppress_output,samples_per_sequence=1200,params=params)
     
@@ -115,7 +116,7 @@ def run_experiment(extraoptions={},suppress_output=False,save_params=True,GSR='G
         elif options['modelname']=='SingularWishart':
             options['init'] = 'wgc'
         elif options['modelname'] in ['Normal']:
-            options['init'] = 'euclidean_seg'
+            options['init'] = 'ls_seg'
         else:
             options['init'] = '++'
 

@@ -247,7 +247,7 @@ def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=N
     return C_final[best],C_weights_final[best],part_final[best],obj_final[best]
 
 def least_squares_sign_flip(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None):
-    if init=='unif':
+    if init=='uniform':
         init = 'random'
     n,p = X.shape
 
@@ -257,8 +257,16 @@ def least_squares_sign_flip(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None):
     obj_final = [] # objective function collector
     part_final = [] # partition collector
     C_final = [] # cluster center collector
-    C_weights_final = [] # cluster weights collector
 
     # loop over the number of repetitions
     for _ in range(num_repl):
         C,labels = kmeans2(X,k=K,minit=init,iter=max_iter)
+        sim = -np.sum((X[:,None]-C[None])**2,axis=-1)
+        obj = np.mean(np.max(sim,axis=1))
+
+        C_final.append(C.T)
+        obj_final.append(obj)
+        part_final.append(labels)   
+
+    best = np.nanargmax(np.array(obj_final))
+    return C_final[best],part_final[best],obj_final[best]        

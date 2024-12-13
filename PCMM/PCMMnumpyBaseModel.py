@@ -1,6 +1,5 @@
 import numpy as np
-from PCMM.phase_coherence_kmeans import diametrical_clustering, plusplus_initialization, grassmann_clustering, weighted_grassmann_clustering
-from scipy.cluster.vq import kmeans2
+from PCMM.phase_coherence_kmeans import diametrical_clustering, plusplus_initialization, grassmann_clustering, weighted_grassmann_clustering, least_squares_sign_flip
 
 class PCMMnumpyBaseModel():
 
@@ -94,7 +93,7 @@ class PCMMnumpyBaseModel():
                                'dc','diametrical_clustering','dc_seg','diametrical_clustering_seg',
                                'gc','grassmann_clustering','gc_seg','grassmann_clustering_seg',
                                'wgc','weighted_grassmann_clustering','wgc_seg','weighted_grassmann_clustering_seg',
-                               'euclidean','euclidean_seg']
+                               'ls','ls_seg']
         assert self.distribution in ['Watson','Complex_Watson',
                                      'ACG_lowrank','ACG_fullrank',
                                      'Complex_ACG_lowrank','Complex_ACG_fullrank',
@@ -103,7 +102,7 @@ class PCMMnumpyBaseModel():
                                      'Normal_lowrank','Normal_fullrank',
                                      'Complex_Normal_lowrank','Complex_Normal_fullrank']
 
-        # for watson, always initialize kappa as ones, will be overwritten by 'seg' methods
+        # for watson, always initialize kappa as ones
         if 'Watson' in self.distribution:
             self.kappa = np.ones(self.K)
         elif 'SingularWishart_lowrank' in self.distribution or 'Normal_lowrank' in self.distribution:
@@ -131,7 +130,7 @@ class PCMMnumpyBaseModel():
                 else:
                     self.M = M
             return           
-        elif init_method in ['euclidean','euclidean_seg','diametrical_clustering_plusplus','dc++','dc++_seg','diametrical_clustering_plusplus_seg','dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
+        elif init_method in ['ls','ls_seg','diametrical_clustering_plusplus','dc++','dc++_seg','diametrical_clustering_plusplus_seg','dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
             if X.ndim==3:
                 X2 = X[:,:,0]
             else:
@@ -143,14 +142,15 @@ class PCMMnumpyBaseModel():
             elif init_method in ['dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
                 print('Running diametrical clustering initialization')
                 mu,X_part,_ = diametrical_clustering(X=X2,K=self.K,max_iter=100000,num_repl=1,init='++')
-            elif init_method in ['euclidean','euclidean_seg']:
-                X2[(X2.real>0).sum(axis=1)>self.p/2] = -X2[(X2.real>0).sum(axis=1)>self.p/2]
-                for l in range(100): #try until we get a valid clustering......................
-                    mu,X_part = kmeans2(X2,k=self.K,minit='++')
-                    pi = np.bincount(X_part)/X_part.shape[0]
-                    if not np.any(pi<1/(self.K*4)):
-                        break
-                mu = mu.T
+            elif init_method in ['ls','ls_seg']:
+                mu,X_part,_ = least_squares_sign_flip(X=X2,K=self.K,max_iter=100000,num_repl=1,init='++')
+                # X2[(X2.real>0).sum(axis=1)>self.p/2] = -X2[(X2.real>0).sum(axis=1)>self.p/2]
+                # for l in range(100): #try until we get a valid clustering......................
+                #     mu,X_part = kmeans2(X2,k=self.K,minit='++')
+                #     pi = np.bincount(X_part)/X_part.shape[0]
+                #     if not np.any(pi<1/(self.K*4)):
+                #         break
+                # mu = mu.T
             
             if 'Watson' in self.distribution:
                 print('Initializing mu based on the clustering centroid')
@@ -229,7 +229,6 @@ class PCMMnumpyBaseModel():
                 self.Lambda = np.zeros((self.K,self.p,self.p),dtype=X.dtype)
                 for k in range(self.K):
                     self.Lambda[k] = C[k]@np.diag(C_weights[k])@C[k].T.conj()+np.eye(self.p)
-                
         else:
             raise ValueError('Invalid init_method')
         
