@@ -126,7 +126,7 @@ The inputs for the train function are:
     - `options['rank']` one of either `['fullrank',r]` where `r<=p` is an integer
     - `options['LR']`, where 0 specifies EM estimation and any other value specifies PyTorch estimation learning rate
     - `options['HMM']` of either `[True,False]`, only applicable to PyTorch estimation and specifies whether to add HMM to the mixture model
-    - `options['init']` of either `['uniform','dc','dc++','dc_seg','dc++_seg','gc','gc++','gc_seg','gc++_seg','wgc','wgc++','wgc_seg','wgc++_seg','euclidean','euclidean_seg']`
+    - `options['init']` of either `['uniform','dc','dc++','dc_seg','dc++_seg','gc','gc++','gc_seg','gc++_seg','wgc','wgc++','wgc_seg','wgc++_seg','ls','ls_seg']`
     - `options['tol']` (defaults to 1e-10) Tolerance at which to stop estimation
     - `options['max_iter']` (defaults to 1e6) Maximum number of estimation loop iterations
     - `options['max_repl_inner']` (defaults to 1) Number of independent clustering replications to choose the best estimate from.
@@ -145,7 +145,7 @@ The input data should always be an array of size either `nxp` (Watson, ACG, Norm
     - `dc` = Diametrical clustering (for real or complex-valued input data)
     - `gc` = Grassmann clustering
     - `wgc` = Weighted Grassmann clustering
-    - `euclidean` = least-squares clustering, where data is sign-flipped prior to clustering.
+    - `ls` = least-squares clustering, where data is sign-flipped prior to clustering.
 - Probabilistic mixture models may also be implemented using previously estimated parameters `params` of the same model. For ACG, MACG, Normal, and SingularWishart, this may be a lower-rank counterpart, e.g., `params['M'].shape = [pxr1]` and `options['rank']=r2`
 - Hidden Markov models may also be initialized from the corresponding mixture model estimate. If so, the transition matrix will be initialized from a computed posterior probability matrix.
 
