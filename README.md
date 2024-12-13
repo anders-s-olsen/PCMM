@@ -166,5 +166,3 @@ Anders S. Olsen, Anders Brammer, Patrick M Fisher, Morten Mørup (2024).
 Available at: [https://doi.org/10.1101/2024.11.15.623830](https://doi.org/10.1101/2024.11.15.623830)
 
 ---
-
-Feel free to customize this README further to match the repository's evolving features!
