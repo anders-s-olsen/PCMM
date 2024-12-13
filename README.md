@@ -122,7 +122,7 @@ The inputs for the train function are:
 - `data_train` (input data specifications below)
 - `K` (number of components to be estimated)
 - `options` containing:
-    - `options['modelname']` one of either `['Watson','Complex_Watson','ACG','Complex_ACG','MACG','SingularWishart','Normal','Complex_Normal','euclidean','diametrical','complex_diametrical','grassmann','weighted_grassmann']`
+    - `options['modelname']` one of either `['Watson','Complex_Watson','ACG','Complex_ACG','MACG','SingularWishart','Normal','Complex_Normal','least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann']`
     - `options['rank']` one of either `['fullrank',r]` where `r<=p` is an integer
     - `options['LR']`, where 0 specifies EM estimation and any other value specifies PyTorch estimation learning rate
     - `options['HMM']` of either `[True,False]`, only applicable to PyTorch estimation and specifies whether to add HMM to the mixture model
