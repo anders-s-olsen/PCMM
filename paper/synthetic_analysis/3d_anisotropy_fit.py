@@ -2,7 +2,6 @@
 #%%
 import numpy as np
 import h5py as h5
-from PCMM.helper_functions import calc_NMI
 import pandas as pd
 import matplotlib.pyplot as plt
 df = pd.DataFrame()

@@ -1,8 +1,49 @@
-from PCMM.helper_functions import train_model,test_model,load_fMRI_data,calc_ll_per_sub
+from PCMM.helper_functions import train_model,test_model,calc_ll_per_sub
 import pandas as pd
 import numpy as np
 import os
+import h5py as h5
+def load_fMRI_data(data_file,options,only_some_points=False):
+    assert options['modelname'] in ['Watson','ACG','MACG','SingularWishart','Complex_Watson','Complex_ACG','Normal','Complex_Normal','euclidean','diametrical','complex_diametrical','grassmann','weighted_grassmann']
 
+    with h5.File(data_file,'r') as f:
+        if options['modelname'] in ['Complex_Watson','Complex_ACG','complex_diametrical']:
+            # complex normalized phase vectors
+            data_train = f['U_complex_train'][:][:,:,0]
+            data_test1 = f['U_complex_test1'][:][:,:,0]
+            data_test2 = f['U_complex_test2'][:][:,:,0] 
+        elif options['modelname'] in ['Watson','ACG','euclidean','diametrical']:
+            # leading eigenvector of cosinus phase coherence matrix
+            data_train = f['U_cos_train'][:][:,:,0]
+            data_test1 = f['U_cos_test1'][:][:,:,0]
+            data_test2 = f['U_cos_test2'][:][:,:,0]
+        elif options['modelname'] in ['MACG','grassmann']:
+            # both eigenvectors of cosinus phase coherence matrix
+            data_train = f['U_cos_train'][:]
+            data_test1 = f['U_cos_test1'][:]
+            data_test2 = f['U_cos_test2'][:]
+        elif options['modelname'] in ['SingularWishart','weighted_grassmann']:
+            # both eigenvectors and both eigenvalues of cosinus phase coherence matrix
+            data_train = f['U_cos_train'][:]*np.sqrt(f['L_cos_train'][:][:,None,:])
+            data_test1 = f['U_cos_test1'][:]*np.sqrt(f['L_cos_test1'][:][:,None,:])
+            data_test2 = f['U_cos_test2'][:]*np.sqrt(f['L_cos_test2'][:][:,None,:])
+        elif options['modelname'] in ['Complex_Normal']:
+            # complex normalized phase vectors scaled by hilbert amplitude
+            data_train = f['U_complex_train'][:][:,:,0]*f['A_train'][:]
+            data_test1 = f['U_complex_test1'][:][:,:,0]*f['A_test1'][:]
+            data_test2 = f['U_complex_test2'][:][:,:,0]*f['A_test2'][:]
+        elif options['modelname'] in ['Normal']:
+            # filtered time series data (no Hilbert transform)
+            data_train = f['timeseries_train'][:][:,:,0]
+            data_test1 = f['timeseries_test1'][:][:,:,0]
+            data_test2 = f['timeseries_test2'][:][:,:,0]
+        else:
+            raise ValueError("Problem")
+    if only_some_points:
+        data_train = data_train[:1000]
+        data_test1 = data_test1[:1000]
+        data_test2 = data_test2[:1000]
+    return data_train,data_test1,data_test2
 def run(data_train,data_test1,data_test2,K,df,options,params=None,suppress_output=False,inner=None,p=116):
     params,train_posterior,loglik_curve = train_model(data_train,K=K,options=options,suppress_output=suppress_output,samples_per_sequence=1200,params=params)
     

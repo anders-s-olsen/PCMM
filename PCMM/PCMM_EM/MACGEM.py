@@ -1,6 +1,5 @@
 import numpy as np
 from PCMM.PCMM_EM.PCMMEMBaseModel import PCMMEMBaseModel
-# from time import time
 from scipy.linalg import sqrtm
 
 class MACG(PCMMEMBaseModel):

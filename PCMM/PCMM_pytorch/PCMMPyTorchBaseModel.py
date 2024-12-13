@@ -163,15 +163,9 @@ class PCMMPyTorchBaseModel(nn.Module):
                 return torch.sum(log_pdf)
         else:
             if self.HMM:
-                if return_samplewise_likelihood:
-                    return self.HMM_log_likelihood_seq(log_pdf,return_samplewise_likelihood=True)
-                else:
-                    return self.HMM_log_likelihood_seq(log_pdf)
+                return self.HMM_log_likelihood_seq(log_pdf,return_samplewise_likelihood)
             else:
-                if return_samplewise_likelihood:
-                    return self.MM_log_likelihood(log_pdf,return_samplewise_likelihood=True)
-                else:
-                    return self.MM_log_likelihood(log_pdf)
+                return self.MM_log_likelihood(log_pdf,return_samplewise_likelihood)
         
     def test_log_likelihood(self,X):
         with torch.no_grad():
