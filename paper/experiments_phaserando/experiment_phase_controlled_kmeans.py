@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import os
 import h5py as h5
-from PCMM.riemannian_clustering import *
+from PCMM.phase_coherence_kmeans import *
 
 def run(data_train,data_test1,data_test2,K,P,df,options,params=None,suppress_output=False,inner=None,p=116):
     params,train_posterior,loglik_curve = train_model(data_train,K=K,options=options,suppress_output=suppress_output,samples_per_sequence=1200,params=params)

@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+from scipy.cluster.vq import kmeans2
 
 def plusplus_initialization(X,K,dist='diametrical'):
     assert dist in ['diametrical','grassmann','weighted_grassmann']
@@ -244,3 +245,20 @@ def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=N
             iter += 1
     best = np.nanargmax(np.array(obj_final))
     return C_final[best],C_weights_final[best],part_final[best],obj_final[best]
+
+def least_squares_sign_flip(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None):
+    if init=='unif':
+        init = 'random'
+    n,p = X.shape
+
+    # perform the sign flip
+    X[(X>0).sum(axis=1)>p/2] = -X[(X>0).sum(axis=1)>p/2]
+
+    obj_final = [] # objective function collector
+    part_final = [] # partition collector
+    C_final = [] # cluster center collector
+    C_weights_final = [] # cluster weights collector
+
+    # loop over the number of repetitions
+    for _ in range(num_repl):
+        C,labels = kmeans2(X,k=K,minit=init,iter=max_iter)

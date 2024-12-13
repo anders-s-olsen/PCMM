@@ -1,7 +1,6 @@
 
 .vscode/
 .env
-submitfiles/
 # any folder __pycache__/ in any subfolder
 **/__pycache__/
 # any folder output/ in any subfolder

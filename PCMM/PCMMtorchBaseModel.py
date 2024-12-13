@@ -1,12 +1,10 @@
 import torch
 import torch.nn as nn
-from PCMM.PCMM_EM.WatsonEM import Watson
-from PCMM.PCMM_EM.ACGEM import ACG
-from PCMM.PCMM_EM.MACGEM import MACG
-from PCMM.PCMM_EM.SingularWishartEM import SingularWishart
-from PCMM.PCMM_EM.NormalEM import Normal
 
-class PCMMPyTorchBaseModel(nn.Module):
+# import the numpy models for initializing parameters
+from PCMM.PCMMnumpy import Watson, ACG, MACG, SingularWishart, Normal
+
+class PCMMtorchBaseModel(nn.Module):
 
     def __init__(self):
         super().__init__()

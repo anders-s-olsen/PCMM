@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from tqdm import tqdm
-from PCMM.PCMM_EM.PCMMEMBaseModel import PCMMPyTorchBaseModel
+from PCMM.PCMMnumpyBaseModel import PCMMPyTorchBaseModel
 from copy import deepcopy
 
 def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,LR=0.1,suppress_output=False,threads=8):

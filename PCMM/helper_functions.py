@@ -1,20 +1,20 @@
 import numpy as np
 from scipy.cluster.vq import kmeans2
 import torch
-from PCMM.PCMM_EM.mixture_EM_loop import mixture_EM_loop
-from PCMM.PCMM_EM.WatsonEM import Watson as Watson_EM
-from PCMM.PCMM_EM.ACGEM import ACG as ACG_EM
-from PCMM.PCMM_EM.MACGEM import MACG as MACG_EM
-from PCMM.PCMM_EM.SingularWishartEM import SingularWishart as SingularWishart_EM
-from PCMM.PCMM_EM.NormalEM import Normal as Normal_EM
-from PCMM.riemannian_clustering import *
+from PCMM.mixture_EM_loop import mixture_EM_loop
+from PCMM.PCMMnumpy import Watson as Watson_numpy
+from PCMM.PCMMnumpy import ACG as ACG_numpy
+from PCMM.PCMMnumpy import MACG as MACG_numpy
+from PCMM.PCMMnumpy import SingularWishart as SingularWishart_numpy
+from PCMM.PCMMnumpy import Normal as Normal_numpy
+from PCMM.phase_coherence_kmeans import *
 
-from PCMM.PCMM_pytorch.mixture_torch_loop import mixture_torch_loop
-from PCMM.PCMM_pytorch.WatsonPyTorch import Watson as Watson_torch
-from PCMM.PCMM_pytorch.ACGPyTorch import ACG as ACG_torch
-from PCMM.PCMM_pytorch.MACGPyTorch import MACG as MACG_torch
-from PCMM.PCMM_pytorch.SingularWishartPyTorch import SingularWishart as SingularWishart_torch
-from PCMM.PCMM_pytorch.NormalPyTorch import Normal as Normal_torch
+from PCMM.mixture_torch_loop import mixture_torch_loop
+from PCMM.PCMMtorch import Watson as Watson_torch
+from PCMM.PCMMtorch import ACG as ACG_torch
+from PCMM.PCMMtorch import MACG as MACG_torch
+from PCMM.PCMMtorch import SingularWishart as SingularWishart_torch
+from PCMM.PCMMtorch import Normal as Normal_torch
 
 def train_model(data_train,K,options,params=None,suppress_output=False,samples_per_sequence=0):
     p = data_train.shape[1]
@@ -30,42 +30,42 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
 
     if options['modelname'] == 'Watson':
         if options['LR']==0:
-            model = Watson_EM(K=K,p=p,params=params)
+            model = Watson_numpy(K=K,p=p,params=params)
         else:
             model = Watson_torch(K=K,p=p,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
     elif options['modelname'] == 'Complex_Watson':
         if options['LR']==0:
-            model = Watson_EM(K=K,p=p,complex=True,params=params)
+            model = Watson_numpy(K=K,p=p,complex=True,params=params)
         else:
             model = Watson_torch(K=K,p=p,complex=True,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
     elif options['modelname'] == 'ACG':
         if options['LR']==0:
-            model = ACG_EM(K=K,p=p,rank=rank,params=params)
+            model = ACG_numpy(K=K,p=p,rank=rank,params=params)
         else:
             model = ACG_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
     elif options['modelname'] == 'Complex_ACG':
         if options['LR']==0:
-            model = ACG_EM(K=K,p=p,rank=rank,complex=True,params=params)
+            model = ACG_numpy(K=K,p=p,rank=rank,complex=True,params=params)
         else:
             model = ACG_torch(K=K,p=p,rank=rank,complex=True,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
     elif options['modelname'] == 'MACG':
         if options['LR']==0:
-            model = MACG_EM(K=K,p=p,q=2,rank=rank,params=params)
+            model = MACG_numpy(K=K,p=p,q=2,rank=rank,params=params)
         else:
             model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence) 
     elif options['modelname'] == 'SingularWishart':
         if options['LR']==0:
-            model = SingularWishart_EM(K=K,p=p,q=2,rank=rank,params=params)
+            model = SingularWishart_numpy(K=K,p=p,q=2,rank=rank,params=params)
         else:
             model = SingularWishart_torch(K=K,p=p,q=2,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence) 
     elif options['modelname'] == 'Normal':
         if options['LR']==0:
-            model = Normal_EM(K=K,p=p,rank=rank,params=params)
+            model = Normal_numpy(K=K,p=p,rank=rank,params=params)
         else:
             model = Normal_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
     elif options['modelname'] == 'Complex_Normal':
         if options['LR']==0:
-            model = Normal_EM(K=K,p=p,rank=rank,params=params,complex=True)
+            model = Normal_numpy(K=K,p=p,rank=rank,params=params,complex=True)
         else:
             model = Normal_torch(K=K,p=p,rank=rank,params=params,complex=True,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
     elif options['modelname'] == 'euclidean':
@@ -132,42 +132,42 @@ def test_model(data_test,params,K,options,samples_per_sequence=0):
             
         if options['modelname'] == 'Watson':    
             if options['LR']==0:
-                model = Watson_EM(K=K,p=p,params=params)
+                model = Watson_numpy(K=K,p=p,params=params)
             else:
                 model = Watson_torch(K=K,p=p,params=params,samples_per_sequence=samples_per_sequence)
         elif options['modelname'] == 'Complex_Watson':
             if options['LR']==0:
-                model = Watson_EM(K=K,p=p,complex=True,params=params)
+                model = Watson_numpy(K=K,p=p,complex=True,params=params)
             else:
                 model = Watson_torch(K=K,p=p,complex=True,params=params,samples_per_sequence=samples_per_sequence)
         elif options['modelname'] == 'ACG':
             if options['LR']==0:
-                model = ACG_EM(K=K,p=p,rank=rank,params=params)
+                model = ACG_numpy(K=K,p=p,rank=rank,params=params)
             else:
                 model = ACG_torch(K=K,p=p,rank=rank,params=params,samples_per_sequence=samples_per_sequence)
         elif options['modelname'] == 'Complex_ACG':
             if options['LR']==0:
-                model = ACG_EM(K=K,p=p,complex=True,rank=rank,params=params)
+                model = ACG_numpy(K=K,p=p,complex=True,rank=rank,params=params)
             else:
                 model = ACG_torch(K=K,p=p,complex=True,rank=rank,params=params,samples_per_sequence=samples_per_sequence)
         elif options['modelname'] == 'MACG':
             if options['LR']==0:
-                model = MACG_EM(K=K,p=p,q=2,rank=rank,params=params)
+                model = MACG_numpy(K=K,p=p,q=2,rank=rank,params=params)
             else:
                 model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params,samples_per_sequence=samples_per_sequence)
         elif options['modelname'] == 'SingularWishart':
             if options['LR']==0:
-                model = SingularWishart_EM(K=K,p=p,q=2,rank=rank,params=params)
+                model = SingularWishart_numpy(K=K,p=p,q=2,rank=rank,params=params)
             else:
                 model = SingularWishart_torch(K=K,p=p,q=2,rank=rank,params=params,samples_per_sequence=samples_per_sequence)
         elif options['modelname'] == 'Normal':
             if options['LR']==0:
-                model = Normal_EM(K=K,p=p,rank=rank,params=params)
+                model = Normal_numpy(K=K,p=p,rank=rank,params=params)
             else:
                 model = Normal_torch(K=K,p=p,rank=rank,params=params,samples_per_sequence=samples_per_sequence)
         elif options['modelname'] == 'Complex_Normal':
             if options['LR']==0:
-                model = Normal_EM(K=K,p=p,rank=rank,params=params,complex=True)
+                model = Normal_numpy(K=K,p=p,rank=rank,params=params,complex=True)
             else:
                 model = Normal_torch(K=K,p=p,rank=rank,params=params,complex=True,samples_per_sequence=samples_per_sequence)
         test_loglik, test_loglik_per_sample = model.test_log_likelihood(X=data_test)

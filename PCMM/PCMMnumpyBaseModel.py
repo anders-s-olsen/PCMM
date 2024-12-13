@@ -1,8 +1,8 @@
 import numpy as np
-from PCMM.riemannian_clustering import diametrical_clustering, plusplus_initialization, grassmann_clustering, weighted_grassmann_clustering
+from PCMM.phase_coherence_kmeans import diametrical_clustering, plusplus_initialization, grassmann_clustering, weighted_grassmann_clustering
 from scipy.cluster.vq import kmeans2
 
-class PCMMEMBaseModel():
+class PCMMnumpyBaseModel():
 
     def __init__(self):
         super().__init__()
