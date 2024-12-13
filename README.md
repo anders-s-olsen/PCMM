@@ -20,7 +20,13 @@
     ```
     
 2. **Install necessary dependencies**
-    PCMM requirements (pytorch scripts only developed for cpu):
+    PCMM requirements for EM estimation
+    ```bash
+    conda install scipy numpy
+    pip install tqdm
+    ```
+
+    PCMM requirements for pytorch estimation:
     ```bash
     conda install scipy pytorch cpuonly -c pytorch
     pip install tqdm
@@ -51,12 +57,25 @@
 
 ---
 
-## Using the Models
+## Example usage
 
-### Input Requirements
-Most models require input signals formatted as a NumPy array of shape `(observations, dimensions)`.
+### (Complex) diametrical clustering
+The following lines of code will fit diametrical clustering to unit-norm data. If the input data is complex-valued, the estimated centroids will also be complex-valued. 
+    ```python
+    from PCMM.phase_coherence_kmeans import diametrical clustering
+    X = ... # Data as np.array of size (n, p), either real or complex. X must be unit norm for each sample
+    K = 3  # Number of clusters to be inferred
+    num_repl = 1 # Number of K-means replications to choose the best model from (default 1)
+    max_iter = 10000 # Maximum number of iterations (default 10000)
+    tol = 1e-10 # Stopping tolerance for changes in the objective function between consecutive iterations. 
+    C,X_part,obj = diametrical_clustering(X,K,max_iter=10000,num_repl=num_repl,init=None,tol=1e-10)
+    ```
+    This produces:
+    - **`C`**: Estimated centroids of size `(p,K)`.
+    - **`X_part`**: Data partition of size `(K, n)`.
+    - **`obj`**: Log-likelihood curve.
 
-### Example Workflow using EM estimation (only mixture models)
+### Complex ACG mixture model EM estimation
 To fit a **Complex ACG Mixture Model** with `K=3`, `p=10`, `rank=5`:
 1. **Define the Model**:
     ```python
