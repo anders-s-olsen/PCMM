@@ -43,7 +43,7 @@ def plusplus_initialization(X,K,dist='diametrical'):
 
         if k==K-1:
             X_part = np.argmin(dis,axis=1)
-            obj = np.mean(mindis)
+            obj = np.mean(np.max(-dis,axis=1))
             break
 
         prob_dist = mindis/np.sum(mindis) # construct the prob. distribution
@@ -68,9 +68,10 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
 
     n,p = X.shape
 
-    obj_final = []
-    part_final = []
-    C_final = []
+    obj_collector = []
+    obj_final_collector = []
+    part_collector = []
+    C_collector = []
 
     for _ in range(num_repl):
         if init is None or init=='++' or init=='plusplus' or init == 'diametrical_clustering_plusplus':
@@ -97,9 +98,10 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
             
             if iter>0:
                 if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or obj[-1]-obj[-2]<tol:
-                    C_final.append(C)
-                    obj_final.append(obj[-1])
-                    part_final.append(X_part)             
+                    C_collector.append(C)
+                    obj_collector.append(obj)
+                    obj_final_collector.append(obj[-1])
+                    part_collector.append(X_part)             
                     break
             
             for k in range(K):
@@ -114,9 +116,9 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
 
             C = C/np.linalg.norm(C,axis=0)
             iter += 1
-    best = np.nanargmax(np.array(obj_final))
+    best = np.nanargmax(np.array(obj_final_collector))
     
-    return C_final[best],part_final[best],obj_final[best]
+    return C_collector[best],part_collector[best],obj_collector[best]
 
 def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
     
@@ -125,9 +127,10 @@ def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
 
     n,p,q = X.shape
 
-    obj_final = [] # objective function collector
-    part_final = [] # partition collector
-    C_final = [] # cluster center collector
+    obj_collector = [] # objective function collector
+    obj_final_collector = [] # final objective function collector
+    part_collector = [] # partition collector
+    C_collector = [] # cluster center collector
 
     # loop over the number of repetitions
     for _ in range(num_repl):
@@ -157,9 +160,10 @@ def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
             
             if iter>0:
                 if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or obj[-1]-obj[-2]<tol:
-                    C_final.append(C)
-                    obj_final.append(obj[-1])
-                    part_final.append(X_part)             
+                    C_collector.append(C)
+                    obj_collector.append(obj)
+                    obj_final_collector.append(obj[-1])
+                    part_collector.append(X_part)             
                     break
             
             # "M-step" - update the cluster centers
@@ -171,8 +175,8 @@ def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
                 C[k] = U[:,order]#[:,::-1]
                 # C[k] = U[:,:q]
             iter += 1
-    best = np.nanargmax(np.array(obj_final))
-    return C_final[best],part_final[best],obj_final[best]
+    best = np.nanargmax(np.array(obj_final_collector))
+    return C_collector[best],part_collector[best],obj_collector[best]
 
 def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None):
     """"
@@ -192,10 +196,11 @@ def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=N
     if not np.allclose(np.sum(X_weights,axis=1),p):
         raise ValueError("In weighted grassmann clustering, the scale of the input data vectors should be equal to the square root of the eigenvalues. If the scale does not sum to the dimensionality, this error is thrown")
 
-    obj_final = [] # objective function collector
-    part_final = [] # partition collector
-    C_final = [] # cluster center collector
-    C_weights_final = [] # cluster weights collector
+    obj_collector = [] # objective function collector
+    obj_final_collector = [] # final objective function collector
+    part_collector = [] # partition collector
+    C_collector = [] # cluster center collector
+    C_weights_collector = [] # cluster weights collector
 
     # loop over the number of repetitions
     for _ in range(num_repl):
@@ -219,17 +224,18 @@ def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=N
             sim = -dis
             maxsim = np.max(sim,axis=1) # find the maximum similarity - the sum of this value is the objective function
             X_part = np.argmax(sim,axis=1) # assign each point to the cluster with the highest similarity
-            obj.append(np.sum(maxsim))
+            obj.append(np.mean(maxsim))
 
             # check for convergence   
             for k in range(K):
                 partsum[iter,k] = np.sum(X_part==k)
             if iter>0:
                 if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or obj[-1]-obj[-2]<tol:
-                    C_final.append(C)
-                    C_weights_final.append(C_weights)
-                    obj_final.append(obj[-1])
-                    part_final.append(X_part)             
+                    C_collector.append(C)
+                    C_weights_collector.append(C_weights)
+                    obj_collector.append(obj)
+                    obj_final_collector.append(obj[-1])
+                    part_collector.append(X_part)             
                     break
             
             # "M-step" - update the cluster centers
@@ -243,8 +249,8 @@ def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=N
                 C_weights[k] = C_weights[k]/np.sum(C_weights[k])*p
 
             iter += 1
-    best = np.nanargmax(np.array(obj_final))
-    return C_final[best],C_weights_final[best],part_final[best],obj_final[best]
+    best = np.nanargmax(np.array(obj_final_collector))
+    return C_collector[best],C_weights_collector[best],part_collector[best],obj_collector[best]
 
 def least_squares_sign_flip(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None):
     if init=='uniform':
@@ -254,9 +260,9 @@ def least_squares_sign_flip(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None):
     # perform the sign flip
     X[(X>0).sum(axis=1)>p/2] = -X[(X>0).sum(axis=1)>p/2]
 
-    obj_final = [] # objective function collector
-    part_final = [] # partition collector
-    C_final = [] # cluster center collector
+    obj_collector = [] # objective function collector
+    part_collector = [] # partition collector
+    C_collector = [] # cluster center collector
 
     # loop over the number of repetitions
     for _ in range(num_repl):
@@ -264,9 +270,9 @@ def least_squares_sign_flip(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None):
         sim = -np.sum((X[:,None]-C[None])**2,axis=-1)
         obj = np.mean(np.max(sim,axis=1))
 
-        C_final.append(C.T)
-        obj_final.append(obj)
-        part_final.append(labels)   
+        C_collector.append(C.T)
+        obj_collector.append(obj)
+        part_collector.append(labels)   
 
-    best = np.nanargmax(np.array(obj_final))
-    return C_final[best],part_final[best],obj_final[best]        
+    best = np.nanargmax(np.array(obj_collector))
+    return C_collector[best],part_collector[best],obj_collector[best]        
