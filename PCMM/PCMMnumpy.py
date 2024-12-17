@@ -23,6 +23,8 @@ class Watson(PCMMnumpyBaseModel):
 
         self.logSA_sphere = loggamma(self.c) - np.log(2) - self.c* np.log(np.pi)
 
+        self.flag_normalized_input_data = False #flag to check if the input data is normalized
+
         # initialize parameters
         if params is not None:            
             self.unpack_params(params)
@@ -50,6 +52,11 @@ class Watson(PCMMnumpyBaseModel):
         return self.logSA_sphere - logkum
     
     def log_pdf(self, X):
+        if not self.flag_normalized_input_data:
+            if not np.allclose(np.linalg.norm(X,axis=1),1):
+                raise ValueError("For the Watson distribution, the input data vectors should be normalized to unit length.")
+            else:
+                self.flag_normalized_input_data = True
         #the abs added for support of complex arrays
         log_pdf = self.log_norm_constant()[:,None] + self.kappa[:,None]*(np.abs(X@self.mu.conj().T)**2).T
         return log_pdf
@@ -128,6 +135,8 @@ class ACG(PCMMnumpyBaseModel):
         # precompute log-surface area of the unit hypersphere
         self.logSA_sphere = loggamma(self.c) - np.log(2) -self.c* np.log(np.pi)
 
+        self.flag_normalized_input_data = False #flag to check if the input data is normalized
+
         # initialize parameters
         if params is not None:            
             self.unpack_params(params)
@@ -150,6 +159,11 @@ class ACG(PCMMnumpyBaseModel):
         return log_pdf
 
     def log_pdf(self, X):
+        if not self.flag_normalized_input_data:
+            if not np.allclose(np.linalg.norm(X,axis=1),1):
+                raise ValueError("For the ACG distribution, the input data vectors should be normalized to unit length.")
+            else:
+                self.flag_normalized_input_data = True
         if 'lowrank' in self.distribution:
             return self.log_pdf_lowrank(X)
         elif 'fullrank' in self.distribution:
@@ -257,6 +271,8 @@ class MACG(PCMMnumpyBaseModel):
             self.r = rank
             self.distribution = 'MACG_lowrank'
 
+        self.flag_normalized_input_data = False #flag to check if the input data is normalized
+
         # initialize parameters
         if params is not None:            
             self.unpack_params(params)
@@ -280,6 +296,11 @@ class MACG(PCMMnumpyBaseModel):
         return log_pdf
 
     def log_pdf(self, X):
+        if not self.flag_normalized_input_data:
+            if np.allclose(np.linalg.norm(X[:,:,0],axis=1),1)!=1:
+                raise ValueError("For the MACG distribution, the input data vectors should be normalized to unit length (and orthonormal, but this is not checked).")
+            else:
+                self.flag_normalized_input_data = True
         if self.distribution == 'MACG_lowrank':
             return self.log_pdf_lowrank(X)
         elif self.distribution == 'MACG_fullrank':
@@ -396,11 +417,13 @@ class SingularWishart(PCMMnumpyBaseModel):
 
         self.log_det_S11 = None
 
+        self.flag_normalized_input_data = False #flag to check if the input data is normalized
+
         # initialize parameters
         if params is not None:            
             self.unpack_params(params)
     
-    def log_pdf_lowrank(self, Q):
+    def log_pdf_lowrank(self, X):
 
         M_tilde = self.M*np.sqrt(1/np.atleast_1d(self.gamma)[:,None,None])
         
@@ -410,24 +433,30 @@ class SingularWishart(PCMMnumpyBaseModel):
 
         # while Q_q^T Q_q != U_q^T L U_q, their determinants are the same
         if self.log_det_S11 is None:
-            self.log_det_S11 = self.logdet(np.swapaxes(Q[:,:self.q,:],-2,-1)@Q[:,:self.q,:])
+            self.log_det_S11 = self.logdet(np.swapaxes(X[:,:self.q,:],-2,-1)@X[:,:self.q,:])
         
-        v = 1/np.atleast_1d(self.gamma)[:,None]*(self.p - np.linalg.norm(np.swapaxes(Q,-2,-1)[None,:,:,:]@M_tilde[:,None,:,:]@D_sqrtinv[:,None],axis=(-2,-1))**2)
+        v = 1/np.atleast_1d(self.gamma)[:,None]*(self.p - np.linalg.norm(np.swapaxes(X,-2,-1)[None,:,:,:]@M_tilde[:,None,:,:]@D_sqrtinv[:,None],axis=(-2,-1))**2)
         log_pdf = self.log_norm_constant - (self.q/2)*np.atleast_1d(log_det_D)[:,None] + (self.q-self.p-1)/2*self.log_det_S11[None] - 1/2*v
 
         return log_pdf
 
-    def log_pdf_fullrank(self, Q):
-        log_pdf = self.log_norm_constant - (self.q/2)*np.atleast_1d(self.logdet(self.Psi))[:,None] - 1/2*np.trace(np.swapaxes(Q,-2,-1)[None,:]@np.linalg.inv(self.Psi)[:,None]@Q[None,:],axis1=-2,axis2=-1)
+    def log_pdf_fullrank(self, X):
+        log_pdf = self.log_norm_constant - (self.q/2)*np.atleast_1d(self.logdet(self.Psi))[:,None] - 1/2*np.trace(np.swapaxes(X,-2,-1)[None,:]@np.linalg.inv(self.Psi)[:,None]@X[None,:],axis1=-2,axis2=-1)
         return log_pdf
 
-    def log_pdf(self, Q):
+    def log_pdf(self, X):
+        if not self.flag_normalized_input_data:
+            X_weights = np.linalg.norm(X,axis=1)**2
+            if not np.allclose(np.sum(X_weights,axis=1),self.p):
+                raise ValueError("In weighted grassmann clustering, the scale of the input data vectors should be equal to the square root of the eigenvalues. If the scale does not sum to the dimensionality, this error is thrown")
+            else:
+                self.flag_normalized_input_data = True
         if self.distribution == 'SingularWishart_lowrank':
-            return self.log_pdf_lowrank(Q)
+            return self.log_pdf_lowrank(X)
         elif self.distribution == 'SingularWishart_fullrank':
-            return self.log_pdf_fullrank(Q)
+            return self.log_pdf_fullrank(X)
         
-    def M_step_single_component(self,Q,beta,M=None,gamma=None,max_iter=int(1e8),tol=1e-10):
+    def M_step_single_component(self,X,beta,M=None,gamma=None,max_iter=int(1e8),tol=1e-10):
             
         if self.distribution == 'SingularWishart_lowrank':
 
@@ -447,7 +476,7 @@ class SingularWishart(PCMMnumpyBaseModel):
 
             #precompute
             beta_sum = np.sum(beta)
-            beta_S = np.sum(beta[:,None,None]*Q@np.swapaxes(Q,-2,-1),axis=0)
+            beta_S = np.sum(beta[:,None,None]*X@np.swapaxes(X,-2,-1),axis=0)
 
             for j in range(max_iter):
 
@@ -489,7 +518,7 @@ class SingularWishart(PCMMnumpyBaseModel):
             # print(j,np.linalg.norm(M),gamma,np.sum(beta))
             return M, gamma
         elif self.distribution == 'SingularWishart_fullrank':
-            Psi = 1/(self.q*np.sum(beta))*np.sum((beta[:,None,None]*Q)@np.swapaxes(Q,-2,-1),axis=0)
+            Psi = 1/(self.q*np.sum(beta))*np.sum((beta[:,None,None]*X)@np.swapaxes(X,-2,-1),axis=0)
             return Psi
 
     def M_step(self,X):

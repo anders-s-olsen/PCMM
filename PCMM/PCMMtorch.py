@@ -24,6 +24,8 @@ class Watson(PCMMtorchBaseModel):
         # precompute log-surface area of the unit hypersphere
         self.logSA_sphere = torch.lgamma(self.c) - torch.log(torch.tensor(2)) - self.c* torch.log(torch.tensor(math.pi))
 
+        self.flag_normalized_input_data = False
+
         # initialize parameters
         if params is not None:            
             self.unpack_params(params)
@@ -49,6 +51,11 @@ class Watson(PCMMtorchBaseModel):
         return self.logSA_sphere - self.kummer_log(self.kappa)
     
     def log_pdf(self, X):
+        if not self.flag_normalized_input_data:
+            if not torch.allclose(torch.linalg.norm(X,axis=1),1):
+                raise ValueError("For the Watson distribution, the input data vectors should be normalized to unit length.")
+            else:
+                self.flag_normalized_input_data = True
         mu_unit = nn.functional.normalize(self.mu, dim=1)
         logpdf = self.log_norm_constant()[:,None] + self.kappa[:,None]*(torch.abs(X@torch.conj(mu_unit).T)**2).T
         return logpdf #size (K,N)
@@ -76,11 +83,18 @@ class ACG(PCMMtorchBaseModel):
         # precompute log-surface area of the unit hypersphere
         self.logSA_sphere = torch.lgamma(self.c) - torch.log(torch.tensor(2)) -self.c* torch.log(torch.tensor(math.pi))
 
+        self.flag_normalized_input_data = False
+
         # initialize parameters
         if params is not None:
             self.unpack_params(params)
             
     def log_pdf(self,X):
+        if not self.flag_normalized_input_data:
+            if not torch.allclose(torch.linalg.norm(X,axis=1),1):
+                raise ValueError("For the Watson distribution, the input data vectors should be normalized to unit length.")
+            else:
+                self.flag_normalized_input_data = True
         D = torch.eye(self.r) + torch.swapaxes(self.M,-2,-1).conj()@self.M
         XM = torch.conj(X[None,:,:])@self.M
         v = 1-torch.sum(XM@torch.linalg.inv(D)*torch.conj(XM),dim=-1) 
@@ -99,11 +113,18 @@ class MACG(PCMMtorchBaseModel):
         self.samples_per_sequence = torch.tensor(samples_per_sequence)
         self.distribution = 'MACG_lowrank'
 
+        self.flag_normalized_input_data = False
+
         # initialize parameters
         if params is not None:
             self.unpack_params(params)
 
     def log_pdf(self,X):
+        if not self.flag_normalized_input_data:
+            if torch.allclose(torch.linalg.norm(X[:,:,0],axis=1),1)!=1:
+                raise ValueError("For the MACG distribution, the input data vectors should be normalized to unit length (and orthonormal, but this is not checked).")
+            else:
+                self.flag_normalized_input_data = True        
         D = torch.swapaxes(self.M,-2,-1)@self.M+torch.eye(self.r)
         log_det_D = torch.logdet(D)
         D_sqrtinv = torch.zeros_like(D)
@@ -132,12 +153,20 @@ class SingularWishart(PCMMtorchBaseModel):
         
         loggamma_q = (self.q*(self.q-1)/4)*torch.log(torch.tensor(math.pi))+torch.sum(torch.lgamma(self.q-torch.arange(self.q)/2))
         self.log_norm_constant = self.q*(self.q-self.p)/2*torch.log(torch.tensor(math.pi))-self.p*self.q/2*torch.log(torch.tensor(2))-loggamma_q
+
+        self.flag_normalized_input_data = False
         
         # initialize parameters
         if params is not None:
             self.unpack_params(params)
 
-    def log_pdf(self,Q):
+    def log_pdf(self,X):
+        if not self.flag_normalized_input_data:
+            X_weights = torch.linalg.norm(X,axis=1)**2
+            if not torch.allclose(torch.sum(X_weights,axis=1),self.p):
+                raise ValueError("In weighted grassmann clustering, the scale of the input data vectors should be equal to the square root of the eigenvalues. If the scale does not sum to the dimensionality, this error is thrown")
+            else:
+                self.flag_normalized_input_data = True
 
         gamma = torch.nn.functional.softplus(self.gamma)
 
@@ -152,9 +181,9 @@ class SingularWishart(PCMMtorchBaseModel):
 
         # while Q_q^T Q_q != U_q^T L U_q, their determinants are the same
         if self.log_det_S11 is None:
-            self.log_det_S11 = torch.logdet(torch.swapaxes(Q[:,:self.q,:],-2,-1)@Q[:,:self.q,:])
+            self.log_det_S11 = torch.logdet(torch.swapaxes(X[:,:self.q,:],-2,-1)@X[:,:self.q,:])
         
-        QtM_tilde = torch.swapaxes(Q,-2,-1)[None,:,:,:]@M_tilde[:,None,:,:]
+        QtM_tilde = torch.swapaxes(X,-2,-1)[None,:,:,:]@M_tilde[:,None,:,:]
 
         v = 1/gamma[:,None]*(self.p - torch.linalg.norm(QtM_tilde@D_sqrtinv[:,None],dim=(-2,-1))**2)
         log_pdf = self.log_norm_constant - (self.q/2)*log_det_D[:,None] + (self.q-self.p-1)/2*self.log_det_S11[None] - 1/2*v
