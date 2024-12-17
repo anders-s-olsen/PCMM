@@ -174,14 +174,16 @@ class PCMMtorchBaseModel(nn.Module):
         logsum_density = torch.logsumexp(log_density,dim=0)
         return torch.exp(log_density-logsum_density)
 
-    def viterbi2(self,log_pdf,samples_per_sequence):
+    def viterbi2(self,log_pdf):
         K,N = log_pdf.shape
-        if samples_per_sequence == 0:
-            samples_per_sequence = torch.tensor(N)
+        if self.samples_per_sequence == 0:
+            samples_per_sequence = torch.atleast_1d(torch.tensor(N))
             sequence_starts = torch.atleast_1d(torch.tensor(0))
-        elif samples_per_sequence.ndim==0:
-            samples_per_sequence = samples_per_sequence.repeat(N//samples_per_sequence)
+        elif self.samples_per_sequence.ndim==0:
+            samples_per_sequence = torch.atleast_1d(self.samples_per_sequence).repeat(N//samples_per_sequence)
             sequence_starts = torch.hstack([torch.tensor(0),torch.cumsum(samples_per_sequence[:-1],0)])
+        else:
+            samples_per_sequence = torch.tensor(self.samples_per_sequence)
         log_T = self.LogSoftmax_T(self.T) # size KxK
         log_pi = self.LogSoftmax_pi(self.pi) #size K
         

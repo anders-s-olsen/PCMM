@@ -7,7 +7,7 @@ from copy import deepcopy
 def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,LR=0.1,suppress_output=False,threads=8,decrease_lr_on_plateau=False):
     torch.set_num_threads(threads)
     torch.set_default_dtype(torch.float64)
-    best_loglik = -1000000
+    best_loglik = -1e15
 
     #check if data is a torch tensor
     if not isinstance(data,torch.Tensor):
@@ -89,14 +89,14 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                             best = best[0]
                         params_final = params[best]
                         model.set_params(params_final)
-                        beta_final = model.posterior(X=data)         
+                        beta_final = model.posterior(X=data,samples_per_sequence=model.samples_per_sequence)         
                     break
             else:
                 pbar.set_description('In the initial phase')
                 pbar.update(1)
     if 'params_final' not in locals():
         params_final = model.get_params()
-        beta_final = model.posterior(X=data)
+        beta_final = model.posterior(X=data,samples_per_sequence=model.samples_per_sequence)
         loglik_final = loglik
         
     return params_final,beta_final,loglik_final
