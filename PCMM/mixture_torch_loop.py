@@ -4,10 +4,14 @@ from tqdm import tqdm
 from PCMM.PCMMtorchBaseModel import PCMMtorchBaseModel
 from copy import deepcopy
 
-def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,LR=0.1,suppress_output=False,threads=8):
+def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,LR=0.1,suppress_output=False,threads=8,decrease_lr_on_plateau=False):
     torch.set_num_threads(threads)
     torch.set_default_dtype(torch.float64)
     best_loglik = -1000000
+
+    #check if data is a torch tensor
+    if not isinstance(data,torch.Tensor):
+        data = torch.tensor(data)
 
     for repl in range(num_repl):
         # print(['Initializing inner repl '+str(repl)])
@@ -63,13 +67,16 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                     secondhighest = maxval
                 crit = (maxval-secondhighest)/np.abs(maxval)
                 if crit<tol or latest[-1]==np.min(latest):
-                    if optimizer.param_groups[0]['lr']<1e-1:
-                        done = True
+                    if decrease_lr_on_plateau:
+                        if optimizer.param_groups[0]['lr']<1e-1:
+                            done = True
+                        else:
+                            # done = True
+                            optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr']/10
+                            print('Learning rate reduced to:',optimizer.param_groups[0]['lr'],'after',epoch,'iterations')
+                            params = []
                     else:
-                        # done = True
-                        optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr']/10
-                        print('Learning rate reduced to:',optimizer.param_groups[0]['lr'],'after',epoch,'iterations')
-                        params = []
+                        done = True
                 pbar.set_description('Convergence towards tol: %.2e'%crit)
                 # pbar.set_postfix({'Epoch':epoch})
                 pbar.update(1)
