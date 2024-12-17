@@ -87,7 +87,7 @@ To fit a **Complex ACG Mixture Model** with `K=3`, `p=10`, `rank=5`:
     rank = 5  # Model rank (should be rank<=p)
     complex = np.any(np.iscomplex(X))
     params = None # params can be included to start estimation from a specific parameter setting
-    model = ACG_EM(K=K, p=p, rank=rank, complex=complex, params=params) 
+    model = ACG(K=K, p=p, rank=rank, complex=complex, params=params) 
     ```
 
 2. **Run the Estimation**:
