@@ -156,7 +156,7 @@ class PCMMnumpyBaseModel():
             
             if 'Watson' in self.distribution:
                 print('Initializing mu based on the clustering centroid')
-                self.mu = mu
+                self.mu = mu.T
             elif self.distribution in ['ACG_lowrank','MACG_lowrank','Complex_ACG_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
                 self.M = np.zeros((self.K,self.p,self.r),dtype=X.dtype)
@@ -176,7 +176,7 @@ class PCMMnumpyBaseModel():
                 print('Initializing Lambda based on the clustering centroids')
                 self.Psi = np.zeros((self.K,self.p,self.p),dtype=X.dtype)
                 for k in range(self.K):
-                    self.Psi[k] = np.outer(mu[:,k],mu[:,k])+np.eye(self.p)
+                    self.Psi[k] = np.outer(mu[k],mu[k])+np.eye(self.p)
                     if self.distribution in ['ACG_fullrank','MACG_fullrank','Complex_ACG_fullrank']:
                         self.Psi[k] = self.p*self.Psi[k]/np.trace(self.Psi[k])
             

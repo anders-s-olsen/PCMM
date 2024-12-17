@@ -9,28 +9,31 @@ def plusplus_initialization(X,K,dist='diametrical'):
         q = X.shape[2]
 
     # choose first centroid at random from X
-    idx = np.random.choice(n,p=None)
+    cluster_idx = np.random.choice(n,p=None)
+    all_cluster_idx = np.zeros(K,dtype=int)
+    all_cluster_idx[0] = cluster_idx
 
     if dist == 'diametrical':
-        C = X[idx][:,np.newaxis]
+        C = np.zeros((K,X.shape[1]),dtype=X.dtype)
+        C[0] = X[cluster_idx]
     else:
         C = np.zeros((K,X.shape[1],X.shape[2]))
-        C[0] = X[idx]
+        C[0] = X[cluster_idx]
         if dist == 'weighted_grassmann':
             X_weights = np.linalg.norm(X,axis=1)**2
             # X = X/np.linalg.norm(X,axis=1)[:,None,:]
             C_weights = np.zeros((K,X.shape[2]))
-            C_weights[0] = X_weights[idx]
-            X_weights = np.delete(X_weights,idx,axis=0)
+            C_weights[0] = X_weights[cluster_idx]
+            # X_weights = np.delete(X_weights,cluster_idx,axis=0)
     
-    X = np.delete(X,idx,axis=0)
+    # X = np.delete(X,cluster_idx,axis=0)
 
     # for all other centroids, compute the distance from all X to the current set of centroids. 
     # Construct a weighted probability distribution and sample using this. 
 
     for k in range(K):
         if dist == 'diametrical':
-            dis = 1-np.abs(X@C.conj())**2  #abs for complex support
+            dis = 1-np.abs(X@C.conj().T)**2  #abs for complex support
             dis = np.clip(dis,0,None)
         elif dist == 'grassmann':
             dis = 1/np.sqrt(2)*(2*q-2*np.linalg.norm(np.swapaxes(X[:,None],-2,-1)@C[:k+1][None],axis=(-2,-1)))
@@ -47,19 +50,20 @@ def plusplus_initialization(X,K,dist='diametrical'):
             break
 
         prob_dist = mindis/np.sum(mindis) # construct the prob. distribution
-        idx = np.random.choice(n-k-1,p=prob_dist)
-        if dist == 'diametrical':
-            C = np.hstack((C,X[idx][:,np.newaxis]))
-        else:
-            C[k+1] = X[idx]
-        X = np.delete(X,idx,axis=0)
+        cluster_idx = np.random.choice(n,p=prob_dist) #assume existing idx can never be chosen because p=0
+        
+        # if dist == 'diametrical':
+        #     C = np.hstack((C,X[cluster_idx][:,np.newaxis]))
+        # else:
+        C[k+1] = X[cluster_idx]
+        # X = np.delete(X,cluster_idx,axis=0)
         if dist == 'weighted_grassmann':
-            C_weights[k+1] = X_weights[idx]
-            X_weights = np.delete(X_weights,idx,axis=0)
-    if dist == 'weighted_grassmann':
-        return C/np.linalg.norm(C,axis=1)[:,None,:],C_weights,X_part,obj
-    else:
-        return C,X_part,obj
+            C_weights[k+1] = X_weights[cluster_idx]
+            # X_weights = np.delete(X_weights,cluster_idx,axis=0)
+    # if dist == 'weighted_grassmann':
+    #     return C/np.linalg.norm(C,axis=1)[:,None,:],C_weights,X_part,obj
+    # else:
+    return C,X_part,obj
     
 def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
 
@@ -78,17 +82,17 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
             C,_,_ = plusplus_initialization(X,K,dist='diametrical')
         elif init=='uniform' or init=='unif':
             if X.dtype == 'complex':
-                C = np.random.uniform(size=(p,K))+1j*np.random.uniform(size=(p,K))
+                C = np.random.uniform(size=(K,p))+1j*np.random.uniform(size=(K,p))
             else:
-                C = np.random.uniform(size=(p,K))
-            C = C/np.linalg.norm(C,axis=0)
+                C = np.random.uniform(size=(K,p))
+            C = C/np.linalg.norm(C,axis=1)
         
         iter = 0
         obj = []
         partsum = np.zeros((max_iter,K))
         while True:
             # E-step
-            sim = np.abs(X@C.conj())**2 #abs for complex support
+            sim = np.abs(X@C.conj().T)**2 #abs for complex support
             maxsim = np.max(sim,axis=1)
             X_part = np.argmax(sim,axis=1)
             obj.append(np.mean(maxsim))
@@ -112,9 +116,9 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
                 
                 # # Establish covariance matrix
                 A = X[idx_k].T@X[idx_k].conj()
-                C[:,k] = A@C[:,k]
+                C[k] = A@C[k]
 
-            C = C/np.linalg.norm(C,axis=0)
+            C = C/np.linalg.norm(C,axis=1)
             iter += 1
     best = np.nanargmax(np.array(obj_final_collector))
     
@@ -270,7 +274,7 @@ def least_squares_sign_flip(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None):
         sim = -np.sum((X[:,None]-C[None])**2,axis=-1)
         obj = np.mean(np.max(sim,axis=1))
 
-        C_collector.append(C.T)
+        C_collector.append(C)
         obj_collector.append(obj)
         part_collector.append(labels)   
 
