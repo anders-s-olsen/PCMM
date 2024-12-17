@@ -49,8 +49,8 @@ class Watson(PCMMtorchBaseModel):
         return self.logSA_sphere - self.kummer_log(self.kappa)
     
     def log_pdf(self, X):
-        mu_unit = nn.functional.normalize(self.mu, dim=0)
-        logpdf = self.log_norm_constant()[:,None] + self.kappa[:,None]*(torch.abs(X@torch.conj(mu_unit))**2).T
+        mu_unit = nn.functional.normalize(self.mu, dim=1)
+        logpdf = self.log_norm_constant()[:,None] + self.kappa[:,None]*(torch.abs(X@torch.conj(mu_unit).T)**2).T
         return logpdf #size (K,N)
 
 class ACG(PCMMtorchBaseModel):

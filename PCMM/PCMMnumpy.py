@@ -51,7 +51,7 @@ class Watson(PCMMnumpyBaseModel):
     
     def log_pdf(self, X):
         #the abs added for support of complex arrays
-        log_pdf = self.log_norm_constant()[:,None] + self.kappa[:,None]*(np.abs(X@self.mu.conj())**2).T
+        log_pdf = self.log_norm_constant()[:,None] + self.kappa[:,None]*(np.abs(X@self.mu.conj().T)**2).T
         return log_pdf
     
     def M_step_single_component(self,X,beta,mu,kappa,tol=1e-10):
@@ -102,7 +102,7 @@ class Watson(PCMMnumpyBaseModel):
             beta = np.ones((1,X.shape[0]))
 
         for k in range(self.K):
-            self.mu[:,k],self.kappa[k] = self.M_step_single_component(X=X,beta=beta[k],mu=self.mu[:,k],kappa=self.kappa[k])
+            self.mu[k],self.kappa[k] = self.M_step_single_component(X=X,beta=beta[k],mu=self.mu[k],kappa=self.kappa[k])
 
 class ACG(PCMMnumpyBaseModel):
     def __init__(self, p:int, rank:int=None, K:int=1, complex:bool=False, params:dict=None):

@@ -113,10 +113,10 @@ class PCMMnumpyBaseModel():
             self.pi = np.array([1/self.K]*self.K)
             if 'Watson' in self.distribution:
                 if X.dtype==complex:
-                    mu = np.random.uniform(size=(self.p,self.K))+1j*np.random.uniform(size=(self.p,self.K))
+                    mu = np.random.uniform(size=(self.K,self.p))+1j*np.random.uniform(size=(self.K,self.p))
                 else:
-                    mu = np.random.uniform(size=(self.p,self.K))
-                self.mu = mu / np.linalg.norm(mu,axis=0)
+                    mu = np.random.uniform(size=(self.K,self.p))
+                self.mu = mu / np.linalg.norm(mu,axis=1)
             else:
                 if X.dtype==complex:
                     M = np.random.uniform(size=(self.K,self.p,self.r))+1j*np.random.uniform(size=(self.K,self.p,self.r))
@@ -156,7 +156,7 @@ class PCMMnumpyBaseModel():
             
             if 'Watson' in self.distribution:
                 print('Initializing mu based on the clustering centroid')
-                self.mu = mu.T
+                self.mu = mu
             elif self.distribution in ['ACG_lowrank','MACG_lowrank','Complex_ACG_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
                 self.M = np.zeros((self.K,self.p,self.r),dtype=X.dtype)
