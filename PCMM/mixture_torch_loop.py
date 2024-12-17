@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from tqdm import tqdm
-from PCMM.PCMMnumpyBaseModel import PCMMPyTorchBaseModel
+from PCMM.PCMMtorchBaseModel import PCMMtorchBaseModel
 from copy import deepcopy
 
 def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,LR=0.1,suppress_output=False,threads=8):
@@ -25,9 +25,9 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                 model2.r = model2.M.shape[-1]
                 Beta = model2.posterior(X=data)
                 if model.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
-                    M = PCMMPyTorchBaseModel.init_M_svd_given_M_init(X=data.numpy(),M_init=model.M.detach().numpy(),Beta=Beta.numpy())
+                    M = PCMMtorchBaseModel.init_M_svd_given_M_init(X=data.numpy(),M_init=model.M.detach().numpy(),Beta=Beta.numpy())
                 elif model.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
-                    M = PCMMPyTorchBaseModel.init_M_svd_given_M_init(X=data.numpy(),M_init=model.M.detach().numpy(),Beta=Beta.numpy(),gamma=model.gamma.detach().numpy())
+                    M = PCMMtorchBaseModel.init_M_svd_given_M_init(X=data.numpy(),M_init=model.M.detach().numpy(),Beta=Beta.numpy(),gamma=model.gamma.detach().numpy())
                 model.M = torch.nn.Parameter(torch.tensor(M))
 
         optimizer = torch.optim.Adam(model.parameters(),lr=LR)
