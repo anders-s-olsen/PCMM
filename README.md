@@ -67,12 +67,13 @@ X = ... # Data as np.array of size (n, p), either real or complex. X must be uni
 K = 3  # Number of clusters to be inferred
 num_repl = 1 # Number of K-means replications to choose the best model from (default 1)
 max_iter = 10000 # Maximum number of iterations (default 10000)
-tol = 1e-10 # Stopping tolerance for changes in the objective function between consecutive iterations. 
-C,X_part,obj = diametrical_clustering(X,K,max_iter=10000,num_repl=num_repl,init=None,tol=1e-10)
+tol = 1e-10 # Stopping tolerance for changes in the objective function between consecutive iterations.
+init = '++' # One of ['++','uniform'] Initialization using the ++-algorithm or random values. 
+C,X_part,obj = diametrical_clustering(X,K,max_iter=max_iter,num_repl=num_repl,init=init,tol=tol)
 ```
 
 This produces:
-- **`C`**: Estimated centroids of size `(p,K)`.
+- **`C`**: Estimated centroids of size `(K,p)`.
 - **`X_part`**: Data partition of size `(K, n)`.
 - **`obj`**: Log-likelihood curve.
 
@@ -126,9 +127,13 @@ The input data should always be an array of size either `nxp` (Watson, ACG, Norm
     - `gc` = Grassmann clustering
     - `wgc` = Weighted Grassmann clustering
     - `ls` = least-squares clustering, where data is sign-flipped prior to clustering.
+- Lowrank models, regardless of initialization method, will, given a partition, initialize the low-rank matrix M given an SVD of the partitioned data for each state.
+- Fullrank models will be initialized using an outer product of the K-means centroids. 
 - Probabilistic mixture models may also be initialized using `K` one-component models on a partitioned part of the data, the partition given by one of the K-means or K-means++ models. For example, `init=dc_seg` first runs diametrical clustering, then estimates `K` different one-component models given the data partition. This strategy can be effective for high-rank models as well as PyTorch-estimated models that converge faster from a good seed. 
-- Probabilistic mixture estimates may also be started using previously estimated parameters `params` of the same model. For ACG, MACG, Normal, and SingularWishart, this may be a lower-rank counterpart, e.g., `params['M'].shape = [pxr1]` and `options['rank']=r2`
-- Hidden Markov models may also be initialized from the corresponding mixture model estimate. If so, the transition matrix will be initialized from a computed posterior probability matrix. If an HMM is initialized from a K-means model, the transition matrix is estimated from the empirical transition matrix. 
+- Probabilistic mixture estimates may also be started using previously estimated parameters `params` of the same model. For ACG, MACG, Normal, and SingularWishart, this may be a lower-rank counterpart, e.g., `params['M'].shape = [pxr1]` and `options['rank']=r2`. In this case, specify `init='no'` to avoid re-initializing existing parameters.
+- Hidden Markov models may also be initialized from the corresponding mixture model estimate. If so, the transition matrix will be initialized from a computed posterior probability matrix. If an HMM is initialized from a K-means model, the transition matrix is estimated from the empirical transition matrix.
+- Instead of K-means initialization, it is also possible to initialize the model using random uniformly sampled values, specify `init='uniform`.
+- If parameters are specified as input to the model, and re-initialization is not wanted, specify `init='no'`.
 
 ## High-level implementation
 
