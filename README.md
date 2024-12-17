@@ -80,7 +80,7 @@ This produces:
 To fit a **Complex ACG Mixture Model** with `K=3`, `p=10`, `rank=5`:
 1. **Define the Model**:
     ```python
-    from PCMM.PCMM_EM.ACGEM import ACG_EM
+    from PCMM.PCMMnumpy import ACG
     X = ... # Data as np.array of size (observations, dimensions)
     K = 3  # Number of clusters to be inferred
     p = X.shape[1]  # Data dimensionality
@@ -92,7 +92,7 @@ To fit a **Complex ACG Mixture Model** with `K=3`, `p=10`, `rank=5`:
 
 2. **Run the Estimation**:
     ```python
-    from PCMM.PCMM_EM.mixture_EM_loop import mixture_EM_loop
+    from PCMM.mixture_EM_loop import mixture_EM_loop
     params, posterior, loglik = mixture_EM_loop(
         model=model,
         data=X, 
