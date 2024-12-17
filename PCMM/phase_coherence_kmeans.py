@@ -118,7 +118,7 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
                 A = X[idx_k].T@X[idx_k].conj()
                 C[k] = A@C[k]
 
-            C = C/np.linalg.norm(C,axis=1)
+            C = C/np.linalg.norm(C,axis=1)[:,None]
             iter += 1
     best = np.nanargmax(np.array(obj_final_collector))
     
