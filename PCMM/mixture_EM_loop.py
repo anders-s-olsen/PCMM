@@ -5,6 +5,13 @@ from copy import deepcopy
 def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,suppress_output=False):
 
     best_loglik = -1000000
+    if 'Complex' in model.distribution:
+        # check if data is also complex
+        if not np.iscomplexobj(data):
+            raise ValueError('Data must be complex for complex models')
+    else:
+        if np.iscomplexobj(data):
+            raise ValueError('Data must be real for real models')
 
     for repl in range(num_repl):
         done = False
@@ -14,6 +21,8 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
         else:
             if 'pi' not in model.__dict__:
                 raise ValueError('Model not initialized, please provide an initialization method or a set of parameters')
+
+            
 
         if 'lowrank' in model.distribution:
             if model.M.shape[-1]!=model.r:
@@ -34,7 +43,7 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
             # E-step
             loglik.append(model.log_likelihood(X=data))
             if np.isnan(loglik[-1]):
-                raise ValueError("Nan reached")
+                raise ValueError("Nan reached. There can be many possible reasons for this, including the initialization of the model, the data, or the model itself. First try reinitializing the same model.")
             
             params.append(model.get_params())
             #remove first entry in params
@@ -64,7 +73,7 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
                         params_final = params[best.item()]
                         model2 = deepcopy(model)
                         model2.set_params(params_final)
-                        model2.samples_per_sequence = model.samples_per_sequence      
+                        beta_final = model2.posterior(X=data)
                     break
             else:
                 pbar.set_description('In the initial phase')

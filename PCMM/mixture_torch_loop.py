@@ -12,6 +12,14 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
     #check if data is a torch tensor
     if not isinstance(data,torch.Tensor):
         data = torch.tensor(data)
+    
+    if 'Complex' in model.distribution:
+        # check if data is also complex
+        if not data.is_complex():
+            raise ValueError('Data must be complex for complex models')
+    else:
+        if data.is_complex():
+            raise ValueError('Data must be real for real models')
 
     for repl in range(num_repl):
         # print(['Initializing inner repl '+str(repl)])
