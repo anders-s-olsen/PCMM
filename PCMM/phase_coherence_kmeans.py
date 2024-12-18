@@ -34,14 +34,13 @@ def plusplus_initialization(X,K,dist='diametrical'):
     for k in range(K):
         if dist == 'diametrical':
             dis = 1-np.abs(X@C.conj().T)**2  #abs for complex support
-            dis = np.clip(dis,0,None)
         elif dist == 'grassmann':
             dis = 1/np.sqrt(2)*(2*q-2*np.linalg.norm(np.swapaxes(X[:,None],-2,-1)@C[:k+1][None],axis=(-2,-1)))
-            dis = np.clip(dis,0,None)
         elif dist == 'weighted_grassmann':
             B = np.swapaxes(X,-2,-1)[:,None]@(C[:k+1][None])
             dis = 1/np.sqrt(2)*(np.sum(X_weights**2,axis=1)[:,None]+np.sum(C_weights[:k+1]**2,axis=1)[None]-2*np.linalg.norm(B,axis=(-2,-1))**2)#
-        
+        dis = np.clip(dis,0,None)
+
         mindis = np.min(dis,axis=1) #choose the distance to the closest centroid for each point
 
         if k==K-1:
@@ -204,18 +203,19 @@ def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=N
     obj_final_collector = [] # final objective function collector
     part_collector = [] # partition collector
     C_collector = [] # cluster center collector
-    C_weights_collector = [] # cluster weights collector
 
     # loop over the number of repetitions
     for _ in range(num_repl):
         # initialize cluster centers
         if init is None or init=='++' or init=='plusplus' or init == 'weighted_grassmann_clustering_plusplus':
-            C,C_weights,_,_ = plusplus_initialization(X,K,dist='weighted_grassmann')
+            C,_,_ = plusplus_initialization(X,K,dist='weighted_grassmann')
+            C_weights = np.linalg.norm(C,axis=1)**2
         elif init=='uniform' or init=='unif':
             C = np.random.uniform(size=(K,p,q))
             C_weights = np.ones((K,q))*p/q
             for k in range(K):
                 C[k] = C[k]@scipy.linalg.sqrtm(np.linalg.inv(C[k].T@C[k])) # project onto the Grassmannian
+                C[k] = C[k]*np.sqrt(C_weights[k])[None]
 
         # initialize counters
         iter = 0
@@ -223,7 +223,7 @@ def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=N
         partsum = np.zeros((max_iter,K))
         while True:
             # "E-step" - compute the similarity between each matrix and each cluster center
-            B = np.swapaxes(X,-2,-1)[:,None]@((C*np.sqrt(C_weights[:,None,:]))[None])
+            B = np.swapaxes(X,-2,-1)[:,None]@(C[None])
             dis = 1/np.sqrt(2)*(np.sum(X_weights**2,axis=-1)[:,None]+np.sum(C_weights**2,axis=-1)[None]-2*np.linalg.norm(B,axis=(-2,-1))**2)#
             sim = -dis
             maxsim = np.max(sim,axis=1) # find the maximum similarity - the sum of this value is the objective function
@@ -236,7 +236,6 @@ def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=N
             if iter>0:
                 if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or obj[-1]-obj[-2]<tol:
                     C_collector.append(C)
-                    C_weights_collector.append(C_weights)
                     obj_collector.append(obj)
                     obj_final_collector.append(obj[-1])
                     part_collector.append(X_part)             
@@ -248,13 +247,13 @@ def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=N
                 V = np.reshape(np.swapaxes(X[idx_k],0,1),(p,np.sum(idx_k)*q))
                 U,S,_ = scipy.sparse.linalg.svds(V,q,return_singular_vectors="u")
                 order = np.argsort(S)[::-1]
-                C[k] = U[:,order]
                 C_weights[k] = S[order]
                 C_weights[k] = C_weights[k]/np.sum(C_weights[k])*p
+                C[k] = U[:,order]*np.sqrt(C_weights[k])[None]
 
             iter += 1
     best = np.nanargmax(np.array(obj_final_collector))
-    return C_collector[best],C_weights_collector[best],part_collector[best],obj_collector[best]
+    return C_collector[best],part_collector[best],obj_collector[best]
 
 def least_squares_sign_flip(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None):
     if init=='uniform':

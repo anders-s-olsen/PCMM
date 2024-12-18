@@ -89,14 +89,14 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                             best = best[0]
                         params_final = params[best]
                         model.set_params(params_final)
-                        beta_final = model.posterior(X=data,samples_per_sequence=model.samples_per_sequence)         
+                        beta_final = model.posterior(X=data)         
                     break
             else:
                 pbar.set_description('In the initial phase')
                 pbar.update(1)
     if 'params_final' not in locals():
         params_final = model.get_params()
-        beta_final = model.posterior(X=data,samples_per_sequence=model.samples_per_sequence)
+        beta_final = model.posterior(X=data)
         loglik_final = loglik
         
     return params_final,beta_final,loglik_final
