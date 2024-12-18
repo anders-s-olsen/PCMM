@@ -17,6 +17,11 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
         # print(['Initializing inner repl '+str(repl)])
         if init != 'no':
             model.initialize(X=data,init_method=init)
+        else:
+            param_names = [name for name, param in model.named_parameters()]
+            if 'pi' not in param_names:
+                raise ValueError('Model not initialized, please provide an initialization method or a set of parameters')
+            
         if model.HMM:
             if init in ['unif','uniform']:
                 model.T = torch.nn.Parameter(1/model.K.repeat(model.K,model.K))

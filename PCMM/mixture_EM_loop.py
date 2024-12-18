@@ -11,6 +11,9 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
         # print(['Initializing repl '+str(repl)])
         if init != 'no':
             model.initialize(X=data,init_method=init) #NB using 'data', not 'X'
+        else:
+            if 'pi' not in model.__dict__:
+                raise ValueError('Model not initialized, please provide an initialization method or a set of parameters')
 
         if 'lowrank' in model.distribution:
             if model.M.shape[-1]!=model.r:
