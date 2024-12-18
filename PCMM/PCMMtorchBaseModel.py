@@ -128,16 +128,18 @@ class PCMMtorchBaseModel(nn.Module):
             Ns = N
         elif self.samples_per_sequence.ndim==0:
             Ns = self.samples_per_sequence
+            assert N % Ns == 0, "Number of timesteps N must be divisible by sequence length Ns. Else provide a list of sequence lengths"
         elif len(self.samples_per_sequence.unique())==1:
             Ns = self.samples_per_sequence[0]
         else:
             return self.HMM_log_likelihood_seq_nonuniform_sequences(log_pdf,return_samplewise_likelihood)
-        log_pdf_reshaped = log_pdf.T.view(N//Ns,Ns,K).swapaxes(-2,-1)
+        num_sequences = N//Ns
+        log_pdf_reshaped = log_pdf.T.view(num_sequences,Ns,K).swapaxes(-2,-1)
         
         log_T = self.LogSoftmax_T(self.T) # size KxK
         log_pi = self.LogSoftmax_pi(self.pi) #size K
         
-        log_alpha = torch.zeros(log_pdf_reshaped.shape[0],Ns,K)
+        log_alpha = torch.zeros(num_sequences,Ns,K)
         log_alpha[:,0,:] = log_pdf_reshaped[:,:,0] + log_pi[None]
 
         for t in range(1,Ns):
@@ -174,7 +176,7 @@ class PCMMtorchBaseModel(nn.Module):
         logsum_density = torch.logsumexp(log_density,dim=0)
         return torch.exp(log_density-logsum_density)
 
-    def viterbi2(self,log_pdf):
+    def viterbi(self,log_pdf):
         K,N = log_pdf.shape
         if self.samples_per_sequence == 0:
             samples_per_sequence = torch.atleast_1d(torch.tensor(N))
@@ -190,21 +192,20 @@ class PCMMtorchBaseModel(nn.Module):
         Z_path_all = []
         for seq in range(samples_per_sequence.size(0)):
             Ns = samples_per_sequence[seq]
-            log_delta = torch.zeros(Ns,K)
-            psi = torch.zeros(Ns,K,dtype=torch.int32) #state sequence = integers
+            log_psi = torch.zeros(Ns,K)
 
-            log_delta[0,:] = log_pdf[:,sequence_starts[seq]]+log_pi
+            log_psi[0,:] = log_pdf[:,sequence_starts[seq]]+log_pi
 
             for t in range(1,Ns):
-                temp = log_delta[t-1,:,None]+log_T
-                log_delta[t,:],psi[t,:] = torch.max(temp,dim=0) #maximum over "from" states
-                log_delta[t,:] = log_delta[t,:]+log_pdf[:,sequence_starts[seq]+t]
+                temp = log_psi[t-1,:,None]+log_T
+                log_psi[t,:],_ = torch.max(temp,dim=0) #maximum over "from" states
+                log_psi[t,:] = log_psi[t,:]+log_pdf[:,sequence_starts[seq]+t]
 
-            P_T, Z_T = torch.max(log_delta[-1,:],dim=0)
+            Z_T = torch.argmax(log_psi[-1,:])
             Z_path = torch.zeros(Ns,dtype=torch.int32)
             Z_path[-1] = Z_T
             for t in range(Ns-2,-1,-1):
-                Z_path[t] = psi[t+1,Z_T]
+                Z_path[t] = torch.argmax(log_psi[t,:]+log_T[:,Z_path[t+1]])
 
             # from partition vector to partition matrix
             Z_path2 = torch.zeros(K,Ns,dtype=torch.bool)
@@ -218,17 +219,25 @@ class PCMMtorchBaseModel(nn.Module):
         with torch.no_grad():
             log_pdf = self.log_pdf(X)
             if self.HMM:
-                return self.viterbi2(log_pdf,self.samples_per_sequence)
+                return self.viterbi(log_pdf)
             else:
                 return self.posterior_MM(log_pdf)
     
     def get_params(self):
-        if 'Watson' in self.distribution:
-            return {'mu':self.mu.detach(),'kappa':self.kappa.detach(),'pi':self.pi.detach()}
-        elif self.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
-            return {'M':self.M.detach(),'pi':self.pi.detach()}
-        elif self.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
-            return {'M':self.M.detach(),'gamma':self.gamma.detach(),'pi':self.pi.detach()}
+        if self.HMM:
+            if 'Watson' in self.distribution:
+                return {'mu':self.mu.detach(),'kappa':self.kappa.detach(),'pi':self.pi.detach(),'T':self.T.detach()}
+            elif self.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
+                return {'M':self.M.detach(),'pi':self.pi.detach(),'T':self.T.detach()}
+            elif self.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
+                return {'M':self.M.detach(),'gamma':self.gamma.detach(),'pi':self.pi.detach(),'T':self.T.detach()}
+        else:
+            if 'Watson' in self.distribution:
+                return {'mu':self.mu.detach(),'kappa':self.kappa.detach(),'pi':self.pi.detach()}
+            elif self.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
+                return {'M':self.M.detach(),'pi':self.pi.detach()}
+            elif self.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
+                return {'M':self.M.detach(),'gamma':self.gamma.detach(),'pi':self.pi.detach()}
         
     def set_params(self,params):
         self.unpack_params(params)
