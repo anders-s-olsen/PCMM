@@ -62,8 +62,9 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
                         if hasattr(best,"__len__")>0: # in the rare case of two equal values....
                             best = best[0]
                         params_final = params[best.item()]
-                        model.set_params(params_final)
-                        beta_final = model.posterior(X=data)        
+                        model2 = deepcopy(model)
+                        model2.set_params(params_final)
+                        model2.samples_per_sequence = model.samples_per_sequence      
                     break
             else:
                 pbar.set_description('In the initial phase')

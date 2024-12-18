@@ -124,7 +124,7 @@ class PCMMtorchBaseModel(nn.Module):
         This is a faster version of HMM_log_likelihood_seq_nonuniform_sequences, but it assumes that all sequences have the same length
         """
         K,N = log_pdf.shape
-        if self.samples_per_sequence == 0:
+        if torch.all(self.samples_per_sequence == 0):
             Ns = N
         elif self.samples_per_sequence.ndim==0:
             Ns = self.samples_per_sequence
@@ -178,14 +178,15 @@ class PCMMtorchBaseModel(nn.Module):
 
     def viterbi(self,log_pdf):
         K,N = log_pdf.shape
-        if self.samples_per_sequence == 0:
+        if torch.all(self.samples_per_sequence) == 0:
             samples_per_sequence = torch.atleast_1d(torch.tensor(N))
             sequence_starts = torch.atleast_1d(torch.tensor(0))
         elif self.samples_per_sequence.ndim==0:
-            samples_per_sequence = torch.atleast_1d(self.samples_per_sequence).repeat(N//samples_per_sequence)
+            samples_per_sequence = torch.atleast_1d(self.samples_per_sequence).repeat(N//self.samples_per_sequence)
             sequence_starts = torch.hstack([torch.tensor(0),torch.cumsum(samples_per_sequence[:-1],0)])
         else:
             samples_per_sequence = torch.tensor(self.samples_per_sequence)
+            sequence_starts = torch.hstack([torch.tensor(0),torch.cumsum(samples_per_sequence[:-1],0)])
         log_T = self.LogSoftmax_T(self.T) # size KxK
         log_pi = self.LogSoftmax_pi(self.pi) #size K
         
