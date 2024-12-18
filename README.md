@@ -161,6 +161,8 @@ The inputs for the train function are:
 
 The inputs for the test function are the same, except `params` is a required input and `K` is no longer required. 
 
+## Tips and tricks
+- Always initialize an HMM from a mixture model solution. Otherwise, it is terribly slow because of the for-loops in the forward algorithm. 
 
 ## Citing the work
 
