@@ -216,10 +216,10 @@ class PCMMnumpyBaseModel():
             
             if init_method in ['weighted_grassmann_clustering_plusplus','wgc++','weighted_grassmann_clustering_plusplus_seg','wgc++_seg']:
                 print('Running weighted grassmann clustering ++ initialization')
-                C,C_weights,X_part,_ = plusplus_initialization(X=X,K=self.K,dist='weighted_grassmann')
+                C,X_part,_ = plusplus_initialization(X=X,K=self.K,dist='weighted_grassmann')
             elif init_method in ['wgc','weighted_grassmann_clustering','wgc_seg','weighted_grassmann_clustering_seg']:
                 print('Running weighted grassmann clustering initialization')
-                C,C_weights,X_part,_ = weighted_grassmann_clustering(X=X,K=self.K,max_iter=100000,num_repl=1)
+                C,X_part,_ = weighted_grassmann_clustering(X=X,K=self.K,max_iter=100000,num_repl=1)
             
             if 'lowrank' in self.distribution:
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
@@ -233,7 +233,7 @@ class PCMMnumpyBaseModel():
                 print('Initializing Lambda based on the clustering centroids')
                 self.Psi = np.zeros((self.K,self.p,self.p),dtype=X.dtype)
                 for k in range(self.K):
-                    self.Psi[k] = C[k]@np.diag(C_weights[k])@C[k].T.conj()+np.eye(self.p)
+                    self.Psi[k] = C[k]@C[k].T+np.eye(self.p)
         else:
             raise ValueError('Invalid init_method')
         
