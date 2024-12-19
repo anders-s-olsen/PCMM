@@ -32,16 +32,12 @@ class PCMMtorchBaseModel(nn.Module):
                 self.gamma = nn.Parameter(torch.ones(self.K))
 
         # mixture or HMM settings
-        if 'pi' in params:
-            self.pi = nn.Parameter(params['pi'])
-        else:
-            self.pi = nn.Parameter(1/self.K.repeat(self.K))
+        self.pi = nn.Parameter(params['pi'])
 
         if self.HMM:
             if 'T' in params:
                 self.T = nn.Parameter(params['T'])
-            else:
-                self.T = nn.Parameter(1/self.K.repeat(self.K,self.K))
+                # otherwise T will be initialized in mixture_torch_loop
 
     def initialize_transition_matrix(self,X):
         beta = self.posterior_MM(self.log_pdf(X))

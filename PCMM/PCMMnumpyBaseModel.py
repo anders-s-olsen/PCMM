@@ -17,21 +17,15 @@ class PCMMnumpyBaseModel():
             if self.M.ndim==2 and self.K==1:
                 self.M = self.M[None,:,:]
         elif 'fullrank' in self.distribution:
-            self.Psi = params['Lambda']
+            self.Psi = params['Psi']
         else:
             raise ValueError('Invalid distribution')
         
         if self.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
-            if 'gamma' in params:
-                self.gamma = params['gamma']
-            else:
-                self.gamma = np.ones(self.K)
+            self.gamma = params['gamma']
 
         # mixture settings
-        if 'pi' in params:
-            self.pi = params['pi']
-        else:
-            self.pi = np.array([1/self.K]*self.K)
+        self.pi = params['pi']
 
     def init_M_svd(self,V,r):
         U,S,_ = np.linalg.svd(V,full_matrices=False)
@@ -146,13 +140,6 @@ class PCMMnumpyBaseModel():
                 mu,X_part,_ = diametrical_clustering(X=X2,K=self.K,max_iter=100000,num_repl=1,init='++')
             elif init_method in ['ls','ls_seg']:
                 mu,X_part,_ = least_squares_sign_flip(X=X2,K=self.K,max_iter=100000,num_repl=1,init='++')
-                # X2[(X2.real>0).sum(axis=1)>self.p/2] = -X2[(X2.real>0).sum(axis=1)>self.p/2]
-                # for l in range(100): #try until we get a valid clustering......................
-                #     mu,X_part = kmeans2(X2,k=self.K,minit='++')
-                #     pi = np.bincount(X_part)/X_part.shape[0]
-                #     if not np.any(pi<1/(self.K*4)):
-                #         break
-                # mu = mu.T
             
             if 'Watson' in self.distribution:
                 print('Initializing mu based on the clustering centroid')
@@ -173,7 +160,7 @@ class PCMMnumpyBaseModel():
                 if self.distribution == 'SingularWishart_lowrank':
                     self.gamma = gamma
             elif 'fullrank' in self.distribution:
-                print('Initializing Lambda based on the clustering centroids')
+                print('Initializing Psi based on the clustering centroids')
                 self.Psi = np.zeros((self.K,self.p,self.p),dtype=X.dtype)
                 for k in range(self.K):
                     self.Psi[k] = np.outer(mu[k],mu[k])+np.eye(self.p)
@@ -201,7 +188,7 @@ class PCMMnumpyBaseModel():
                 if 'SingularWishart' in self.distribution:
                     self.gamma = gamma
             elif 'fullrank' in self.distribution:
-                print('Initializing Lambda based on the clustering centroids')
+                print('Initializing Psi based on the clustering centroids')
                 self.Psi = np.zeros((self.K,self.p,self.p),dtype=X.dtype)
                 for k in range(self.K):
                     self.Psi[k] = C[k]@C[k].T.conj()+np.eye(self.p)
@@ -230,7 +217,7 @@ class PCMMnumpyBaseModel():
                 if 'SingularWishart' in self.distribution:
                     self.gamma = gamma
             elif 'fullrank' in self.distribution:
-                print('Initializing Lambda based on the clustering centroids')
+                print('Initializing Psi based on the clustering centroids')
                 self.Psi = np.zeros((self.K,self.p,self.p),dtype=X.dtype)
                 for k in range(self.K):
                     self.Psi[k] = C[k]@C[k].T+np.eye(self.p)
@@ -244,13 +231,13 @@ class PCMMnumpyBaseModel():
             # run a single-component model on each segment
             if 'Watson' in self.distribution:
                 for k in range(self.K):
-                    self.mu[:,k],self.kappa[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),mu=self.mu[:,k],kappa=self.kappa[k])
+                    self.mu[k],self.kappa[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),mu=self.mu[k],kappa=self.kappa[k])
             elif self.distribution in ['ACG_lowrank','MACG_lowrank','Complex_ACG_lowrank']:
                 for k in range(self.K):
-                    self.M[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=self.M[k],Lambda=None)
+                    self.M[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=self.M[k],Psi=None)
             elif self.distribution in ['ACG_fullrank','MACG_fullrank','Complex_ACG_fullrank']:
                 for k in range(self.K):
-                    self.Psi[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=None, Lambda=self.Psi[k])
+                    self.Psi[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=None, Psi=self.Psi[k])
             elif self.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
                 for k in range(self.K):
                     self.M[k],self.gamma[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=self.M[k],gamma=self.gamma[k])
@@ -308,7 +295,7 @@ class PCMMnumpyBaseModel():
         elif self.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
             return {'M':self.M,'pi':self.pi,'gamma':self.gamma}
         elif 'fullrank' in self.distribution:
-            return {'Lambda':self.Psi,'pi':self.pi}
+            return {'Psi':self.Psi,'pi':self.pi}
         
     def set_params(self,params):
         self.unpack_params(params)

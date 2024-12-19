@@ -169,10 +169,10 @@ class ACG(PCMMnumpyBaseModel):
         elif 'fullrank' in self.distribution:
             return self.log_pdf_fullrank(X)
 
-    def M_step_single_component(self,X,beta,M=None,Lambda=None,max_iter=int(1e5),tol=1e-10):
+    def M_step_single_component(self,X,beta,M=None,Psi=None,max_iter=int(1e5),tol=1e-10):
         n,p = X.shape
         if n<p*(p-1):
-            Warning("Too high dimensionality compared to number of observations. Lambda cannot be calculated")
+            Warning("Too high dimensionality compared to number of observations. Psi cannot be calculated")
         if self.distribution in ['ACG_lowrank','Complex_ACG_lowrank']:
             Q = (beta[:,None]*X).T
 
@@ -234,16 +234,16 @@ class ACG(PCMMnumpyBaseModel):
             # print(j,np.linalg.norm(M),gamma,np.sum(beta))
             return M
         elif self.distribution in ['ACG_fullrank','Complex_ACG_fullrank']:
-            Lambda_old = Lambda.copy()
+            Psi_old = Psi.copy()
             Q = (beta[:,None]*X).T
             for j in range(max_iter):
-                XtLX = np.sum(X.conj()@np.linalg.inv(Lambda)*X,axis=1)
-                Lambda = self.p/np.sum(beta/XtLX)*(Q/XtLX)@X.conj()
+                XtLX = np.sum(X.conj()@np.linalg.inv(Psi)*X,axis=1)
+                Psi = self.p/np.sum(beta/XtLX)*(Q/XtLX)@X.conj()
                 if j>0:
-                    if np.linalg.norm(Lambda_old-Lambda)<tol:
+                    if np.linalg.norm(Psi_old-Psi)<tol:
                         break
-                Lambda_old = Lambda
-            return Lambda
+                Psi_old = Psi
+            return Psi
 
     def M_step(self,X):
         if self.K!=1:
@@ -306,7 +306,7 @@ class MACG(PCMMnumpyBaseModel):
         elif self.distribution == 'MACG_fullrank':
             return self.log_pdf_fullrank(X)
 
-    def M_step_single_component(self,X,beta,M=None,Lambda=None,max_iter=int(1e5),tol=1e-10):
+    def M_step_single_component(self,X,beta,M=None,Psi=None,max_iter=int(1e5),tol=1e-10):
             
         if self.distribution == 'MACG_lowrank':
             Q = beta[:,None,None]*X
@@ -367,23 +367,23 @@ class MACG(PCMMnumpyBaseModel):
             return M
         elif self.distribution == 'MACG_fullrank':
             Q = beta[:,None,None]*X
-            Lambda_old = Lambda.copy()
+            Psi_old = Psi.copy()
 
             for j in range(max_iter):
 
                 # this has been tested in the "Naive" version below
-                XtLX = np.swapaxes(X,-2,-1)@np.linalg.inv(Lambda)@X
+                XtLX = np.swapaxes(X,-2,-1)@np.linalg.inv(Psi)@X
                 L = np.linalg.eigvalsh(XtLX)
                 XtLX_trace = np.sum(1/L,axis=1) #trace of inverse is sum of inverse eigenvalues
                 
-                Lambda = self.p*np.sum(Q@np.linalg.inv(XtLX)@np.swapaxes(X,-2,-1),axis=0) \
+                Psi = self.p*np.sum(Q@np.linalg.inv(XtLX)@np.swapaxes(X,-2,-1),axis=0) \
                     /(np.sum(beta*XtLX_trace))
                 
                 if j>0:
-                    if np.linalg.norm(Lambda_old-Lambda)<tol:
+                    if np.linalg.norm(Psi_old-Psi)<tol:
                         break
-                Lambda_old = Lambda
-            return Lambda
+                Psi_old = Psi
+            return Psi
 
     def M_step(self,X):
         if self.K!=1:
