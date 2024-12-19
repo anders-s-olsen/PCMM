@@ -68,7 +68,7 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
         else:
             model = Normal_torch(K=K,p=p,rank=rank,params=params,complex=True,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
     elif options['modelname'] == 'least_squares':
-        C,labels,obj = least_squares_sign_flip(data_train,K=K,max_iter=options['max_iter'],num_repl=1,init=options['init'],tol=options['tol'])
+        C,labels,obj = least_squares_sign_flip(data_train,K=K,max_iter=options['max_iter'],num_repl=options['num_repl'],init=options['init'],tol=options['tol'])
         # X = data_train
         # X[(X>0).sum(axis=1)>p/2] = -X[(X>0).sum(axis=1)>p/2]
         # C,labels = kmeans2(X,k=K,minit=options['init'])
@@ -79,19 +79,19 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
         # obj = np.mean(np.max(sim,axis=1))
         return params,labels,[obj]
     elif options['modelname'] in ['diametrical','complex_diametrical']:
-        C,labels,obj = diametrical_clustering(data_train,K=K,max_iter=options['max_iter'],num_repl=1,init=options['init'],tol=options['tol'])
+        C,labels,obj = diametrical_clustering(data_train,K=K,max_iter=options['max_iter'],num_repl=options['num_repl'],init=options['init'],tol=options['tol'])
         labels = np.eye(K)[labels].T
         params = {'C':C}
         return params,labels,[obj]
     elif options['modelname'] == 'grassmann':
-        C,labels,obj = grassmann_clustering(data_train,K=K,max_iter=options['max_iter'],num_repl=1,init=options['init'],tol=options['tol'])
+        C,labels,obj = grassmann_clustering(data_train,K=K,max_iter=options['max_iter'],num_repl=options['num_repl'],init=options['init'],tol=options['tol'])
         labels = np.eye(K)[labels].T
         params = {'C':C}
         return params,labels,[obj]
     elif options['modelname'] == 'weighted_grassmann':
-        C,C_weights,labels,obj = weighted_grassmann_clustering(data_train,K=K,max_iter=options['max_iter'],num_repl=1,init=options['init'],tol=options['tol'])
+        C,labels,obj = weighted_grassmann_clustering(data_train,K=K,max_iter=options['max_iter'],num_repl=options['num_repl'],init=options['init'],tol=options['tol'])
         labels = np.eye(K)[labels].T
-        params = {'C':C,'C_weights':C_weights}
+        params = {'C':C}
         return params,labels,[obj]
     else:
         raise ValueError("Problem")
@@ -101,17 +101,22 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
         options['tol'] = 1e-10
     if 'max_iter' not in options:
         options['max_iter'] = 100000
-    if 'num_repl_inner' not in options:
-        options['num_repl_inner'] = 1
-
+    if 'num_repl' not in options:
+        options['num_repl'] = 1
+    if 'init' not in options:
+        raise ValueError('Please provide an initialization method')
+    if 'LR' not in options:
+        options['LR'] = 0
+    if 'threads' not in options:
+        options['threads'] = 8
 
     if options['LR']==0: #EM
         params,posterior,loglik = mixture_EM_loop(model,data_train,tol=options['tol'],max_iter=options['max_iter'],
-                                                num_repl=options['num_repl_inner'],init=options['init'],
+                                                num_repl=options['num_repl'],init=options['init'],
                                                 suppress_output=suppress_output)
     else:
         params,posterior,loglik = mixture_torch_loop(model,data_train,tol=options['tol'],max_iter=options['max_iter'],
-                                        num_repl=options['num_repl_inner'],init=options['init'],LR=options['LR'],
+                                        num_repl=options['num_repl'],init=options['init'],LR=options['LR'],
                                         suppress_output=suppress_output,threads=options['threads'])
     return params,posterior,loglik
     
@@ -179,13 +184,14 @@ def test_model(data_test,params,K,options,samples_per_sequence=0):
             X[(X>0).sum(axis=1)>p/2] = -X[(X>0).sum(axis=1)>p/2]
             sim = -np.sum((X[:,None]-params['C'][None])**2,axis=-1)
         elif options['modelname'] in ['diametrical','complex_diametrical']:
-            sim = np.abs(data_test@params['C'].conj())**2
+            sim = np.abs(data_test@params['C'].conj().T)**2
         elif options['modelname'] == 'grassmann':
             sim = -1/np.sqrt(2)*(2*data_test.shape[2]-2*np.linalg.norm(np.swapaxes(data_test[:,None],-2,-1)@params['C'][None],axis=(-2,-1))**2)
         elif options['modelname'] == 'weighted_grassmann':
+            C_weights = np.linalg.norm(params['C'],axis=1)**2
             L_test = np.linalg.norm(data_test,axis=1)**2
-            B = np.swapaxes(data_test,-2,-1)[:,None]@((params['C']*np.sqrt(params['C_weights'])[:,None,:])[None])
-            sim = -1/np.sqrt(2)*(np.sum(L_test**2,axis=-1)[:,None]+np.sum(params['C_weights']**2,axis=-1)[None]-2*np.linalg.norm(B,axis=(-2,-1))**2)#
+            B = np.swapaxes(data_test,-2,-1)[:,None]@(params['C'][None])
+            sim = -1/np.sqrt(2)*(np.sum(L_test**2,axis=-1)[:,None]+np.sum(C_weights**2,axis=-1)[None]-2*np.linalg.norm(B,axis=(-2,-1))**2)#
         
         test_loglik = np.mean(np.max(sim,axis=1))
         test_loglik_per_sample = np.max(sim,axis=1)

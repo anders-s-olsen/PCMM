@@ -52,7 +52,7 @@ class Watson(PCMMtorchBaseModel):
     
     def log_pdf(self, X):
         if not self.flag_normalized_input_data:
-            if not torch.allclose(torch.linalg.norm(X,axis=1),1):
+            if not torch.allclose(torch.linalg.norm(X,axis=1),torch.tensor(1.)):
                 raise ValueError("For the Watson distribution, the input data vectors should be normalized to unit length.")
             else:
                 self.flag_normalized_input_data = True
@@ -91,7 +91,7 @@ class ACG(PCMMtorchBaseModel):
             
     def log_pdf(self,X):
         if not self.flag_normalized_input_data:
-            if not torch.allclose(torch.linalg.norm(X,axis=1),1):
+            if not torch.allclose(torch.linalg.norm(X,axis=1),torch.tensor(1.)):
                 raise ValueError("For the Watson distribution, the input data vectors should be normalized to unit length.")
             else:
                 self.flag_normalized_input_data = True
@@ -121,7 +121,7 @@ class MACG(PCMMtorchBaseModel):
 
     def log_pdf(self,X):
         if not self.flag_normalized_input_data:
-            if torch.allclose(torch.linalg.norm(X[:,:,0],axis=1),1)!=1:
+            if torch.allclose(torch.linalg.norm(X[:,:,0],axis=1),torch.tensor(1.))!=1:
                 raise ValueError("For the MACG distribution, the input data vectors should be normalized to unit length (and orthonormal, but this is not checked).")
             else:
                 self.flag_normalized_input_data = True        
@@ -163,7 +163,7 @@ class SingularWishart(PCMMtorchBaseModel):
     def log_pdf(self,X):
         if not self.flag_normalized_input_data:
             X_weights = torch.linalg.norm(X,axis=1)**2
-            if not torch.allclose(torch.sum(X_weights,axis=1),self.p):
+            if not torch.allclose(torch.sum(X_weights,axis=1),self.p.double()):
                 raise ValueError("In weighted grassmann clustering, the scale of the input data vectors should be equal to the square root of the eigenvalues. If the scale does not sum to the dimensionality, this error is thrown")
             else:
                 self.flag_normalized_input_data = True

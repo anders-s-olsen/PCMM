@@ -25,16 +25,19 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
         # print(['Initializing inner repl '+str(repl)])
         if init != 'no':
             model.initialize(X=data,init_method=init)
-        else:
-            param_names = [name for name, param in model.named_parameters()]
-            if 'pi' not in param_names:
-                raise ValueError('Model not initialized, please provide an initialization method or a set of parameters')
+        param_names = [name for name, param in model.named_parameters()]
+        if 'pi' not in param_names:
+            raise ValueError('Model not initialized, please provide an initialization method or a set of parameters')
             
         if model.HMM:
-            if init in ['unif','uniform']:
-                model.T = torch.nn.Parameter(1/model.K.repeat(model.K,model.K))
-            else:
-                model.initialize_transition_matrix(X=data)
+            #if T is not initialized, initialize it
+            if 'T' not in param_names:
+                if init in ['unif','uniform']:
+                    model.T = torch.nn.Parameter(1/model.K.repeat(model.K,model.K))
+                else:
+                    model.initialize_transition_matrix(X=data)
+            # reinitialize pi to be the probability for only the first data point
+            model.pi = torch.nn.Parameter(model.posterior(X=data[0][None])[:,0])
 
         if 'lowrank' in model.distribution:
             if model.M.shape[-1]!=model.r:
