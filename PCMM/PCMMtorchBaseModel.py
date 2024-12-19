@@ -209,10 +209,7 @@ class PCMMtorchBaseModel(nn.Module):
                 Z_path[t] = torch.argmax(log_psi[t,:]+log_T[:,Z_path[t+1]])
 
             # from partition vector to partition matrix
-            Z_path2 = torch.zeros(K,Ns,dtype=torch.bool)
-            for t in range(Ns):
-                Z_path2[Z_path[t],t] = True
-            Z_path_all.append(Z_path2)
+            Z_path_all.append(torch.eye(K)[Z_path].T)
 
         return torch.hstack(Z_path_all)
     
