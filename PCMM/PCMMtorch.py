@@ -11,6 +11,8 @@ class Watson(PCMMtorchBaseModel):
         self.p = torch.tensor(p)
         self.K = torch.tensor(K)
         self.HMM = HMM
+        if samples_per_sequence is None:
+            samples_per_sequence = 0
         self.samples_per_sequence = torch.tensor(samples_per_sequence)
         if complex:
             self.distribution = 'Complex_Watson'
@@ -68,6 +70,8 @@ class ACG(PCMMtorchBaseModel):
         self.r = torch.tensor(rank)
         self.K = torch.tensor(K)
         self.HMM = HMM
+        if samples_per_sequence is None:
+            samples_per_sequence = 0
         self.samples_per_sequence = torch.tensor(samples_per_sequence)
         self.distribution = 'ACG_lowrank'
         self.complex = complex
@@ -110,6 +114,8 @@ class MACG(PCMMtorchBaseModel):
         self.r = torch.tensor(rank)
         self.K = torch.tensor(K)
         self.HMM = HMM
+        if samples_per_sequence is None:
+            samples_per_sequence = 0
         self.samples_per_sequence = torch.tensor(samples_per_sequence)
         self.distribution = 'MACG_lowrank'
 
@@ -147,6 +153,8 @@ class SingularWishart(PCMMtorchBaseModel):
         self.r = torch.tensor(rank)
         self.K = torch.tensor(K)
         self.HMM = HMM
+        if samples_per_sequence is None:
+            samples_per_sequence = 0
         self.samples_per_sequence = torch.tensor(samples_per_sequence)
         self.distribution = 'SingularWishart_lowrank'
         self.log_det_S11 = None
@@ -197,6 +205,8 @@ class Normal(PCMMtorchBaseModel):
         self.r = torch.tensor(rank)
         self.K = torch.tensor(K)
         self.HMM = HMM
+        if samples_per_sequence is None:
+            samples_per_sequence = 0
         self.samples_per_sequence = torch.tensor(samples_per_sequence)
         self.distribution = 'Normal_lowrank'
         self.complex = complex

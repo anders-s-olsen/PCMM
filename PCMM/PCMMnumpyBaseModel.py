@@ -1,5 +1,6 @@
 import numpy as np
 from PCMM.phase_coherence_kmeans import diametrical_clustering, plusplus_initialization, grassmann_clustering, weighted_grassmann_clustering, least_squares_sign_flip
+from scipy.cluster.vq import kmeans2
 
 class PCMMnumpyBaseModel():
 
@@ -29,11 +30,15 @@ class PCMMnumpyBaseModel():
 
     def init_M_svd(self,V,r):
         U,S,_ = np.linalg.svd(V,full_matrices=False)
-        if V.shape[1]>=self.p:
+        if self.p == self.r:
+            M = U[:,:r]
+            epsilon = 1
+        elif V.shape[1]>self.p:
             epsilon = np.sum(S[r:])/(self.p-r)
+            M = U[:,:r]@np.diag(np.sqrt(((S[:r]-epsilon)/epsilon)))
         else:
             epsilon = np.sum(S[r:])/(V.shape[1]-r)
-        M = U[:,:r]@np.diag(np.sqrt(((S[:r]-epsilon)/epsilon)))
+            M = U[:,:r]@np.diag(np.sqrt(((S[:r]-epsilon)/epsilon)))
 
         if 'Normal' in self.distribution and self.r==1:
             return M,epsilon#/V.shape[1]        
@@ -110,7 +115,7 @@ class PCMMnumpyBaseModel():
                     mu = np.random.uniform(size=(self.K,self.p))+1j*np.random.uniform(size=(self.K,self.p))
                 else:
                     mu = np.random.uniform(size=(self.K,self.p))
-                self.mu = mu / np.linalg.norm(mu,axis=1)
+                self.mu = mu / np.linalg.norm(mu,axis=1)[:,None]
             else:
                 if X.dtype==complex:
                     M = np.random.uniform(size=(self.K,self.p,self.r))+1j*np.random.uniform(size=(self.K,self.p,self.r))
@@ -125,7 +130,7 @@ class PCMMnumpyBaseModel():
                     self.M = M
             return           
         elif init_method in ['ls','ls_seg','diametrical_clustering_plusplus','dc++','dc++_seg','diametrical_clustering_plusplus_seg','dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
-            # for clustering methods on projective hyperplane or 
+            # for clustering methods on projective hyperplane
 
             if X.ndim==3:
                 X2 = X[:,:,0]
@@ -138,8 +143,20 @@ class PCMMnumpyBaseModel():
             elif init_method in ['dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
                 print('Running diametrical clustering initialization')
                 mu,X_part,_ = diametrical_clustering(X=X2,K=self.K,max_iter=100000,num_repl=1,init='++')
+                # mu,X_part,_ = diametrical_clustering(X=X2,K=self.K,max_iter=100000,num_repl=1,init='projective_hyperplane')
             elif init_method in ['ls','ls_seg']:
-                mu,X_part,_ = least_squares_sign_flip(X=X2,K=self.K,max_iter=100000,num_repl=1,init='++')
+                j=0
+                print('Waiting for a good least squares initialization')
+                while True:
+                    mu,X_part = kmeans2(X2.real,self.K,minit='++')
+                    #check that there is at least 5% samples in each cluster
+                    if np.min(np.bincount(X_part))>=0.05*X2.shape[0]:
+                        print('Found a good initialization')
+                        break
+                    if j>10000:
+                        raise ValueError('Could not find a good initialization')
+                    j+=1
+                # mu,X_part,_ = least_squares_sign_flip(X=X2,K=self.K,max_iter=100000,num_repl=1,init='++')
             
             if 'Watson' in self.distribution:
                 print('Initializing mu based on the clustering centroid')

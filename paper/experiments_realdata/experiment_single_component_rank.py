@@ -75,7 +75,7 @@ def run_experiment(extraoptions={},suppress_output=False):
     options['num_repl_outer'] = 10
     options['num_repl_inner'] = 1
     options['max_iter'] = 100000
-    options['outfolder'] = 'data/results/116_results'
+    options['outfolder'] = 'paper/data/results/116_results'
     options['HMM'] = False
     options.update(extraoptions) #modelname, LR, init controlled in shell script
     os.makedirs(options['outfolder'],exist_ok=True)
@@ -100,7 +100,7 @@ def run_experiment(extraoptions={},suppress_output=False):
         df = pd.DataFrame()
         num_done = 0
 
-    data_folder = 'data/processed/'
+    data_folder = 'paper/data/processed/'
     data_file = data_folder+options['dataset']+'fMRI_SchaeferTian116_GSR.h5'
     data_train,data_test1,data_test2 = load_fMRI_data(data_file,options,only_some_points=False)
 

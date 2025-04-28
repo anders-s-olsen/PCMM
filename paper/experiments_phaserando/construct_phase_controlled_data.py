@@ -2,7 +2,7 @@ import numpy as np
 import nibabel as nib
 from scipy.signal import butter, filtfilt, hilbert
 import h5py
-subjects = np.loadtxt('data/255unrelatedsubjectsIDs.txt', dtype='str')
+subjects = np.loadtxt('paper/data/255unrelatedsubjectsIDs.txt', dtype='str')
 p = 116
 K = 5
 T = 1200
@@ -24,7 +24,7 @@ def butter_bandpass_filter(data, lowcut=0.03, highcut=0.07, fs=1 / 0.720, order=
     y = filtfilt(b, a, data)
     return y
 
-atlas = nib.load('data/external/Schaefer2018_100Parcels_7Networks_order_Tian_Subcortex_S1.dlabel.nii')
+atlas = nib.load('paper/data/external/Schaefer2018_100Parcels_7Networks_order_Tian_Subcortex_S1.dlabel.nii')
 atlas_data = atlas.get_fdata()
 atlas_data = np.round(atlas_data)
 atlas_data = atlas_data.astype(int)[0]
@@ -32,7 +32,7 @@ filtered_data_all = []
 
 for sub in subjects[:num_subs]:
     for session in [1,2]:
-        img = nib.load('data/raw/'+sub+'/fMRI/rfMRI_REST'+str(session)+'_RL_Atlas_MSMAll_hp2000_clean.dtseries.nii')
+        img = nib.load('paper/data/raw/'+sub+'/fMRI/rfMRI_REST'+str(session)+'_RL_Atlas_MSMAll_hp2000_clean.dtseries.nii')
         data = img.get_fdata()
         data = data - np.mean(data, axis=0)
 
@@ -110,18 +110,25 @@ for scan in range(len(filtered_data_all)):
 
     phase_reset_data_all.append(newdata-np.mean(newdata, axis=0))
 
-U_all = []
-L_all = []
-U_all_complex = []
-L_all_complex = []
+data_ts = np.concatenate(phase_reset_data_all, axis=0)
+data_real_projective_hyperplane = []
+data_complex_projective_hyperplane = []
+data_grassmann = []
+data_spsd = []
+data_analytic = []
+
 for scan in range(len(phase_reset_data_all)):
     phases = np.zeros((phase_reset_data_all[scan].shape[0], p))
+    magnitudes = np.zeros((phase_reset_data_all[scan].shape[0], p))
     for i in range(p):
         phases[:,i] = np.angle(hilbert(phase_reset_data_all[scan][:,i]))
+        magnitudes[:,i] = np.abs(hilbert(phase_reset_data_all[scan][:,i]))
+    
+    data_analytic.append(magnitudes*np.exp(1j*phases))
+    
     U_all_sub = np.zeros((T,p,2))
     L_all_sub = np.zeros((T,2))
-    U_all_complex_sub = np.zeros((T,p,1), dtype=complex)
-    L_all_complex_sub = np.zeros((T,1))
+    U_all_complex_sub = np.zeros((T,p), dtype=complex)
     for t in range(T):
         c = np.cos(phases[t])
         s = np.sin(phases[t])
@@ -129,23 +136,25 @@ for scan in range(len(phase_reset_data_all)):
         # U,S,_ = np.linalg.svd(c+s*1j, full_matrices=False)
         U_all_sub[t] = U
         L_all_sub[t] = S**2
-        U_all_complex_sub[t,:,0] = (c+s*1j)/np.linalg.norm(c+s*1j)
-        L_all_complex_sub[t,0] = p
-    U_all.append(U_all_sub)
-    L_all.append(L_all_sub)
-    U_all_complex.append(U_all_complex_sub)
-    L_all_complex.append(L_all_complex_sub)
-U_tmp = np.concatenate(U_all, axis=0)
-L_tmp = np.concatenate(L_all, axis=0)
-U_complex_tmp = np.concatenate(U_all_complex, axis=0)
-L_complex_tmp = np.concatenate(L_all_complex, axis=0)
-S_tmp = np.concatenate(phase_reset_data_all, axis=0)
+        U_all_complex_sub[t,:] = (c+s*1j)/np.linalg.norm(c+s*1j)
+    
+    data_real_projective_hyperplane.append(U_all_sub[:,:,0])
+    data_complex_projective_hyperplane.append(U_all_complex_sub)
+    data_grassmann.append(U_all_sub)
+    data_spsd.append(U_all_sub*np.sqrt(L_all_sub[:,None,:]))
+    
+data_real_projective_hyperplane = np.concatenate(data_real_projective_hyperplane, axis=0)
+data_complex_projective_hyperplane = np.concatenate(data_complex_projective_hyperplane, axis=0)
+data_grassmann = np.concatenate(data_grassmann, axis=0)
+data_spsd = np.concatenate(data_spsd, axis=0)
 
 
 # use h5py to save this data (U_all)
-with h5py.File('data/synthetic/phase_narrowband_controlled_116data_eida.h5', 'w') as f:
-    f.create_dataset("U", data=U_tmp)
-    f.create_dataset("L", data=L_tmp)
-    f.create_dataset("U_complex", data=U_complex_tmp)
-    f.create_dataset("S",data=S_tmp[:,:,None])
+with h5py.File('paper/data/phase_randomized/narrowband_phase_controlled_116data.h5', 'w') as f:
+    f.create_dataset("data_ts", data=data_ts)
+    f.create_dataset("data_real_projective_hyperplane", data=data_real_projective_hyperplane)
+    f.create_dataset("data_complex_projective_hyperplane", data=data_complex_projective_hyperplane)
+    f.create_dataset("data_grassmann", data=data_grassmann)
+    f.create_dataset("data_spsd", data=data_spsd)
+    f.create_dataset("data_analytic", data=np.concatenate(data_analytic, axis=0))
 print('Data saved')

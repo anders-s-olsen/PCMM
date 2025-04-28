@@ -117,7 +117,7 @@ class ACG(PCMMnumpyBaseModel):
 
         self.K = K
         self.p = p
-        if rank is None or rank==0 or rank==p: #rank zero means the fullrank version
+        if rank is None or rank==0: #rank zero means the fullrank version
             self.r = p
             self.distribution = 'ACG_fullrank'
         else: #the lowrank version can also be full rank
@@ -264,7 +264,7 @@ class MACG(PCMMnumpyBaseModel):
         self.K = K
         self.p = p
         self.q = q
-        if rank is None or rank==0 or rank==p: #rank zero means the fullrank version
+        if rank is None or rank==0: #rank zero means the fullrank version
             self.r = p
             self.distribution = 'MACG_fullrank'
         else: #the lowrank version can also be full rank
@@ -405,7 +405,7 @@ class SingularWishart(PCMMnumpyBaseModel):
         self.p = p
         self.q = q
         self.half_p = self.p/2
-        if rank is None or rank==0 or rank==p: #rank zero means the fullrank version
+        if rank is None or rank==0: #rank zero means the fullrank version
             self.r = p
             self.distribution = 'SingularWishart_fullrank'
         else: #the lowrank version can also be full rank
@@ -539,7 +539,7 @@ class Normal(PCMMnumpyBaseModel):
 
         self.K = K
         self.p = p
-        if rank is None or rank==0 or rank==p: #rank zero means the fullrank version
+        if rank is None or rank==0: #rank zero means the fullrank version
             self.r = p
             self.distribution = 'Normal_fullrank'
         else: #the lowrank version can also be full rank

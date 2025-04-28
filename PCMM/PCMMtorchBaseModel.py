@@ -174,7 +174,7 @@ class PCMMtorchBaseModel(nn.Module):
 
     def viterbi(self,log_pdf):
         K,N = log_pdf.shape
-        if torch.all(self.samples_per_sequence) == 0:
+        if torch.all(self.samples_per_sequence == 0):
             samples_per_sequence = torch.atleast_1d(torch.tensor(N))
             sequence_starts = torch.atleast_1d(torch.tensor(0))
         elif self.samples_per_sequence.ndim==0:

@@ -1,6 +1,7 @@
 import numpy as np
 import scipy
 from scipy.cluster.vq import kmeans2
+from tqdm import tqdm
 
 def plusplus_initialization(X,K,dist='diametrical'):
     assert dist in ['diametrical','grassmann','weighted_grassmann']
@@ -64,7 +65,74 @@ def plusplus_initialization(X,K,dist='diametrical'):
     # else:
     return C,X_part,obj
     
-def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
+def projective_hyperplane_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10,suppress_output=False):
+    # faster version of diametrical clustering but not as precise. 
+    # same distance function but the update rule is different.
+
+    if not np.allclose(np.linalg.norm(X,axis=1),1):
+        raise ValueError("In projective hyperplane clustering, the input data vectors should be normalized to unit length.")
+
+    n,p = X.shape
+
+    obj_collector = []
+    obj_final_collector = []
+    part_collector = []
+    C_collector = []
+
+    for _ in range(num_repl):
+        if init is None or init=='++' or init=='plusplus' or init == 'diametrical_clustering_plusplus':
+            C,_,_ = plusplus_initialization(X,K,dist='diametrical')
+        elif init=='uniform' or init=='unif':
+            if X.dtype == 'complex':
+                C = np.random.uniform(size=(K,p))+1j*np.random.uniform(size=(K,p))
+            else:
+                C = np.random.uniform(size=(K,p))
+            C = C/np.linalg.norm(C,axis=1)[:,None]
+        
+        iter = 0
+        obj = []
+        # partsum = np.zeros((max_iter,K))
+
+        pbar = tqdm(total=max_iter,disable=suppress_output)
+        X_part_previous = np.zeros(n)
+
+        while True:
+            # E-step
+            sim = np.abs(X@C.conj().T)**2 #abs for complex support
+            maxsim = np.max(sim,axis=1)
+            X_part = np.argmax(sim,axis=1)
+            obj.append(np.mean(maxsim))
+
+            # for k in range(K):
+            #     partsum[iter,k] = np.sum(X_part==k)
+            
+            if iter>0:
+                if np.sum(X_part!=X_part_previous)==0 or iter==max_iter or obj[-1]-obj[-2]<tol:
+                    C_collector.append(C)
+                    obj_collector.append(obj)
+                    obj_final_collector.append(obj[-1])
+                    part_collector.append(X_part)             
+                    break
+            
+            for k in range(K):
+                idx_k = X_part==k
+                # # Establish covariance matrix
+                # A = X[idx_k].T@X[idx_k].conj()
+                # C[k] = A@C[k]
+                C[k] = scipy.sparse.linalg.svds(X[idx_k],1,return_singular_vectors="vh",v0=C[k])[2][0]
+
+            # C = C/np.linalg.norm(C,axis=1)[:,None]
+            if iter>0:
+                pbar.set_description('Observations shifted between clusters: '+str(np.sum(X_part!=X_part_previous))+
+                                        (', convergence towards tol: {crit:.2e}').format(crit=obj[-1]-obj[-2]))
+            pbar.update(1)
+            X_part_previous = X_part.copy()
+            iter += 1
+    best = np.nanargmax(np.array(obj_final_collector))
+    
+    return C_collector[best],part_collector[best],obj_collector[best]
+
+def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10,suppress_output=False):
 
     if not np.allclose(np.linalg.norm(X,axis=1),1):
         raise ValueError("In diametrical clustering, the input data vectors should be normalized to unit length.")
@@ -84,11 +152,17 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
                 C = np.random.uniform(size=(K,p))+1j*np.random.uniform(size=(K,p))
             else:
                 C = np.random.uniform(size=(K,p))
-            C = C/np.linalg.norm(C,axis=1)
+            C = C/np.linalg.norm(C,axis=1)[:,None]
+        elif init=='projective_hyperplane':
+            C,_,_ = projective_hyperplane_clustering(X,K,max_iter=10000,num_repl=1,init='++',tol=1e-10,suppress_output=False)
         
         iter = 0
         obj = []
-        partsum = np.zeros((max_iter,K))
+        # partsum = np.zeros((max_iter,K))
+
+        pbar = tqdm(total=max_iter,disable=suppress_output)
+        X_part_previous = np.zeros(n)
+
         while True:
             # E-step
             sim = np.abs(X@C.conj().T)**2 #abs for complex support
@@ -96,11 +170,11 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
             X_part = np.argmax(sim,axis=1)
             obj.append(np.mean(maxsim))
 
-            for k in range(K):
-                partsum[iter,k] = np.sum(X_part==k)
+            # for k in range(K):
+            #     partsum[iter,k] = np.sum(X_part==k)
             
             if iter>0:
-                if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or obj[-1]-obj[-2]<tol:
+                if np.sum(X_part!=X_part_previous)==0 or iter==max_iter or obj[-1]-obj[-2]<tol:
                     C_collector.append(C)
                     obj_collector.append(obj)
                     obj_final_collector.append(obj[-1])
@@ -109,21 +183,22 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
             
             for k in range(K):
                 idx_k = X_part==k
-                # if sum(idx_k)==0:
-                #     C[:,k] = np.random.uniform(size=p)
-                #     continue
-                
                 # # Establish covariance matrix
                 A = X[idx_k].T@X[idx_k].conj()
                 C[k] = A@C[k]
 
             C = C/np.linalg.norm(C,axis=1)[:,None]
+            if iter>0:
+                pbar.set_description('Observations shifted between clusters: '+str(np.sum(X_part!=X_part_previous))+
+                                        (', convergence towards tol: {crit:.2e}').format(crit=obj[-1]-obj[-2]))
+            pbar.update(1)
+            X_part_previous = X_part.copy()
             iter += 1
     best = np.nanargmax(np.array(obj_final_collector))
     
     return C_collector[best],part_collector[best],obj_collector[best]
 
-def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
+def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10,suppress_output=False):
     
     if np.allclose(np.linalg.norm(X[:,:,0],axis=1),1)!=1:
         raise ValueError("In grassmann clustering, the input data vectors should be normalized to unit length.")
@@ -147,7 +222,11 @@ def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
 
         iter = 0
         obj = [] # objective function
-        partsum = np.zeros((max_iter,K))
+        # partsum = np.zeros((max_iter,K))
+
+        pbar = tqdm(total=max_iter,disable=suppress_output)
+        X_part_previous = np.zeros(n)
+
         while True:
 
             dis = 1/np.sqrt(2)*(2*q-2*np.linalg.norm(np.swapaxes(X[:,None],-2,-1)@C[None],axis=(-2,-1))**2)
@@ -158,11 +237,11 @@ def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
             obj.append(np.mean(maxsim))
 
             # check for convergence
-            for k in range(K):
-                partsum[iter,k] = np.sum(X_part==k)
+            # for k in range(K):
+            #     partsum[iter,k] = np.sum(X_part==k)
             
             if iter>0:
-                if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or obj[-1]-obj[-2]<tol:
+                if np.sum(X_part!=X_part_previous)==0 or iter==max_iter or obj[-1]-obj[-2]<tol:
                     C_collector.append(C)
                     obj_collector.append(obj)
                     obj_final_collector.append(obj[-1])
@@ -177,11 +256,16 @@ def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10):
                 order = np.argsort(S)[::-1]
                 C[k] = U[:,order]#[:,::-1]
                 # C[k] = U[:,:q]
+            if iter>0:
+                pbar.set_description('Observations shifted between clusters: '+str(np.sum(X_part!=X_part_previous))+
+                                        (', convergence towards tol: {crit:.2e}').format(crit=obj[-1]-obj[-2]))
+            pbar.update(1)
             iter += 1
+            X_part_previous = X_part.copy()
     best = np.nanargmax(np.array(obj_final_collector))
     return C_collector[best],part_collector[best],obj_collector[best]
 
-def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None):
+def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None,suppress_output=False):
     """"
     Weighted grassmannian clustering using the chordal distance function and a SVD-based update rule
     
@@ -220,7 +304,11 @@ def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=N
         # initialize counters
         iter = 0
         obj = []
-        partsum = np.zeros((max_iter,K))
+        # partsum = np.zeros((max_iter,K))
+
+        pbar = tqdm(total=max_iter,disable=suppress_output)
+        X_part_previous = np.zeros(n)
+
         while True:
             # "E-step" - compute the similarity between each matrix and each cluster center
             B = np.swapaxes(X,-2,-1)[:,None]@(C[None])
@@ -231,10 +319,11 @@ def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=N
             obj.append(np.mean(maxsim))
 
             # check for convergence   
-            for k in range(K):
-                partsum[iter,k] = np.sum(X_part==k)
+            # for k in range(K):
+            #     partsum[iter,k] = np.sum(X_part==k)
+
             if iter>0:
-                if all((partsum[iter-1]-partsum[iter])==0) or iter==max_iter or obj[-1]-obj[-2]<tol:
+                if np.sum(X_part!=X_part_previous)==0 or iter==max_iter or obj[-1]-obj[-2]<tol:
                     C_collector.append(C)
                     obj_collector.append(obj)
                     obj_final_collector.append(obj[-1])
@@ -250,12 +339,16 @@ def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=N
                 C_weights[k] = S[order]
                 C_weights[k] = C_weights[k]/np.sum(C_weights[k])*p
                 C[k] = U[:,order]*np.sqrt(C_weights[k])[None]
-
+            if iter>0:
+                pbar.set_description('Observations shifted between clusters: '+str(np.sum(X_part!=X_part_previous))+
+                                        (', convergence towards tol: {crit:.2e}').format(crit=obj[-1]-obj[-2]))
+            pbar.update(1)
             iter += 1
+            X_part_previous = X_part.copy()
     best = np.nanargmax(np.array(obj_final_collector))
     return C_collector[best],part_collector[best],obj_collector[best]
 
-def least_squares_sign_flip(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None):
+def least_squares_sign_flip(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None,disable=None):
     if init=='uniform':
         init = 'random'
     n,p = X.shape
@@ -271,7 +364,7 @@ def least_squares_sign_flip(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None):
     for _ in range(num_repl):
         C,labels = kmeans2(X,k=K,minit=init,iter=max_iter)
         sim = -np.sum((X[:,None]-C[None])**2,axis=-1)
-        obj = np.mean(np.max(sim,axis=1))
+        obj = [np.mean(np.max(sim,axis=1))]
 
         C_collector.append(C)
         obj_collector.append(obj)

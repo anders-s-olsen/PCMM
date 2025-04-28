@@ -77,22 +77,22 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
         #euclidean distance
         # sim = -np.sum((X[:,None]-params['C'][None])**2,axis=-1)
         # obj = np.mean(np.max(sim,axis=1))
-        return params,labels,[obj]
+        return params,labels,obj
     elif options['modelname'] in ['diametrical','complex_diametrical']:
         C,labels,obj = diametrical_clustering(data_train,K=K,max_iter=options['max_iter'],num_repl=options['num_repl'],init=options['init'],tol=options['tol'])
         labels = np.eye(K)[labels].T
         params = {'C':C}
-        return params,labels,[obj]
+        return params,labels,obj
     elif options['modelname'] == 'grassmann':
         C,labels,obj = grassmann_clustering(data_train,K=K,max_iter=options['max_iter'],num_repl=options['num_repl'],init=options['init'],tol=options['tol'])
         labels = np.eye(K)[labels].T
         params = {'C':C}
-        return params,labels,[obj]
+        return params,labels,obj
     elif options['modelname'] == 'weighted_grassmann':
         C,labels,obj = weighted_grassmann_clustering(data_train,K=K,max_iter=options['max_iter'],num_repl=options['num_repl'],init=options['init'],tol=options['tol'])
         labels = np.eye(K)[labels].T
         params = {'C':C}
-        return params,labels,[obj]
+        return params,labels,obj
     else:
         raise ValueError("Problem")
         
@@ -139,42 +139,42 @@ def test_model(data_test,params,K,options,samples_per_sequence=0):
             if options['LR']==0:
                 model = Watson_numpy(K=K,p=p,params=params)
             else:
-                model = Watson_torch(K=K,p=p,params=params,samples_per_sequence=samples_per_sequence)
+                model = Watson_torch(K=K,p=p,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
         elif options['modelname'] == 'Complex_Watson':
             if options['LR']==0:
                 model = Watson_numpy(K=K,p=p,complex=True,params=params)
             else:
-                model = Watson_torch(K=K,p=p,complex=True,params=params,samples_per_sequence=samples_per_sequence)
+                model = Watson_torch(K=K,p=p,complex=True,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
         elif options['modelname'] == 'ACG':
             if options['LR']==0:
                 model = ACG_numpy(K=K,p=p,rank=rank,params=params)
             else:
-                model = ACG_torch(K=K,p=p,rank=rank,params=params,samples_per_sequence=samples_per_sequence)
+                model = ACG_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
         elif options['modelname'] == 'Complex_ACG':
             if options['LR']==0:
                 model = ACG_numpy(K=K,p=p,complex=True,rank=rank,params=params)
             else:
-                model = ACG_torch(K=K,p=p,complex=True,rank=rank,params=params,samples_per_sequence=samples_per_sequence)
+                model = ACG_torch(K=K,p=p,complex=True,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
         elif options['modelname'] == 'MACG':
             if options['LR']==0:
                 model = MACG_numpy(K=K,p=p,q=2,rank=rank,params=params)
             else:
-                model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params,samples_per_sequence=samples_per_sequence)
+                model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
         elif options['modelname'] == 'SingularWishart':
             if options['LR']==0:
                 model = SingularWishart_numpy(K=K,p=p,q=2,rank=rank,params=params)
             else:
-                model = SingularWishart_torch(K=K,p=p,q=2,rank=rank,params=params,samples_per_sequence=samples_per_sequence)
+                model = SingularWishart_torch(K=K,p=p,q=2,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
         elif options['modelname'] == 'Normal':
             if options['LR']==0:
                 model = Normal_numpy(K=K,p=p,rank=rank,params=params)
             else:
-                model = Normal_torch(K=K,p=p,rank=rank,params=params,samples_per_sequence=samples_per_sequence)
+                model = Normal_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
         elif options['modelname'] == 'Complex_Normal':
             if options['LR']==0:
-                model = Normal_numpy(K=K,p=p,rank=rank,params=params,complex=True)
+                model = Normal_numpy(K=K,p=p,rank=rank,complex=True,params=params)
             else:
-                model = Normal_torch(K=K,p=p,rank=rank,params=params,complex=True,samples_per_sequence=samples_per_sequence)
+                model = Normal_torch(K=K,p=p,rank=rank,complex=True,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
         test_loglik, test_loglik_per_sample = model.test_log_likelihood(X=data_test)
         test_posterior = model.posterior(X=data_test)
     elif options['modelname'] in ['least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann']:
@@ -201,7 +201,7 @@ def test_model(data_test,params,K,options,samples_per_sequence=0):
     else:
         raise ValueError("Problem, modelname:",options['modelname'])
     
-    return test_loglik,test_posterior,test_loglik_per_sample
+    return test_loglik.item(),test_posterior,test_loglik_per_sample
         
 def calc_MI(Z1,Z2):
     P=Z1@Z2.T

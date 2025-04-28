@@ -75,7 +75,7 @@ def run_experiment(extraoptions={},suppress_output=False,save_params=True,GSR='G
     options['num_repl_outer'] = 10
     options['num_repl_inner'] = 1
     options['max_iter'] = 100000
-    options['outfolder'] = 'data/results/116_results'
+    options['outfolder'] = 'paper/data/results/116_results'
     options['HMM'] = False
     options.update(extraoptions) #modelname, LR, init controlled in shell script
     os.makedirs(options['outfolder'],exist_ok=True)
@@ -84,7 +84,7 @@ def run_experiment(extraoptions={},suppress_output=False,save_params=True,GSR='G
     # set parameters
     p = 116
     K = options['K']
-    data_folder = 'data/processed/'
+    data_folder = 'paper/data/processed/'
     if GSR=='GSR':
         options['experiment_name'] = options['dataset']+'modelorder_realdata_'+options['modelname']+'_K='+str(K)+'_rank='+str(options['rank'])
         data_file = data_folder+options['dataset']+'fMRI_SchaeferTian116_GSR.h5'

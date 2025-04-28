@@ -9,6 +9,9 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
     torch.set_default_dtype(torch.float64)
     best_loglik = -1e15
 
+    assert model.r is not None, 'Model rank must be set'
+    assert model.r!=0, 'Model rank must be non-zero'
+
     #check if data is a torch tensor
     if not isinstance(data,torch.Tensor):
         data = torch.tensor(data)
@@ -23,7 +26,10 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
 
     for repl in range(num_repl):
         # print(['Initializing inner repl '+str(repl)])
+        param_names = [name for name, param in model.named_parameters()]
         if init != 'no':
+            if 'pi' in param_names:
+                raise ValueError('Model already initialized, please set params=None or init=''no''')
             model.initialize(X=data,init_method=init)
         param_names = [name for name, param in model.named_parameters()]
         if 'pi' not in param_names:
@@ -37,7 +43,8 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                 else:
                     model.initialize_transition_matrix(X=data)
             # reinitialize pi to be the probability for only the first data point
-            model.pi = torch.nn.Parameter(model.posterior(X=data[0][None])[:,0])
+            log_pdf_first_sample = model.log_pdf(X=data[0][None])
+            model.pi = torch.nn.Parameter(model.posterior_MM(log_pdf_first_sample)[:,0])
 
         if 'lowrank' in model.distribution:
             if model.M.shape[-1]!=model.r:
@@ -57,6 +64,8 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
         print('Beginning numerical optimization loop')
 
         pbar = tqdm(total=max_iter,disable=suppress_output)
+        pbar.set_description('In the initial phase')
+        pbar.update(0)
 
         for epoch in range(max_iter):
             epoch_nll = -model(data) #negative for nll
@@ -95,7 +104,7 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                         done = True
                 pbar.set_description('Convergence towards tol: %.2e'%crit)
                 # pbar.set_postfix({'Epoch':epoch})
-                pbar.update(1)
+                pbar.n = epoch + 1
                 if done:
                     if loglik[-1]>best_loglik:
                         best_loglik = loglik[-1]

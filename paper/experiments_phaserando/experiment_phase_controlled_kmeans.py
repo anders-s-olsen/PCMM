@@ -24,31 +24,31 @@ def run_experiment(extraoptions={},dataset='phase_controlled',suppress_output=Fa
     options = {}
     options['tol'] = 1e-10
     options['num_repl_outer'] = 100
-    options['num_repl_inner'] = 1
     options['max_iter'] = 100000
-    options['outfolder'] = 'data/results/torchvsEM_phase_controlled_results'
+    options['outfolder'] = 'paper/data/results/torchvsEM_phase_controlled_results'
     options['num_subjects'] = 1
     options['HMM'] = False
+    options['num_repl'] = 1
     options.update(extraoptions) #modelname, LR, init controlled in shell script
     os.makedirs(options['outfolder'],exist_ok=True)
     p = 116
     K = 5
     P = np.double(make_true_mat(options['num_subjects'],K=K))
 
-    data_folder = 'data/synthetic/'
+    data_folder = 'paper/data/phase_randomized/'
     options['experiment_name'] = dataset+'_'+options['modelname']
-    data_file = data_folder+dataset+'_116data_eida.h5'
+    data_file = data_folder+dataset+'_116data.h5'
     with h5.File(data_file,'r') as f:
-        if 'complex' in options['modelname'] or 'Complex' in options['modelname']:
-            data = f['U_complex'][:][:,:,0]
-        elif options['modelname'] in ['euclidean','Watson','ACG','diametrical']:
-            data = f['U'][:,:,0]
-        elif options['modelname'] in ['grassmann','MACG']:
-            data = f['U'][:]
-        elif options['modelname'] in ['weighted_grassmann','SingularWishart']:
-            data = f['U'][:]*np.sqrt(f['L'][:])[:,None,:]
-        elif options['modelname'] in ['Normal']:
-            data = f['S'][:][:,:,0]
+        if options['modelname'] == 'Complex_Watson' or options['modelname'] == 'Complex_ACG' or options['modelname'] == 'complex_diametrical':
+            data = f['data_complex_projective_hyperplane'][:]
+        elif options['modelname'] == 'Watson' or options['modelname'] == 'ACG' or options['modelname'] == 'diametrical' or options['modelname'] == 'least_squares':
+            data = f['data_real_projective_hyperplane'][:]
+        elif options['modelname'] == 'MACG' or options['modelname'] == 'grassmann':
+            data = f['data_grassmann'][:]
+        elif options['modelname'] == 'SingularWishart' or options['modelname'] == 'weighted_grassmann':
+            data = f['data_spsd'][:]
+        elif options['modelname'] == 'Complex_Normal':
+            data = f['data_analytic'][:]
 
     data_train = data[:1200]
     data_test1 = data[1200:2400]
@@ -62,10 +62,7 @@ def run_experiment(extraoptions={},dataset='phase_controlled',suppress_output=Fa
         print('Running experiment: ',options['experiment_name'],' inner: ',inner)
         _,df = run(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,suppress_output=suppress_output,inner=inner,p=p)
 
-    if options['modelname']=='euclidean':
-        options['init'] = 'random'
-    else:
-        options['init'] = 'unif'
+    options['init'] = 'uniform'
     for inner in range(options['num_repl_outer']):
         print('Running experiment: ',options['experiment_name'],' inner: ',inner)
         _,df = run(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,suppress_output=suppress_output,inner=inner,p=p)
@@ -78,7 +75,7 @@ if __name__=="__main__":
         options['modelname'] = sys.argv[1]
         run_experiment(extraoptions=options,dataset=sys.argv[2],suppress_output=True)
     else:
-        modelnames = ['euclidean','diametrical','complex_diametrical','grassmann','weighted_grassmann']
+        modelnames = ['least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann']
         # modelnames = ['complex_diametrical']
         for modelname in modelnames:
-            run_experiment(extraoptions={'modelname':modelname},dataset='phase_narrowband_controlled',suppress_output=False)
+            run_experiment(extraoptions={'modelname':modelname},dataset='narrowband_phase_controlled',suppress_output=False)

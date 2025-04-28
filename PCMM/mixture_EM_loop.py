@@ -17,12 +17,12 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
         done = False
         # print(['Initializing repl '+str(repl)])
         if init != 'no':
+            if 'pi' in model.__dict__:
+                raise ValueError('Model already initialized, please set params=None or init=''no''')
             model.initialize(X=data,init_method=init) #NB using 'data', not 'X'
         else:
             if 'pi' not in model.__dict__:
                 raise ValueError('Model not initialized, please provide an initialization method or a set of parameters')
-
-            
 
         if 'lowrank' in model.distribution:
             if model.M.shape[-1]!=model.r:
@@ -38,6 +38,8 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
         params = []
         print('Beginning EM loop')
         pbar = tqdm(total=max_iter,disable=suppress_output)
+        pbar.set_description('In the initial phase')
+        pbar.update(0)
         for epoch in range(max_iter):
         
             # E-step
@@ -62,7 +64,6 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
                     crit = tol
                     done=True
                 pbar.set_description('Convergence towards tol: %.2e'%crit)
-                pbar.update(1)
                 if done:
                     if maxval>best_loglik:
                         best_loglik = maxval
@@ -77,7 +78,7 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
                     break
             else:
                 pbar.set_description('In the initial phase')
-                pbar.update(1)
+            pbar.n = epoch + 1
 
             # M-step
             model.M_step(X=data)

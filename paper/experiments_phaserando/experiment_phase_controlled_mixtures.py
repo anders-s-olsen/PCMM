@@ -6,28 +6,33 @@ import os
 import h5py as h5
 
 def run(data_train,data_test1,data_test2,K,P,df,options,params=None,suppress_output=False,inner=None,p=116):
-    params,train_posterior,loglik_curve = train_model(data_train,K=K,options=options,suppress_output=suppress_output,samples_per_sequence=1200,params=params)
-    test1_loglik,test1_posterior,_ = test_model(data_test=data_test1,params=params,K=K,options=options,samples_per_sequence=1200)
-    test2_loglik,test2_posterior,_ = test_model(data_test=data_test2,params=params,K=K,options=options,samples_per_sequence=1200)
-    train_NMI = calc_NMI(P,np.double(np.array(train_posterior)))
-    test1_NMI = calc_NMI(P,np.double(np.array(test1_posterior)))
-    test2_NMI = calc_NMI(P,np.double(np.array(test2_posterior)))
-    entry = {'modelname':options['modelname'],'init_method':options['init'],'LR':options['LR'],'HMM':str(options['HMM']),'K':K,'p':p,'rank':options['rank'],'inner':inner,'iter':len(loglik_curve),
-             'train_loglik':loglik_curve[-1],'test1_loglik':test1_loglik,'test2_loglik':test2_loglik,
-             'train_NMI':train_NMI,'test1_NMI':test1_NMI,'test2_NMI':test2_NMI}
+    try:
+        params,train_posterior,loglik_curve = train_model(data_train,K=K,options=options,suppress_output=suppress_output,samples_per_sequence=1200,params=params)
+        test1_loglik,test1_posterior,_ = test_model(data_test=data_test1,params=params,K=K,options=options,samples_per_sequence=1200)
+        test2_loglik,test2_posterior,_ = test_model(data_test=data_test2,params=params,K=K,options=options,samples_per_sequence=1200)
+        train_NMI = calc_NMI(P,np.double(np.array(train_posterior)))
+        test1_NMI = calc_NMI(P,np.double(np.array(test1_posterior)))
+        test2_NMI = calc_NMI(P,np.double(np.array(test2_posterior)))
+        entry = {'modelname':options['modelname'],'init_method':options['init'],'LR':options['LR'],'HMM':str(options['HMM']),'K':K,'p':p,'rank':options['rank'],'inner':inner,'iter':len(loglik_curve),
+                'train_loglik':loglik_curve[-1],'test1_loglik':test1_loglik,'test2_loglik':test2_loglik,
+                'train_NMI':train_NMI,'test1_NMI':test1_NMI,'test2_NMI':test2_NMI}
+    except:
+        entry = {'modelname':options['modelname'],'init_method':options['init'],'LR':options['LR'],'HMM':str(options['HMM']),'K':K,'p':p,'rank':options['rank'],'inner':inner,'iter':0,
+                'train_loglik':np.nan,'test1_loglik':np.nan,'test2_loglik':np.nan,
+                'train_NMI':np.nan,'test1_NMI':np.nan,'test2_NMI':np.nan}
     df = pd.concat([df,pd.DataFrame([entry])],ignore_index=True)
-    # df.to_csv(options['outfolder']+'/'+options['experiment_name']+'.csv')
+    df.to_csv(options['outfolder']+'/'+options['experiment_name']+'.csv')
     return params,df
 
-def run_experiment(extraoptions={},dataset='phase_controlled',suppress_output=False):
+def run_experiment(extraoptions={},dataset='narrowband_phase_controlled',suppress_output=False):
     # options pertaining to current experiment
     options = {}
     options['tol'] = 1e-10
-    options['num_repl_outer'] = 25
-    options['num_repl_inner'] = 1
+    options['num_repl_outer'] = 10
     options['max_iter'] = 100000
-    options['outfolder'] = 'data/results/torchvsEM_phase_controlled_results'
+    options['outfolder'] = 'paper/data/results/torchvsEM_phase_controlled_results'
     options['num_subjects'] = 1
+    options['num_repl'] = 1
     options.update(extraoptions) #modelname, LR, init controlled in shell script
     os.makedirs(options['outfolder'],exist_ok=True)
     p = 116
@@ -36,20 +41,22 @@ def run_experiment(extraoptions={},dataset='phase_controlled',suppress_output=Fa
     do_HMM = True
     P = np.double(make_true_mat(options['num_subjects'],K=K))
 
-    data_folder = 'data/synthetic/'
+    data_folder = 'paper/data/phase_randomized/'
     options['experiment_name'] = dataset+'_'+options['modelname']+'_init'+options['experiment']
-    data_file = data_folder+dataset+'_116data_eida.h5'
+    data_file = data_folder+dataset+'_116data.h5'
     with h5.File(data_file,'r') as f:
-        if 'complex' in options['modelname'] or 'Complex' in options['modelname']:
-            data = f['U_complex'][:][:,:,0]
-        elif options['modelname'] in ['Watson','ACG','kmeans']:
-            data = f['U'][:,:,0]
-        elif options['modelname'] in ['grassmann','MACG']:
-            data = f['U'][:]
-        elif options['modelname'] in ['weighted_grassmann','SingularWishart']:
-            data = f['U'][:]*np.sqrt(f['L'][:])[:,None,:]
-        elif options['modelname'] in ['Normal']:
-            data = f['S'][:][:,:,0]
+        if options['modelname'] == 'Complex_Watson' or options['modelname'] == 'Complex_ACG' or options['modelname'] == 'complex_diametrical':
+            data = f['data_complex_projective_hyperplane'][:]
+        elif options['modelname'] == 'Watson' or options['modelname'] == 'ACG' or options['modelname'] == 'diametrical' or options['modelname'] == 'least_squares':
+            data = f['data_real_projective_hyperplane'][:]
+        elif options['modelname'] == 'MACG' or options['modelname'] == 'grassmann':
+            data = f['data_grassmann'][:]
+        elif options['modelname'] == 'SingularWishart' or options['modelname'] == 'weighted_grassmann':
+            data = f['data_spsd'][:]
+        elif options['modelname'] == 'Complex_Normal':
+            data = f['data_analytic'][:]
+        elif options['modelname'] == 'Normal':
+            data = f['data_ts'][:]
 
     try:
         df = pd.read_csv(options['outfolder']+'/'+options['experiment_name']+'.csv')
@@ -64,10 +71,10 @@ def run_experiment(extraoptions={},dataset='phase_controlled',suppress_output=Fa
     data_test2 = data[2400:3600]
 
     for inner in range(num_done,options['num_repl_outer']):        
-        for LR in [0,0.1]: 
-            options['LR'] = LR
+        for i,rank in enumerate(ranks):
+            for LR in [0,0.1]: 
+                options['LR'] = LR
 
-            for i,rank in enumerate(ranks):
                 print('Running model:',options['modelname'],'rank:',rank,'LR:',LR,'inner:',inner)
                 options['rank'] = rank
                 if rank>1 and options['modelname'] in ['Watson','Complex_Watson']:
@@ -91,8 +98,8 @@ def run_experiment(extraoptions={},dataset='phase_controlled',suppress_output=Fa
                         options['init'] = 'gc'
                     elif options['modelname']=='SingularWishart':
                         options['init'] = 'wgc'
-                    elif options['modelname']=='Normal':
-                        options['init'] = 'euclidean'
+                    elif options['modelname'] in ['Normal','Complex_Normal']:
+                        options['init'] = 'ls'
                     else:
                         raise ValueError("Problem")
 
@@ -111,8 +118,8 @@ def run_experiment(extraoptions={},dataset='phase_controlled',suppress_output=Fa
                         options['init'] = 'gc_seg'
                     elif options['modelname']=='SingularWishart':
                         options['init'] = 'wgc_seg'
-                    elif options['modelname']=='Normal':
-                        options['init'] = 'euclidean_seg'
+                    elif options['modelname'] in ['Normal','Complex_Normal']:
+                        options['init'] = 'ls_seg'
                     else:
                         raise ValueError("Problem")
 
@@ -136,8 +143,8 @@ def run_experiment(extraoptions={},dataset='phase_controlled',suppress_output=Fa
                                 options['init'] = 'gc_seg'
                             elif options['modelname']=='SingularWishart':
                                 options['init'] = 'wgc_seg'
-                            elif options['modelname']=='Normal':
-                                options['init'] = 'euclidean_seg'
+                            elif options['modelname'] in ['Normal','Complex_Normal']:
+                                options['init'] = 'ls_seg'
                             else:
                                 raise ValueError("Problem")
 
@@ -168,7 +175,7 @@ def run_experiment(extraoptions={},dataset='phase_controlled',suppress_output=Fa
                             params = np.load(options['outfolder']+'/params/'+options['modelname']+'_rank'+str(rank)+'_params.npy',allow_pickle=True).item()
                             for key in params.keys():
                                 params[key] = torch.tensor(params[key])
-                                
+
                         params,df = run(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
                         if LR==0:
                             np.save(options['outfolder']+'/params/'+options['modelname']+'_rank'+str(rank)+'_params.npy',params)
@@ -189,7 +196,7 @@ if __name__=="__main__":
         run_experiment(extraoptions=options,dataset=sys.argv[2],suppress_output=True)
     else:
         modelnames = ['Watson','Complex_Watson','ACG','Complex_ACG','MACG','SingularWishart']
-        modelnames = ['Complex_ACG']
-        experiment = 'Kmeansseg'
+        modelnames = ['Complex_Normal']
+        experiment = 'ALL'
         for modelname in modelnames:
-            run_experiment(extraoptions={'modelname':modelname,'experiment':experiment},dataset='phase_narrowband_controlled',suppress_output=False)
+            run_experiment(extraoptions={'modelname':modelname,'experiment':experiment},suppress_output=False)
