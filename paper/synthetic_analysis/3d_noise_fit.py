@@ -28,7 +28,7 @@ def run_experiment(modelname):
     except:
         df = pd.DataFrame()
         num_done = 0
-    num_repeats = 10
+    num_repeats = 5
     num_points_per_cluster = 1000
     K = 2
     p = 3
@@ -53,6 +53,7 @@ def run_experiment(modelname):
         l_all = np.zeros((num_points_per_cluster,q,K,2)) #n points, q=2, k=2, 2 for train/test
         u_all_complex = np.zeros((num_points_per_cluster,p,K,2),dtype=complex) #n points, p=3, k=2, 2 for train/test
         cos_all = np.zeros((num_points_per_cluster,p,K,2)) #n points, p=3, k=2, 2 for train/test
+        analytic_signal_all = np.zeros((num_points_per_cluster,p,K,2),dtype=complex) #n points, p=3, k=2, 2 for train/test
         for train_test in range(2):
             for n in range(num_points_per_cluster):
                 for k in range(K):
@@ -61,8 +62,7 @@ def run_experiment(modelname):
                     # theta_random = np.array([theta1[0]+np.random.random()*scale,theta1[1]+np.random.random()*scale,theta1[2]+np.random.random()*scale])
                     
                     #timeseries
-                    cos_random = np.cos(theta_random)
-                    cos_all[n,:,k,train_test] = cos_random
+                    cos_all[n,:,k,train_test] = np.cos(theta_random)
 
                     # eigenvector of cosinus matrix
                     coh_map = np.outer(np.cos(theta_random),np.cos(theta_random))+np.outer(np.sin(theta_random),np.sin(theta_random))
@@ -73,9 +73,12 @@ def run_experiment(modelname):
                     u_all[n,:,1,k,train_test] = u[:,order[1]]
                     l_all[n,1,k,train_test] = l[order[1]]
 
-                    coh_map_complex = np.outer(np.exp(1j*theta_random),np.exp(-1j*theta_random))
-                    l,u = np.linalg.eig(coh_map_complex)
-                    u_all_complex[n,:,k,train_test] = u[:,np.argmax(l)]
+                    # coh_map_complex = np.outer(np.exp(1j*theta_random),np.exp(-1j*theta_random))
+                    # l,u = np.linalg.eig(coh_map_complex)
+                    # u_all_complex[n,:,k,train_test] = u[:,np.argmax(l)]
+                    u_all_complex[n,:,k,train_test] = 1/np.sqrt(3)*np.exp(1j*theta_random)
+
+                    analytic_signal_all[n,:,k,train_test] = np.exp(1j*theta_random)
 
         cos_real_train = np.concatenate((cos_all[:,:,0,0],cos_all[:,:,1,0]),axis=0)
         cos_real_test = np.concatenate((cos_all[:,:,0,1],cos_all[:,:,1,1]),axis=0)
@@ -85,6 +88,8 @@ def run_experiment(modelname):
         l_real_test = np.concatenate((l_all[:,:,0,1],l_all[:,:,1,1]),axis=0)
         u_complex_train = np.concatenate((u_all_complex[:,:,0,0],u_all_complex[:,:,1,0]),axis=0)
         u_complex_test = np.concatenate((u_all_complex[:,:,0,1],u_all_complex[:,:,1,1]),axis=0)
+        analytic_signal_train = np.concatenate((analytic_signal_all[:,:,0,0],analytic_signal_all[:,:,1,0]),axis=0)
+        analytic_signal_test = np.concatenate((analytic_signal_all[:,:,0,1],analytic_signal_all[:,:,1,1]),axis=0)
 
         options = {}
         # options['init'] = 'dc_seg'
@@ -93,7 +98,13 @@ def run_experiment(modelname):
         options['max_iter'] = 100000
         options['num_repl_inner'] = 1
         # options['HMM'] = False
-        options['rank'] = 3#'fullrank'
+        if modelname in ['least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann','Watson','Complex_Watson','Complex_ACG']:
+            options['rank'] = 1
+        elif modelname in ['Normal']:
+            options['rank'] = 'fullrank'
+            options['LR'] = 0
+        else:
+            options['rank'] = 2#'fullrank'
         options['num_repl'] = 1
 
         # for model in modelnames:
@@ -113,7 +124,10 @@ def run_experiment(modelname):
         elif modelname in ['Normal']:
             u_in_train = cos_real_train
             u_in_test = cos_real_test
-        
+        elif modelname in ['Complex_Normal']:
+            u_in_train = analytic_signal_train
+            u_in_test = analytic_signal_test
+    
         for i in range(num_repeats):
             if modelname in ['least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann']:
                 options['init']='++'
@@ -123,22 +137,22 @@ def run_experiment(modelname):
                 options['init']='gc'
             elif modelname in ['SingularWishart']:
                 options['init']='wgc'
-            elif modelname in ['Normal']:
+            elif modelname in ['Normal','Complex_Normal']:
                 options['init']='ls'
-            
-            for HMM in [False,True]:
-                if HMM and modelname in ['least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann']:
-                    continue
+            HMM = False
+            # for HMM in [False,True]:
+            if HMM and modelname in ['least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann']:
+                continue
 
-                options['HMM'] = HMM
-                options['modelname'] = modelname
-                if HMM:
-                    options['init'] = 'no'
-                    params,train_posterior,loglik_curve = train_model(data_train=u_in_train,K=K,options=options,params=params,suppress_output=True)    
-                else:
-                    params,train_posterior,loglik_curve = train_model(data_train=u_in_train,K=K,options=options,params=None,suppress_output=True)    
-                test_loglik,test_posterior,_ = test_model(data_test=u_in_test,params=params,K=K,options=options)
-                df = fill_df(df,modelname,i,train_posterior,scale,true_labels,train_obj=loglik_curve[-1],test_labels=test_posterior,test_obj=test_loglik,HMM=HMM)
+            options['HMM'] = HMM
+            options['modelname'] = modelname
+            if HMM:
+                options['init'] = 'no'
+                params,train_posterior,loglik_curve = train_model(data_train=u_in_train,K=K,options=options,params=params,suppress_output=True)    
+            else:
+                params,train_posterior,loglik_curve = train_model(data_train=u_in_train,K=K,options=options,params=None,suppress_output=True)    
+            test_loglik,test_posterior,_ = test_model(data_test=u_in_test,params=params,K=K,options=options)
+            df = fill_df(df,modelname,i,train_posterior,scale,true_labels,train_obj=loglik_curve[-1],test_labels=test_posterior,test_obj=test_loglik,HMM=HMM)
 
             df.to_csv('paper/synthetic_analysis/fits/cluster_results_noise_'+modelname+'.csv')
 
@@ -148,7 +162,7 @@ if __name__=="__main__":
         print(sys.argv)
         run_experiment(modelname=sys.argv[1])
     else:
-        modelnames = ['least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann','Watson','Complex_Watson','ACG','Complex_ACG','MACG','SingularWishart','Normal']
-        modelnames = ['grassmann']
+        modelnames = ['least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann','Watson','Complex_Watson','ACG','Complex_ACG','MACG','SingularWishart','Normal', 'Complex_Normal']
+        modelnames = ['Normal']
         for modelname in modelnames:
             run_experiment(modelname=modelname)

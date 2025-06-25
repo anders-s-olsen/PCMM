@@ -1,5 +1,8 @@
 import numpy as np
 import torch
+import seaborn as sns
+import matplotlib.pyplot as plt
+import pandas as pd
 from PCMM.mixture_EM_loop import mixture_EM_loop
 from PCMM.PCMMnumpy import Watson as Watson_numpy
 from PCMM.PCMMnumpy import ACG as ACG_numpy
@@ -25,7 +28,8 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
         else: 
             rank=options['rank']
         if options['LR']!=0:
-            data_train = torch.tensor(data_train)
+            # data_train = torch.tensor(data_train)
+            data_train = torch.from_numpy(data_train)
 
     if options['modelname'] == 'Watson':
         if options['LR']==0:
@@ -109,6 +113,10 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
         options['LR'] = 0
     if 'threads' not in options:
         options['threads'] = 8
+    if 'decrease_lr_on_plateau' not in options:
+        options['decrease_lr_on_plateau'] = False
+    if 'num_comparison' not in options:
+        options['num_comparison'] = 50
 
     if options['LR']==0: #EM
         params,posterior,loglik = mixture_EM_loop(model,data_train,tol=options['tol'],max_iter=options['max_iter'],
@@ -117,7 +125,7 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
     else:
         params,posterior,loglik = mixture_torch_loop(model,data_train,tol=options['tol'],max_iter=options['max_iter'],
                                         num_repl=options['num_repl'],init=options['init'],LR=options['LR'],
-                                        suppress_output=suppress_output,threads=options['threads'])
+                                        suppress_output=suppress_output,threads=options['threads'],decrease_lr_on_plateau=options['decrease_lr_on_plateau'],num_comparison=options['num_comparison'])
     return params,posterior,loglik
     
 def test_model(data_test,params,K,options,samples_per_sequence=0):
@@ -133,7 +141,8 @@ def test_model(data_test,params,K,options,samples_per_sequence=0):
     
     if options['modelname'] in ['Watson','Complex_Watson','ACG','Complex_ACG','MACG','SingularWishart','Normal','Complex_Normal']:
         if options['LR']!=0:
-            data_test = torch.tensor(data_test)
+            # data_test = torch.tensor(data_test)
+            data_test = torch.from_numpy(data_test)
             
         if options['modelname'] == 'Watson':    
             if options['LR']==0:
@@ -226,21 +235,78 @@ def make_true_mat(num_subs=10,K=5):
         rows.append(row)
     return np.hstack(rows)
 
-def calc_ll_per_sub(train_loglik_per_sample,test1_loglik_per_sample,test2_loglik_per_sample):
-    if train_loglik_per_sample.shape[0]==155:
-        return train_loglik_per_sample,test1_loglik_per_sample,test2_loglik_per_sample
-    num_samples_per_sub_train = train_loglik_per_sample.shape[0]//155
-    num_samples_per_sub_test1 = test1_loglik_per_sample.shape[0]//155
-    num_samples_per_sub_test2 = test2_loglik_per_sample.shape[0]//100
+def horizontal_boxplot(df_fig,type=1,ranks=[1,10,25]):
+    order = ['Mixture: Complex Watson',
+        *['Mixture: Complex ACG rank='+str(rank) for rank in ranks],
+        'K-means: Complex diametrical','space1','space2',
+        *['Mixture: MACG rank='+str(rank) for rank in ranks],
+        *['Mixture: Singular Wishart rank='+str(rank) for rank in ranks],
+        'K-means: Grassmann','K-means: Weighted Grassmann','space3','space4',
+        'Mixture: Watson',
+        *['Mixture: ACG rank='+str(rank) for rank in ranks],
+        'K-means: Diametrical','K-means: Least squares (sign-flip)','space5','space6',
+        *['Mixture: Gaussian rank='+str(rank) for rank in ranks],'space7','space8',
+        *['Mixture: Complex Gaussian rank='+str(rank) for rank in ranks]]
+    palette_husl = sns.color_palette("husl", n_colors=11, desat=1)
+    palette_husl.append((0.5,0.5,0.5))
+    palette_husl.append((0.3,0.3,0.3))
+    palette_husl2 = [palette_husl[0]]+[palette_husl[1]]*len(ranks)+[palette_husl[2]]+[palette_husl[-1]]*2+[palette_husl[3]]*len(ranks)+[palette_husl[4]]*len(ranks)+[palette_husl[5]]+[palette_husl[6]]+[palette_husl[-1]]*2+[palette_husl[7]]+[palette_husl[8]]*len(ranks)+[palette_husl[9]]+[palette_husl[10]]+[palette_husl[-1]]*2+[palette_husl[11]]*len(ranks)+[palette_husl[-1]]*2+[palette_husl[12]]*len(ranks)
+    # df_fig = df[df['Set']=='Out-of-sample test']
+    for i in range(1,9):
+        df_fig2 = pd.concat([df_fig,pd.DataFrame({'NMI':[np.nan],'names2':['space'+str(i)]}, index=[0])], ignore_index=True)
+    fig = plt.figure(figsize=(10,7))
+    if type == 1:
+        sns.boxplot(x='NMI', y='names2', data=df_fig2, palette=palette_husl2, order=order)
+        plt.xlabel('Normalized mutual information')
+        plt.xlim([-0.01,1.01])
+        xtitlepos = -0.02
+    else:
+        sns.boxplot(x='classification_accuracy', y='names2', data=df_fig2, palette=palette_husl2, order=order)
+        plt.xlabel('Classification accuracy')
+        plt.xlim([0.49,1.01])
+        xtitlepos = 0.48
+    plt.ylabel('')
 
-    train_loglik_per_sub = np.zeros(155)
-    test1_loglik_per_sub = np.zeros(155)
-    test2_loglik_per_sub = np.zeros(100)
+    # add extra text next to y-ticks that aren't there
+    ticks_per_group = np.array([2+len(ranks), 2+2*len(ranks), 3+len(ranks), len(ranks), len(ranks)])
+    additional_ticks = np.concatenate([[0],np.cumsum(ticks_per_group+2)])
+    # np.concatenate([np.arange(2+len(ranks)),np.arange(2+2*len(ranks))+7,np.arange(3+len(ranks))+17,np.arange(len(ranks))+25,np.arange(len(ranks))+30])
+    ticks_list = [np.arange(ticks_per_group[i]) + additional_ticks[i] for i in range(len(ticks_per_group))]
+    ticks_list = np.concatenate(ticks_list)
+    # print(ticks_list)
+    # print(np.concatenate([np.arange(2+len(ranks)),np.arange(2+2*len(ranks))+7,np.arange(3+len(ranks))+17,np.arange(len(ranks))+25,np.arange(len(ranks))+30]))
+    # additional_ticks = [0, 7, 17, 25, 30]
+    # plt.yticks(np.concatenate([np.arange(2+len(ranks)),np.arange(2+2*len(ranks))+7,np.arange(3+len(ranks))+17,np.arange(len(ranks))+25,np.arange(len(ranks))+30]),fontsize=8)
 
-    for i in range(155):
-        train_loglik_per_sub[i] = np.mean(train_loglik_per_sample[i*num_samples_per_sub_train:(i+1)*num_samples_per_sub_train])
-        test1_loglik_per_sub[i] = np.mean(test1_loglik_per_sample[i*num_samples_per_sub_test1:(i+1)*num_samples_per_sub_test1])
-        if i<100:
-            test2_loglik_per_sub[i] = np.mean(test2_loglik_per_sample[i*num_samples_per_sub_test2:(i+1)*num_samples_per_sub_test2])
+    if len(ranks)==3:
+        ytitlepos = [-0.7,6.3,16.3,24.3,29.3]
+        plt.yticks(ticks_list, fontsize=8)
+    elif len(ranks)==5:
+        ytitlepos = [-0.7,8.3,22.3,32.3,39.3]
+        plt.yticks(ticks_list, fontsize=7)
+        plt.ylim([46,-2])
+    elif len(ranks)==6:
+        ytitlepos = [-0.7,9.3,25.3,36.3,44.3]
+        plt.yticks(ticks_list, fontsize=6)
+        plt.ylim([51,-2])
+        
+    plt.text(xtitlepos, ytitlepos[0], 'Complex-valued phase coupling', fontsize=8,fontweight='bold', ha='right')
+    plt.text(xtitlepos, ytitlepos[1], 'Cosine phase coupling', fontsize=8,fontweight='bold', ha='right')
+    plt.text(xtitlepos, ytitlepos[2], 'LEiDA (leading eigenvector of cos. phase coupling)', fontsize=8,fontweight='bold', ha='right')
+    plt.text(xtitlepos, ytitlepos[3], 'Amplitude coupling', fontsize=8,fontweight='bold', ha='right')
+    plt.text(xtitlepos, ytitlepos[4], 'Phase-amplitude coupling', fontsize=8,fontweight='bold', ha='right')
 
-    return train_loglik_per_sub,test1_loglik_per_sub,test2_loglik_per_sub
+    # change the line styles
+    styles = ['-']+['-']*len(ranks)+['--']+[':']+['-']*len(ranks)+['-']*len(ranks)+['--']*2+['-']+['-']*len(ranks)+['--']*2+['-']*len(ranks)+['-']*len(ranks)
+    #repeat every element of styles six times
+    styles2 = [item for item in styles for i in range(5)]
+    l = 0
+    for i,artist in enumerate(plt.gca().get_children()):
+        if isinstance(artist, plt.Line2D):
+            #if linestyle is not none
+            if artist.get_linestyle() != 'None':
+                artist.set_linestyle(styles2[l])
+                l+=1
+        # print(l)
+    # plt.savefig(savename, bbox_inches='tight', dpi=300)
+    return fig

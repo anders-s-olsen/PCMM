@@ -2,6 +2,69 @@ import numpy as np
 from PCMM.phase_coherence_kmeans import diametrical_clustering, plusplus_initialization, grassmann_clustering, weighted_grassmann_clustering, least_squares_sign_flip
 from scipy.cluster.vq import kmeans2
 
+def init_M_svd(V,r):
+    p = V.shape[0]
+    if r>V.shape[1]:
+        raise ValueError('rank should be less than or equal to the number of columns of V. Consider reducing r or changing initialization method')
+    U,S,_ = np.linalg.svd(V,full_matrices=False)
+    if p == r:
+        epsilon = 1
+        M = U[:,:r]@np.diag(np.sqrt(S[:r]))
+    elif V.shape[1]>p:
+        epsilon = np.sum(S[r:])/(p-r)
+        M = U[:,:r]@np.diag(np.sqrt(((S[:r]-epsilon)/epsilon)))
+    else:
+        epsilon = np.sum(S[r:])/(V.shape[1]-r)
+        M = U[:,:r]@np.diag(np.sqrt(((S[:r]-epsilon)/epsilon)))
+
+    # if 'Normal' in self.distribution and r==1:
+    #     return M,epsilon#/V.shape[1]        
+    # else:
+    return M,epsilon/V.shape[1]      
+    
+def init_M_svd_given_M_init(X,K,r,M_init,beta=None,gamma=None,distribution=None):
+    n = X.shape[0]
+    p = X.shape[1]
+    if beta is None:
+        beta = np.ones((K,n))/K
+    elif beta.ndim==1:
+        raise ValueError('beta should be KxN')
+
+    # M_init should be Kxpxr_1, where r_1<r.
+    if M_init.ndim==2:
+        M_init = M_init[:,:,None]
+    num_missing = r-M_init.shape[2]
+
+    if r == 1:
+        raise ValueError('r=1 not implemented')
+
+    # initialize remainder using the svd of the residual of X after subtracting the projection on M_init
+    # if 'Complex' in self.distribution:
+    if X.dtype==complex:
+        M = np.zeros((K,p,r),dtype=complex)
+    else:
+        M = np.zeros((K,p,r))
+    
+    for k in range(K):
+        if X.ndim==2:
+            V = (beta[k][:,None]*X).T
+        else:
+            q = X.shape[2]
+            V = np.reshape(np.swapaxes(beta[k][:,None,None]*X,0,1),(p,q*n))
+            
+        # projection matrix of M
+        if distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
+            gamma = 1/(1+np.linalg.norm(M_init[k],'fro')**2/p)
+            M_init[k] = np.sqrt(gamma)*M_init[k]
+            M_proj = M_init[k]@np.linalg.inv(M_init[k].T.conj()@M_init[k]+np.eye(M_init[k].shape[1]))@M_init[k].T.conj()
+        elif distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
+            M_proj = M_init[k]@np.linalg.inv(M_init[k].T.conj()@M_init[k]+gamma[k]*np.eye(M_init[k].shape[1]))@M_init[k].T.conj()
+        # M_proj = M_init[k]@np.linalg.inv(M_init[k].T@M_init[k])@M_init[k].T
+        V_residual = V - M_proj@V
+        M_extra,_ = init_M_svd(V_residual,r=num_missing)
+        M[k] = np.concatenate([M_init[k],M_extra],axis=-1)
+    return M
+    
 class PCMMnumpyBaseModel():
 
     def __init__(self):
@@ -17,8 +80,21 @@ class PCMMnumpyBaseModel():
             self.M = params['M']
             if self.M.ndim==2 and self.K==1:
                 self.M = self.M[None,:,:]
+            if self.M.shape[0]!=self.K:
+                raise ValueError('Number of components in params[''M''] doesn''t match the number of components specified')
+            if self.M.shape[1]!=self.p:
+                raise ValueError('The dimensionality of M doesn''t match the specified dimensionality p')
+            if self.M.shape[2]>self.r:
+                raise ValueError('M should be Kxpxr, where r is the rank of the model. ')
+            if self.M.dtype==complex and not 'Complex' in self.distribution:
+                raise ValueError('Model specified to not be complex-valued but params[''M''] is complex-valued')
+            if self.M.dtype!=complex and 'Complex' in self.distribution:
+                raise ValueError('Model specified to be complex-valued but params[''M''] is real-valued')
+                
         elif 'fullrank' in self.distribution:
             self.Psi = params['Psi']
+            if self.Psi.shape[0]!=self.K:
+                raise ValueError('Number of components in params[''Psi''] doesn''t match the number of components specified')
         else:
             raise ValueError('Invalid distribution')
         
@@ -26,63 +102,7 @@ class PCMMnumpyBaseModel():
             self.gamma = params['gamma']
 
         # mixture settings
-        self.pi = params['pi']
-
-    def init_M_svd(self,V,r):
-        U,S,_ = np.linalg.svd(V,full_matrices=False)
-        if self.p == self.r:
-            M = U[:,:r]
-            epsilon = 1
-        elif V.shape[1]>self.p:
-            epsilon = np.sum(S[r:])/(self.p-r)
-            M = U[:,:r]@np.diag(np.sqrt(((S[:r]-epsilon)/epsilon)))
-        else:
-            epsilon = np.sum(S[r:])/(V.shape[1]-r)
-            M = U[:,:r]@np.diag(np.sqrt(((S[:r]-epsilon)/epsilon)))
-
-        if 'Normal' in self.distribution and self.r==1:
-            return M,epsilon#/V.shape[1]        
-        else:
-            return M,epsilon/V.shape[1]        
-    
-    def init_M_svd_given_M_init(self,X,M_init,beta=None,gamma=None):
-        if beta is None:
-            beta = np.ones((self.K,X.shape[0]))/self.K
-        elif beta.ndim==1:
-            raise ValueError('beta should be KxN')
-
-        # M_init should be Kxpxr_1, where r_1<r.
-        if M_init.ndim==2:
-            M_init = M_init[:,:,None]
-        num_missing = self.r-M_init.shape[2]
-
-        if self.r == 1:
-            raise ValueError('r=1 not implemented')
-
-        # initialize remainder using the svd of the residual of X after subtracting the projection on M_init
-        if 'Complex' in self.distribution:
-            M = np.zeros((self.K,self.p,self.r),dtype=complex)
-        else:
-            M = np.zeros((self.K,self.p,self.r))
-        
-        for k in range(self.K):
-            if X.ndim==2:
-                V = (beta[k][:,None]*X).T
-            else:
-                V = np.reshape(np.swapaxes(beta[k][:,None,None]*X,0,1),(self.p,self.q*X.shape[0]))
-                
-            # projection matrix of M
-            if self.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
-                gamma = 1/(1+np.linalg.norm(M_init[k],'fro')**2/self.p)
-                M_init[k] = np.sqrt(gamma)*M_init[k]
-                M_proj = M_init[k]@np.linalg.inv(M_init[k].T.conj()@M_init[k]+np.eye(M_init[k].shape[1]))@M_init[k].T.conj()
-            elif self.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
-                M_proj = M_init[k]@np.linalg.inv(M_init[k].T.conj()@M_init[k]+self.gamma[k]*np.eye(M_init[k].shape[1]))@M_init[k].T.conj()
-            # M_proj = M_init[k]@np.linalg.inv(M_init[k].T@M_init[k])@M_init[k].T
-            V_residual = V - M_proj@V
-            M_extra,_ = self.init_M_svd(V_residual,r=num_missing)
-            M[k] = np.concatenate([M_init[k],M_extra],axis=-1)
-        return M
+        self.pi = params['pi']  
 
     def initialize(self,X,init_method):
         assert init_method in ['uniform','unif',
@@ -101,11 +121,6 @@ class PCMMnumpyBaseModel():
                                      'Normal_lowrank','Normal_fullrank',
                                      'Complex_Normal_lowrank','Complex_Normal_fullrank']
 
-        # for watson, always initialize kappa as ones
-        if 'Watson' in self.distribution:
-            self.kappa = np.ones(self.K)
-        elif 'SingularWishart_lowrank' in self.distribution or 'Normal_lowrank' in self.distribution:
-            self.gamma = np.ones(self.K)
 
         if init_method in ['uniform','unif']:
             print('Initializing parameters using the uniform distribution')
@@ -116,6 +131,9 @@ class PCMMnumpyBaseModel():
                 else:
                     mu = np.random.uniform(size=(self.K,self.p))
                 self.mu = mu / np.linalg.norm(mu,axis=1)[:,None]
+                self.kappa = np.zeros(self.K)
+                for k in range(self.K):
+                    self.kappa[k] = self.optimize_kappa(X=X,mu=self.mu[k],beta=np.ones(X.shape[0]))
             else:
                 if X.dtype==complex:
                     M = np.random.uniform(size=(self.K,self.p,self.r))+1j*np.random.uniform(size=(self.K,self.p,self.r))
@@ -128,6 +146,8 @@ class PCMMnumpyBaseModel():
                         self.Psi[k] = self.p*self.Psi[k]/np.trace(self.Psi[k])
                 else:
                     self.M = M
+                if 'SingularWishart_lowrank' in self.distribution or 'Normal_lowrank' in self.distribution:
+                    self.gamma = np.ones(self.K)
             return           
         elif init_method in ['ls','ls_seg','diametrical_clustering_plusplus','dc++','dc++_seg','diametrical_clustering_plusplus_seg','dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
             # for clustering methods on projective hyperplane
@@ -161,21 +181,25 @@ class PCMMnumpyBaseModel():
             if 'Watson' in self.distribution:
                 print('Initializing mu based on the clustering centroid')
                 self.mu = mu
-            elif self.distribution in ['ACG_lowrank','MACG_lowrank','Complex_ACG_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
+                self.kappa = np.zeros(self.K)
+                for k in range(self.K):
+                    self.kappa[k] = self.optimize_kappa(X[X_part==k],mu=self.mu[k],beta=np.ones(np.sum(X_part==k)))
+            elif self.distribution in ['ACG_lowrank','MACG_lowrank','Complex_ACG_lowrank','Normal_lowrank','Complex_Normal_lowrank','SingularWishart_lowrank']:
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
                 self.M = np.zeros((self.K,self.p,self.r),dtype=X.dtype)
                 gamma = np.zeros(self.K)
                 for k in range(self.K):
-                    self.M[k],gamma[k] = self.init_M_svd(X[X_part==k].T,self.r)
-                if 'Normal' in self.distribution:
+                    self.M[k],gamma[k] = init_M_svd(X[X_part==k].T,self.r)
+                if self.distribution in ['Normal_lowrank','Complex_Normal_lowrank','SingularWishart_lowrank']:
                     self.gamma = gamma
-            elif self.distribution in ['MACG_lowrank','SingularWishart_lowrank']:
+                # if 'Normal' in self.distribution:
+                #     num_points = np.bincount(X_part)
+                #     self.M = self.M*num_points
+            elif self.distribution in ['MACG_lowrank']:
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
                 self.M = np.zeros((self.K,self.p,self.r),dtype=X.dtype)
                 for k in range(self.K):
-                    self.M[k],gamma = self.init_M_svd(np.reshape(np.swapaxes(X[X_part==k],0,1),(self.p,np.sum(X_part==k)*self.q)),self.r)
-                if self.distribution == 'SingularWishart_lowrank':
-                    self.gamma = gamma
+                    self.M[k],_ = init_M_svd(np.reshape(np.swapaxes(X[X_part==k],0,1),(self.p,np.sum(X_part==k)*self.q)),self.r)
             elif 'fullrank' in self.distribution:
                 print('Initializing Psi based on the clustering centroids')
                 self.Psi = np.zeros((self.K,self.p,self.p),dtype=X.dtype)
@@ -201,7 +225,7 @@ class PCMMnumpyBaseModel():
                 self.M = np.zeros((self.K,self.p,self.r),dtype=X.dtype)
                 gamma = np.zeros(self.K)
                 for k in range(self.K):
-                    self.M[k],gamma[k] = self.init_M_svd(np.reshape(np.swapaxes(X[X_part==k],0,1),(self.p,np.sum(X_part==k)*self.q)),self.r)
+                    self.M[k],gamma[k] = init_M_svd(np.reshape(np.swapaxes(X[X_part==k],0,1),(self.p,np.sum(X_part==k)*self.q)),self.r)
                 if 'SingularWishart' in self.distribution:
                     self.gamma = gamma
             elif 'fullrank' in self.distribution:
@@ -209,7 +233,7 @@ class PCMMnumpyBaseModel():
                 self.Psi = np.zeros((self.K,self.p,self.p),dtype=X.dtype)
                 for k in range(self.K):
                     self.Psi[k] = C[k]@C[k].T.conj()+np.eye(self.p)
-                    if self.distribution in ['ACG_fullrank','MACG_fullrank','Complex_ACG_fullrank']:
+                    if self.distribution in ['MACG_fullrank']:
                         self.Psi[k] = self.p*self.Psi[k]/np.trace(self.Psi[k])
 
         elif init_method in ['weighted_grassmann_clustering','weighted_grassmann_clustering_seg','wgc','wgc_seg','weighted_grassmann_clustering_plusplus','wgc++','weighted_grassmann_clustering_plusplus_seg','wgc++_seg']:
@@ -230,7 +254,7 @@ class PCMMnumpyBaseModel():
                 self.M = np.zeros((self.K,self.p,self.r),dtype=X.dtype)
                 gamma = np.zeros(self.K)
                 for k in range(self.K):
-                    self.M[k],gamma[k] = self.init_M_svd(np.reshape(np.swapaxes(X[X_part==k],0,1),(self.p,np.sum(X_part==k)*self.q)),self.r)
+                    self.M[k],gamma[k] = init_M_svd(np.reshape(np.swapaxes(X[X_part==k],0,1),(self.p,np.sum(X_part==k)*self.q)),self.r)
                 if 'SingularWishart' in self.distribution:
                     self.gamma = gamma
             elif 'fullrank' in self.distribution:

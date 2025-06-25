@@ -362,7 +362,7 @@ def least_squares_sign_flip(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None,di
 
     # loop over the number of repetitions
     for _ in range(num_repl):
-        C,labels = kmeans2(X,k=K,minit=init,iter=max_iter)
+        C,labels = kmeans2(X,k=K,minit=init)#,iter=max_iter
         sim = -np.sum((X[:,None]-C[None])**2,axis=-1)
         obj = [np.mean(np.max(sim,axis=1))]
 

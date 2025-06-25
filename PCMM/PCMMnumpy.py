@@ -61,19 +61,7 @@ class Watson(PCMMnumpyBaseModel):
         log_pdf = self.log_norm_constant()[:,None] + self.kappa[:,None]*(np.abs(X@self.mu.conj().T)**2).T
         return log_pdf
     
-    def M_step_single_component(self,X,beta,mu,kappa,tol=1e-10):
-        n,p = X.shape
-
-        if n>p:
-            if kappa>0:
-                _,_,mu = svds(np.sqrt(beta)[:,None]*X,k=1,which='LM',v0=mu,return_singular_vectors='vh')
-            elif kappa<0:
-                _,_,mu = svds(np.sqrt(beta)[:,None]*X,k=1,which='SM',v0=mu,return_singular_vectors='vh')
-        else: 
-            if kappa>0:
-                _,_,mu = svds(np.sqrt(beta)[:,None]*X,k=1,which='LM',return_singular_vectors='vh')
-            elif kappa<0:
-                _,_,mu = svds(np.sqrt(beta)[:,None]*X,k=1,which='SM',return_singular_vectors='vh')
+    def optimize_kappa(self, X, mu, beta, tol=1e-10):
 
         rk = 1/np.sum(beta)*np.sum(np.abs(mu.conj()@(np.sqrt(beta)[:,None]*X).T)**2)
         LB = (rk*self.c-self.a)/(rk*(1-rk))*(1+(1-rk)/(self.c-self.a))
@@ -88,16 +76,33 @@ class Watson(PCMMnumpyBaseModel):
             kappa = minimize_scalar(f, bounds=[LB, B],options=options,method='bounded')['x']
             if kappa<LB or kappa>B:
                 print('Probably a convergence problem for kappa')
-                return
+                # return
         elif rk<self.a/self.c:
             kappa = minimize_scalar(f, bounds=[B, UB],options=options,method='bounded')['x']
             if kappa<B or kappa>UB:
                 print('Probably a convergence problem for kappa')
-                return
+                # return
         elif rk==self.a/self.c:
             kappa = 0
         else:
             raise ValueError("kappa could not be optimized")
+        return kappa
+
+    def M_step_single_component(self,X,beta,mu,kappa,tol=1e-10):
+        n,p = X.shape
+
+        if n>p:
+            if kappa>0:
+                _,_,mu = svds(np.sqrt(beta)[:,None]*X,k=1,which='LM',v0=mu,return_singular_vectors='vh')
+            elif kappa<0:
+                _,_,mu = svds(np.sqrt(beta)[:,None]*X,k=1,which='SM',v0=mu,return_singular_vectors='vh')
+        else: 
+            if kappa>0:
+                _,_,mu = svds(np.sqrt(beta)[:,None]*X,k=1,which='LM',return_singular_vectors='vh')
+            elif kappa<0:
+                _,_,mu = svds(np.sqrt(beta)[:,None]*X,k=1,which='SM',return_singular_vectors='vh')
+
+        kappa = self.optimize_kappa(X, mu, beta, tol)
         return mu,kappa
     
     def M_step(self,X):

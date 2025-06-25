@@ -1,8 +1,9 @@
 import numpy as np
 from tqdm import tqdm
 from copy import deepcopy
+from PCMM.PCMMnumpyBaseModel import init_M_svd_given_M_init
 
-def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,suppress_output=False):
+def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,suppress_output=False, num_comparison=10):
 
     best_loglik = -1000000
     if 'Complex' in model.distribution:
@@ -30,11 +31,12 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
                 model2.r = model2.M.shape[-1]
                 beta = model2.posterior(X=data)
                 if model.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
-                    model.M = model.init_M_svd_given_M_init(X=data,M_init=model2.M,beta=beta)
+                    model.M = init_M_svd_given_M_init(X=data,K=model.K,r=model.r,M_init=model2.M,beta=beta,gamma=None,distribution=model.distribution)
                 elif model.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
-                    model.M = model.init_M_svd_given_M_init(X=data,M_init=model2.M,beta=beta,gamma=model2.gamma)
+                    model.M = init_M_svd_given_M_init(X=data,K=model.K,r=model.r,M_init=model2.M,beta=beta,gamma=model2.gamma,distribution=model.distribution)
 
         loglik = []
+        best_epoch_loglik = -np.inf
         params = []
         print('Beginning EM loop')
         pbar = tqdm(total=max_iter,disable=suppress_output)
@@ -49,11 +51,16 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
             
             params.append(model.get_params())
             #remove first entry in params
-            if len(params)>10:
-                params.pop(0)
-
-            if epoch>10:
-                latest = np.array(loglik[-10:])
+            # if len(params)>10:
+            #     params.pop(0)
+            # params.append(deepcopy(model.get_params()))
+            # if len(params)>num_comparison:
+            #     params.pop(0)
+            if loglik[-1]>best_epoch_loglik:
+                best_model_params = deepcopy(model.get_params())
+                best_epoch_loglik = loglik[-1]
+            if epoch>num_comparison:
+                latest = np.array(loglik[-num_comparison:])
                 maxval = np.max(latest)
                 try:
                     secondhighest = np.max(latest[latest!=maxval])
@@ -63,22 +70,32 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
                 except:
                     crit = tol
                     done=True
-                pbar.set_description('Convergence towards tol: %.2e'%crit)
+                # pbar.set_description('Convergence towards tol: %.2e'%crit)
+                pbar.set_description('Loglik: %.2f, relative change: %.2e'%(loglik[-1],crit))
+                pbar.update(1)
                 if done:
-                    if maxval>best_loglik:
-                        best_loglik = maxval
+                    if best_epoch_loglik>best_loglik:
+                        best_loglik = best_epoch_loglik
+                        params_final = best_model_params
                         loglik_final = loglik
-                        best = np.where(loglik[-10:]==maxval)[0]
-                        if hasattr(best,"__len__")>0: # in the rare case of two equal values....
-                            best = best[0]
-                        params_final = params[best.item()]
-                        model2 = deepcopy(model)
-                        model2.set_params(params_final)
-                        beta_final = model2.posterior(X=data)
+                        model.set_params(best_model_params)
+                        beta_final = model.posterior(X=data)
+                # if done:
+                #     if maxval>best_loglik:
+                #         best_loglik = maxval
+                #         loglik_final = loglik
+                #         best = np.where(loglik[-10:]==maxval)[0]
+                #         if hasattr(best,"__len__")>0: # in the rare case of two equal values....
+                #             best = best[0]
+                #         params_final = params[best.item()]
+                #         model2 = deepcopy(model)
+                #         model2.set_params(params_final)
+                #         beta_final = model2.posterior(X=data)
                     break
             else:
-                pbar.set_description('In the initial phase')
-            pbar.n = epoch + 1
+                pbar.set_description('Loglik: %.2f: '%loglik[-1])
+                pbar.update(1)
+            # pbar.n = epoch + 1
 
             # M-step
             model.M_step(X=data)

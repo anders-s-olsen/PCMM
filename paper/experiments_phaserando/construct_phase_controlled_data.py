@@ -55,7 +55,7 @@ num_repeats = 1 #repeats of clustering pattern state1..state2.. etc
 times = np.linspace(0, 1200, K*num_repeats+1, dtype=int)
 num_samples = times[1]-times[0]
 # num_add = num_samples//10
-num_add = 0
+num_add = 10
 TR = 0.720
 f = np.fft.fftfreq(num_samples+num_add*2, TR)
 # find indices of frequencies above or equal to 0.008Hz and below or equal to 0.09Hz
@@ -71,8 +71,18 @@ specs = []
 for window in range(K*num_repeats):
     ref = filtered_data_all[0][times[window]:times[window+1],nodes[window]]
     if num_add>0:
-        ref = np.concatenate((2*ref[0]-np.flip(ref[1:num_add+1]),ref,2*ref[-1]-np.flip(ref[-num_add-1:-1])))
+        ref2 = np.concatenate((2*ref[0]-np.flip(ref[1:num_add+1]),ref,2*ref[-1]-np.flip(ref[-num_add-1:-1])))
+        ref3 = np.concatenate((-np.flip(ref[1:num_add+1]),ref,-np.flip(ref[-num_add-1:-1])))
     specs.append(np.fft.fft(ref))
+
+import matplotlib.pyplot as plt
+plt.figure()
+time = np.arange(times[0], times[-1]) * TR
+plt.plot(np.concatenate([np.zeros(num_add),ref,np.zeros(num_add)])+10)
+plt.plot(ref2+5)
+plt.plot(ref3)
+plt.savefig('tmp.png')
+
 
 phase_reset_data_all = []
 divide_factor = 1
