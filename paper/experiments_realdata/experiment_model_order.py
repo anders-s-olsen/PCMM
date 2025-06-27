@@ -1,4 +1,4 @@
-from helper_functions_realdata import load_fMRI_data, run
+from paper.helper_functions_paper import load_fMRI_data, run
 import pandas as pd
 import os
 import numpy as np
@@ -57,7 +57,6 @@ def run_experiment(extraoptions={},suppress_output=False,GSR='GSR',df=None):
         params_MM = None
 
     data_train,data_test1,data_test2 = load_fMRI_data(data_file,options,remove_first_ten=False)
-    # data_train = data_train[:2*1940]
  
     print('Running model:',options['modelname'],'rank:',options['rank'],'inner:',options['inner'])
 
@@ -76,10 +75,6 @@ def run_experiment(extraoptions={},suppress_output=False,GSR='GSR',df=None):
 
     params,df,all_train_posterior,all_test_posterior = run(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,df=df,options=options,params=params_MM,suppress_output=suppress_output,inner=options['inner'],p=p)
     
-    # options['HMM'] = True
-    # options['init'] = 'no'
-    # _,df,all_test_posterior_HMM = run(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,df=df,options=options,params=params,suppress_output=suppress_output,inner=options['inner'],p=p)
-
     np.savetxt(options['outfolder']+'/posteriors/'+options['experiment_name']+'_inner'+str(options['inner'])+'_train.txt',all_train_posterior,delimiter=',')
     np.savetxt(options['outfolder']+'/posteriors/'+options['experiment_name']+'_inner'+str(options['inner'])+'_test.txt',all_test_posterior,delimiter=',')
 
@@ -113,7 +108,7 @@ if __name__=="__main__":
             for inner in range(1):
                 options['inner'] = inner
                 df = run_experiment(extraoptions=options,suppress_output=True,GSR=GSR,df=df)
-    else:
+    else: # test
         modelnames = ['Watson','ACG','MACG','SingularWishart','Complex_Watson','Complex_ACG','Normal','Complex_Normal','least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann']
         modelnames = ['Complex_ACG']
         # modelnames = ['weighted_grassmann','grassmann','complex_diametrical','diametrical','least_squares','Normal','Complex_Normal']

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-from PCMM.helper_functions import train_model,test_model,calc_NMI
-import h5py as h5
+from PCMM.helper_functions import train_model,test_model
+from paper.helper_functions_paper import calc_NMI
 
 def fill_df(df,method,repeat,train_labels,noise,true_labels,train_obj,test_labels=None,test_obj=None,HMM=False):
     num_points_per_cluster = 1000
@@ -59,7 +59,6 @@ def run_experiment(modelname):
                 for k in range(K):
                     random_point = np.random.random(3)*noise_scale-noise_scale/2
                     theta_random = thetas[k]+random_point
-                    # theta_random = np.array([theta1[0]+np.random.random()*scale,theta1[1]+np.random.random()*scale,theta1[2]+np.random.random()*scale])
                     
                     #timeseries
                     cos_all[n,:,k,train_test] = np.cos(theta_random)
@@ -73,9 +72,6 @@ def run_experiment(modelname):
                     u_all[n,:,1,k,train_test] = u[:,order[1]]
                     l_all[n,1,k,train_test] = l[order[1]]
 
-                    # coh_map_complex = np.outer(np.exp(1j*theta_random),np.exp(-1j*theta_random))
-                    # l,u = np.linalg.eig(coh_map_complex)
-                    # u_all_complex[n,:,k,train_test] = u[:,np.argmax(l)]
                     u_all_complex[n,:,k,train_test] = 1/np.sqrt(3)*np.exp(1j*theta_random)
 
                     analytic_signal_all[n,:,k,train_test] = np.exp(1j*theta_random)
@@ -97,7 +93,6 @@ def run_experiment(modelname):
         options['tol'] = 1e-10
         options['max_iter'] = 100000
         options['num_repl_inner'] = 1
-        # options['HMM'] = False
         if modelname in ['least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann','Watson','Complex_Watson','Complex_ACG']:
             options['rank'] = 1
         elif modelname in ['Normal']:
@@ -140,7 +135,6 @@ def run_experiment(modelname):
             elif modelname in ['Normal','Complex_Normal']:
                 options['init']='ls'
             HMM = False
-            # for HMM in [False,True]:
             if HMM and modelname in ['least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann']:
                 continue
 

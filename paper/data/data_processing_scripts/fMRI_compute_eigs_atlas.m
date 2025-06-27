@@ -1,10 +1,15 @@
 clear
 maxNumCompThreads('automatic');
 rng shuffle
-% subjects = dir('/dtu-compute/HCP_dFC/2023/hcp_dfc/data/raw');
-subjects = readtable('/dtu-compute/HCP_dFC/2023/hcp_dfc/paper/data/255unrelatedsubjectsIDs.txt');
+subjects = readtable('paper/data/255unrelatedsubjectsIDs.txt');
 subjects = subjects.Var1;
-subfolder = '/dtu-compute/HCP_dFC/2023/hcp_dfc/paper/data/raw/';
+subfolder = 'paper/data/raw/';
+
+% check that current working directory has a folder called 'paper'
+cwd = pwd;
+if ~exist([cwd,'/paper'],'dir')
+    error('Current working directory does not have a folder called "paper". Please change to the correct directory.')
+end
 
 perform_GSR = true;
 if perform_GSR
@@ -17,10 +22,10 @@ end
 perform_phaserandomization = false;
 % task = REST, MOTOR, SOCIAL, LANGUAGE, GAMBLING, EMOTION, WM, RELATIONAL
 tasks = {'EMOTION','GAMBLING','LANGUAGE','MOTOR','REST','RELATIONAL', 'SOCIAL', 'WM'};
-num_add = 100;
+num_pad = 100;
 for task = tasks
     task = task{1};
-    mkdir(['/dtu-compute/HCP_dFC/2023/hcp_dfc/paper/data/processed/',task,'fMRI_SchaeferTian116',add_GSR]);
+    mkdir(['paper/data/processed/',task,'fMRI_SchaeferTian116',add_GSR]);
 
     % Compute eigenvectors
     TR = 0.72;%s
@@ -33,21 +38,18 @@ for task = tasks
     k=2;                          % 2nd order butterworth filter
     [bfilt,afilt]=butter(k,Wn);   % construct the filter
 
-    % atlas = squeeze(niftiread('/dtu-compute/HCP_dFC/2023/hcp_dfc/data/external/Schaefer2018_400Parcels_7Networks_order_Tian_Subcortex_S4.dlabel.nii'));
-    atlas = squeeze(niftiread('/dtu-compute/HCP_dFC/2023/hcp_dfc/paper/data/external/Schaefer2018_100Parcels_7Networks_order_Tian_Subcortex_S1.dlabel.nii'));
+    atlas = squeeze(niftiread('paper/data/external/Schaefer2018_100Parcels_7Networks_order_Tian_Subcortex_S1.dlabel.nii'));
     for sub = 1:numel(subjects)
         dses = dir([subfolder,num2str(subjects(sub)),'/fMRI/*fMRI_',task,'*_RL*']);
         for ses = 1:numel(dses)
             tic
             disp(['Working on subject ',num2str(subjects(sub)),' session ',num2str(ses),' of ',num2str(numel(dses)),' for task ',task])
             data = detrend(double(squeeze(niftiread([dses(ses).folder,'/',dses(ses).name]))));
-            % figure,plot(data(:,100)),print('-dpng',['/dtu-compute/HCP_dFC/2023/hcp_dfc/',task,'fMRI_SchaeferTian116',add_GSR,'_',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_raw.png'])
             
             if perform_GSR
                 GS = mean(data,2);
                 data = data-GS.*(data'*GS)'/(GS'*GS);
             end
-            % figure,plot(data(:,100)),print('-dpng',['/dtu-compute/HCP_dFC/2023/hcp_dfc/',task,'fMRI_SchaeferTian116',add_GSR,'_',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_GSR.png'])
             
             if perform_phaserandomization
                 data_fft = fft(data);
@@ -64,32 +66,19 @@ for task = tasks
             phases_roi = nan(size(data,1),max(atlas(:)));
             amplitude_roi = nan(size(data,1),max(atlas(:)));
             for roi = 1:max(atlas(:))
-                tmp = mean(data(:,atlas==roi),2);
-                % tmp2 = [2*tmp(1)-flipud(tmp(2:num_add+1));tmp;2*tmp(end)-flipud(tmp(end-num_add:end-1))];
-                % tmp3 = [2*tmp(1)+flipud(tmp(2:num_add+1));tmp;2*tmp(end)+flipud(tmp(end-num_add:end-1))];
-                tmp4 = [flipud(tmp(2:num_add+1));tmp;flipud(tmp(end-num_add:end-1))];
-                % tmp5 = [-flipud(tmp(2:num_add+1));tmp;-flipud(tmp(end-num_add:end-1))];
-                
-                % tmp_filt = filtfilt(bfilt,afilt,tmp);
-                % tmp2_filt = filtfilt(bfilt,afilt,tmp2);
-                % tmp3_filt = filtfilt(bfilt,afilt,tmp3);
-                tmp4_filt = filtfilt(bfilt,afilt,tmp4);
-                % tmp5_filt = filtfilt(bfilt,afilt,tmp5);
-                
-                % tmp2 = tmp4_filt;
-                tmp4_filt = tmp4_filt-mean(tmp4_filt);
-                hil = hilbert(tmp4_filt);
-                data_roi(:,roi) = tmp4_filt(num_add+1:end-num_add);
-                % data_roi(:,roi) = tmp4_filt;
-                hil = hil(num_add+1:end-num_add);
-                % hil = hil;
+                roi_data = mean(data(:,atlas==roi),2);
+                roi_data_padded = [flipud(roi_data(2:num_pad+1));roi_data;flipud(roi_data(end-num_pad:end-1))];
+                roi_data_padded_filt = filtfilt(bfilt,afilt,roi_data_padded);
+                roi_data_padded_filt_demeaned = roi_data_padded_filt-mean(roi_data_padded_filt);
+                hil = hilbert(roi_data_padded_filt_demeaned);
+                data_roi(:,roi) = roi_data_padded_filt_demeaned(num_pad+1:end-num_pad);
+                hil = hil(num_pad+1:end-num_pad);
                 phases_roi(:,roi) = angle(hil);
                 amplitude_roi(:,roi) = abs(hil);
             end
             if any(isnan(phases_roi(:)))
                 error('nan reached')
             end
-            % disp(num2str(num_add))
             
             eigenvectors_roi = nan(size(data,1)*2,max(atlas(:)));
             eigenvectors_real_roi = nan(size(data,1),max(atlas(:)));
@@ -111,12 +100,12 @@ for task = tasks
             end
             disp(['Atlas eig done in ',num2str(toc),' seconds'])
 
-            parSave(['/dtu-compute/HCP_dFC/2023/hcp_dfc/paper/data/processed/',task,'fMRI_SchaeferTian116',add_GSR,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'.csv'],eigenvectors_roi)
-            parSave(['/dtu-compute/HCP_dFC/2023/hcp_dfc/paper/data/processed/',task,'fMRI_SchaeferTian116',add_GSR,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_evs.csv'],eigenvalues_roi)
-            parSave(['/dtu-compute/HCP_dFC/2023/hcp_dfc/paper/data/processed/',task,'fMRI_SchaeferTian116',add_GSR,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_real.csv'],eigenvectors_real_roi)
-            parSave(['/dtu-compute/HCP_dFC/2023/hcp_dfc/paper/data/processed/',task,'fMRI_SchaeferTian116',add_GSR,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_imag.csv'],eigenvectors_imag_roi)
-            parSave(['/dtu-compute/HCP_dFC/2023/hcp_dfc/paper/data/processed/',task,'fMRI_SchaeferTian116',add_GSR,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_amplitude.csv'],amplitude_roi)
-            parSave(['/dtu-compute/HCP_dFC/2023/hcp_dfc/paper/data/processed/',task,'fMRI_SchaeferTian116',add_GSR,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_timeseries.csv'],data_roi)
+            parSave(['paper/data/processed/',task,'fMRI_SchaeferTian116',add_GSR,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'.csv'],eigenvectors_roi)
+            parSave(['paper/data/processed/',task,'fMRI_SchaeferTian116',add_GSR,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_evs.csv'],eigenvalues_roi)
+            parSave(['paper/data/processed/',task,'fMRI_SchaeferTian116',add_GSR,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_real.csv'],eigenvectors_real_roi)
+            parSave(['paper/data/processed/',task,'fMRI_SchaeferTian116',add_GSR,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_imag.csv'],eigenvectors_imag_roi)
+            parSave(['paper/data/processed/',task,'fMRI_SchaeferTian116',add_GSR,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_amplitude.csv'],amplitude_roi)
+            parSave(['paper/data/processed/',task,'fMRI_SchaeferTian116',add_GSR,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_timeseries.csv'],data_roi)
                     
         end
     end

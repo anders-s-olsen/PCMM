@@ -9,17 +9,12 @@ T = 1200
 num_subs = 2
 
 def butter_bandpass(lowcut, highcut, fs, order=5):
-    # nyq = fs
-    # nyq = 0.5 * fs
-    # low = lowcut / nyq
-    # high = highcut / nyq
     low = lowcut
     high = highcut
     b, a = butter(order, [low, high], btype="bandpass", fs=fs)
     return b, a
 
 def butter_bandpass_filter(data, lowcut=0.03, highcut=0.07, fs=1 / 0.720, order=5):
-# def butter_bandpass_filter(data, lowcut=0.009, highcut=0.08, fs=1 / 0.720, order=5):
     b, a = butter_bandpass(lowcut, highcut, fs, order=order)
     y = filtfilt(b, a, data)
     return y
@@ -42,8 +37,6 @@ for sub in subjects[:num_subs]:
         parcellated_data = np.zeros((data.shape[0], atlas_data.max()))
         for i in range(1, atlas_data.max()+1):
             parcellated_data[:,i-1] = np.mean(data[:,atlas_data == i], axis=1)
-            # parcellated_data[:,i-1] = parcellated_data[:,i-1] - np.mean(parcellated_data[:,i-1])
-        # parcellated_data = parcellated_data - np.mean(parcellated_data, axis=0)
         # filter data
         filtered_data = np.zeros(parcellated_data.shape)
         for i in range(p):
@@ -65,7 +58,6 @@ mid_frequency = np.argmin(np.abs(f-0.05))
 num_phases = len(positive_frequency_content_indices)
 
 nodes = np.arange(0, p, p//K)
-# nodes = [0, 23, 46, 69, 92]
 nodes = np.tile(nodes, num_repeats)
 specs = []
 for window in range(K*num_repeats):
@@ -143,7 +135,6 @@ for scan in range(len(phase_reset_data_all)):
         c = np.cos(phases[t])
         s = np.sin(phases[t])
         U,S,_ = np.linalg.svd(np.c_[c,s], full_matrices=False)
-        # U,S,_ = np.linalg.svd(c+s*1j, full_matrices=False)
         U_all_sub[t] = U
         L_all_sub[t] = S**2
         U_all_complex_sub[t,:] = (c+s*1j)/np.linalg.norm(c+s*1j)

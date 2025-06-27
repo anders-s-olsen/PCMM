@@ -3,38 +3,7 @@ import h5py as h5
 # import matplotlib.pyplot as plt
 subjects = np.loadtxt('paper/data/255unrelatedsubjectsIDs.txt', dtype='str')
 
-# # ################### EEG, complex
-# num_subjects = 1
-# subject_split = 20
-# complex_eigenvectors_train = []
-# complex_eigenvectors_test = []
-# num_pts = []
-
-# for i in range(num_subjects):
-#     print(i)
-#     data_angle = np.loadtxt('paper/data/processed/EEG/EPCTL{:02d}_angle.csv'.format(i+1), delimiter=',')
-#     data_complex = np.exp(1j*data_angle)
-#     data_complex /= np.linalg.norm(data_complex, axis=1, keepdims=True)
-#     num_pts.append(data_complex.shape[0])
-#     if i < subject_split:
-#         complex_eigenvectors_train.append(data_complex)
-#     else:
-#         complex_eigenvectors_test.append(data_complex)
-#     plt.figure()
-#     plt.imshow(np.abs(data_complex.T.conj()@data_complex), aspect='auto')
-#     plt.colorbar()
-#     plt.savefig('paper/data/data_processing_scripts/eeg_cov_matrices/tmp'+str(i+1)+'.png')
-#     plt.close()
-
-# complex_eigenvectors_train = np.concatenate(complex_eigenvectors_train)
-# complex_eigenvectors_test = np.concatenate(complex_eigenvectors_test)
-# np.savetxt('paper/data/processed/EEG/num_pts.csv', num_pts, delimiter=',')
-
-# with h5.File('paper/data/processed/EEG.h5','w') as f:
-#     f.create_dataset('U_complex_train',data=complex_eigenvectors_train)
-#     f.create_dataset('U_complex_test',data=complex_eigenvectors_test)
-
-# # ################### All tasks, GSR, complex, no split
+# # ################### All tasks
 # # add_GSR = '_GSR'
 # add_GSR = ''
 # tasks = ['EMOTION','GAMBLING','LANGUAGE','MOTOR','RELATIONAL','SOCIAL','WM']
@@ -161,7 +130,7 @@ subjects = np.loadtxt('paper/data/255unrelatedsubjectsIDs.txt', dtype='str')
 #     f.create_dataset('timeseries_test',data=timeseries_test)
     
 
-# ################### REST, GSR, complex
+# ################### REST
 # add_GSR = '_GSR'
 add_GSR = ''
 task1 = 'REST1'

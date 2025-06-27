@@ -1,8 +1,7 @@
-from helper_functions_realdata import load_fMRI_data, run
+from paper.helper_functions_paper import load_fMRI_data, run
 import pandas as pd
 import numpy as np
 import os
-
 
 def run_experiment(extraoptions={},suppress_output=False):
     # options pertaining to current experiment
@@ -26,15 +25,6 @@ def run_experiment(extraoptions={},suppress_output=False):
     options['experiment_name'] = options['dataset']+'rank_realdata_'+options['modelname']+'_K='+str(K)
     options['LR'] = 0.1
 
-    # check if the experiment is already done
-    # try:
-    #     df = pd.read_csv(options['outfolder']+'/'+options['experiment_name']+'.csv')
-    #     num_done = df['inner'].max()
-    #     if num_done==options['num_repl_outer']:
-    #         print('Experiment already done')
-    #         return
-    #     df = df[df['inner']!=num_done]
-    # except:
     df = pd.DataFrame()
     num_done = 0
 
@@ -71,7 +61,6 @@ def run_experiment(extraoptions={},suppress_output=False):
                 options['init'] = 'no'
 
                 params_MM = np.load(options['outfolder']+'/params/'+options['modelname']+'_rank'+str(ranks[i-1])+'_K'+str(K)+'_params.npy',allow_pickle=True).item()
-                # params_MM = np.load(options['outfolder']+'/params/'+options['modelname']+'_rank90_K'+str(K)+'_params.npy',allow_pickle=True).item()
                 params,df,_ = run(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,df=df,options=options,params=params_MM,suppress_output=suppress_output,inner=inner,p=p)
                 np.save(options['outfolder']+'/params/'+options['modelname']+'_rank'+str(rank)+'_K'+str(K)+'_params.npy',params)
             
@@ -86,7 +75,7 @@ if __name__=="__main__":
         options['K'] = int(sys.argv[2])
         options['dataset'] = sys.argv[3]
         run_experiment(extraoptions=options,suppress_output=True)
-    else:
+    else: #test
         modelnames = ['Complex_Normal']#'Complex_ACG',
         dataset = 'REST1REST2' # 'REST' or 'MOTOR' or 'SOCIAL' REST1REST2
         # modelnames = ['Complex_ACG']
