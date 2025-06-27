@@ -1,8 +1,7 @@
 clear,close all
-ff = '/dtu-compute/HCP_dFC/figures/'; %figure folder
+ff = 'figures/'; %figure folder
 %% load example dataset, fMRI
-% V = double(squeeze(niftiread('/dtu-compute/HCP_dFC/data/alldata/100206_rfMRI_REST1_LR.nii')));
-V = double(squeeze(niftiread('/dtu-compute/HCP_dFC/2023/hcp_dfc/data/raw/100206/fMRI/rfMRI_REST1_RL_Atlas_MSMAll_hp2000_clean.dtseries.nii')));
+V = double(squeeze(niftiread('paper/data/raw/100206/fMRI/rfMRI_REST1_RL_Atlas_MSMAll_hp2000_clean.dtseries.nii')));
 % Compute eigenvectors
 TR = 0.72;%s
 fnq=1/(2*TR);                 % Nyquist frequency
