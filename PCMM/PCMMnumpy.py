@@ -320,19 +320,16 @@ class MACG(PCMMnumpyBaseModel):
             o = np.linalg.norm(M,'fro')**2
             gamma = 1/(1+o/self.p)
             M = np.sqrt(gamma)*M
-            # M_tilde = M*np.sqrt(gamma)
             M_tilde = M
             S1 = np.linalg.svd(M_tilde,full_matrices=False,compute_uv=False)
             
             trZt_oldZ_old = np.sum(S1**4)+2*gamma*np.sum(S1**2)+gamma**2*self.p
             gamma_old = gamma
             S1_old = S1
-            # M_old = M.copy()
             M_tilde_old = M_tilde.copy()
 
             for j in range(max_iter):
                 D_sqrtinv = sqrtm(np.linalg.inv(M.conj().T@M+np.eye(self.r)))
-                # D_sqrtinv = V1t.T@np.diag(np.sqrt(1/(1+S1**2)))@V1t
                 U2,S2,V2t = np.linalg.svd(np.swapaxes(X,-2,-1)@(M@D_sqrtinv),full_matrices=False)
                 M = self.p/(self.q*np.sum(beta))*np.sum(Q@(U2*(S2/(1-S2**2))[:,None,:])@V2t,axis=0)@D_sqrtinv
 
@@ -342,14 +339,12 @@ class MACG(PCMMnumpyBaseModel):
                 M = np.sqrt(gamma)*M
 
                 # To measure convergence, we compute norm(Z-Z_old)**2
-                # M_tilde = M*np.sqrt(gamma)
                 M_tilde = M
                 S1 = np.linalg.svd(M_tilde,full_matrices=False,compute_uv=False)
                 trZtZ = np.sum(S1**4)+2*gamma*np.sum(S1**2)+gamma**2*self.p
                 trZtZt_old = np.linalg.norm(M_tilde.T@M_tilde_old)**2 + gamma_old*gamma*self.p + gamma_old*np.sum(S1**2) + gamma*np.sum(S1_old**2)
                 loss.append(trZtZ+trZt_oldZ_old-2*trZtZt_old)
-                # t4 = time()
-                # print(j,t1-t0,t2-t1,t3-t2,t4-t3)
+                
                 if j>0:
                     if loss[-1]<tol:
                         if np.any(np.array(loss)<-tol):
@@ -359,7 +354,6 @@ class MACG(PCMMnumpyBaseModel):
                 # To measure convergence
                 trZt_oldZ_old = trZtZ
                 gamma_old = gamma
-                # M_old = M
                 M_tilde_old = M_tilde
                 S1_old = S1
 
@@ -368,7 +362,6 @@ class MACG(PCMMnumpyBaseModel):
             
             # output the unnormalized M such that the log_pdf is computed without having to include the normalization factor (pdf is scale invariant)
             M = M/np.sqrt(gamma)
-            # print(j,np.linalg.norm(M),gamma,np.sum(beta))
             return M
         elif self.distribution == 'MACG_fullrank':
             Q = beta[:,None,None]*X
@@ -486,16 +479,11 @@ class SingularWishart(PCMMnumpyBaseModel):
             for j in range(max_iter):
 
                 # M_tilde update
-                # M_tilde = 1/(gamma*self.q*beta_sum)*np.sum(beta_Q*QtM_tilde[:,None,:,:],axis=(0,-2))@D_inv
                 M_tilde = 1/(gamma*self.q*beta_sum)*beta_S@M_tilde@D_inv
-                # _,S1,V1t = np.linalg.svd(M_tilde)
-                # D_inv = V1t.T@np.diag(1/(1+S1**2))@V1t
                 S1 = np.linalg.svd(M_tilde,full_matrices=False,compute_uv=False)
                 D_inv = np.linalg.inv(M_tilde.conj().T@M_tilde+np.eye(self.r))
 
                 #gamma update
-                # QtM_tilde = np.swapaxes(Q,-2,-1)@M_tilde
-                # gamma = 1/(self.q*self.p*beta_sum)*np.sum(beta*(self.p-np.linalg.norm(QtM_tilde@V1t.T@np.diag(np.sqrt(1/(1+S1**2)))@V1t,axis=(-2,-1))**2))
                 gamma = 1/(self.q*self.p*beta_sum)*(np.sum(beta*self.p)-np.trace(M_tilde@D_inv@M_tilde.T@beta_S))
 
                 # convergence criterion
@@ -520,7 +508,6 @@ class SingularWishart(PCMMnumpyBaseModel):
 
             # output M, not M_tilde
             M = M_tilde*np.sqrt(gamma)
-            # print(j,np.linalg.norm(M),gamma,np.sum(beta))
             return M, gamma
         elif self.distribution == 'SingularWishart_fullrank':
             Psi = 1/(self.q*np.sum(beta))*np.sum((beta[:,None,None]*X)@np.swapaxes(X,-2,-1),axis=0)
@@ -609,9 +596,7 @@ class Normal(PCMMnumpyBaseModel):
                 norm_x = self.norm_x
             
             M_tilde = M * np.sqrt(1/gamma)
-            # _,S1,V1t = np.linalg.svd(M_tilde)
             S1 = np.linalg.svd(M_tilde,full_matrices=False,compute_uv=False)
-            # D_inv = V1t.T.conj()@np.diag(1/(1+S1**2))@V1t
             D_inv = np.linalg.inv(M_tilde.conj().T@M_tilde+np.eye(self.r))
 
             trZt_oldZ_old = gamma**2*(np.sum(S1**4)+2*np.sum(S1**2)+self.p)
@@ -628,9 +613,7 @@ class Normal(PCMMnumpyBaseModel):
 
                 # M_tilde update
                 M_tilde = 1/(gamma*beta_sum)*beta_S@M_tilde@D_inv
-                # _,S1,V1t = np.linalg.svd(M_tilde)
                 S1 = np.linalg.svd(M_tilde,full_matrices=False,compute_uv=False)
-                # D_inv = V1t.T.conj()@np.diag(1/(1+S1**2))@V1t
                 D_inv = np.linalg.inv(M_tilde.conj().T@M_tilde+np.eye(self.r))
                 #gamma update
                 gamma = 1/(self.p*beta_sum)*(beta_x_norm_sum-np.trace(M_tilde@D_inv@M_tilde.T.conj()@beta_S).real)
@@ -639,15 +622,7 @@ class Normal(PCMMnumpyBaseModel):
                 trZtZ = gamma**2*(np.sum(S1**4)+2*np.sum(S1**2)+self.p)
                 trZtZt_old = gamma*gamma_old*(np.linalg.norm(M_tilde.T.conj()@M_tilde_old)**2 + np.sum(S1**2) + np.sum(S1_old**2)+self.p)
                 loss.append(trZtZ+trZt_oldZ_old-2*trZtZt_old)
-                
-                if j>0:
-                    if loss[-1]<tol:
-                        # if np.any(np.array(loss)<tol):
-                            # if loss[-1]<-1e-5:
-                            #     raise Warning("Loss is negative. Check M_step_single_component")
-                            # raise Warning("Loss is negative. Check M_step_single_component")
-                        break
-                
+                                
                 # To measure convergence
                 trZt_oldZ_old = trZtZ
                 gamma_old = gamma
@@ -659,7 +634,6 @@ class Normal(PCMMnumpyBaseModel):
 
             # output M, not M_tilde
             M = M_tilde*np.sqrt(gamma)
-            # print(j,np.linalg.norm(M),gamma,np.sum(beta))
             return M, gamma
         elif 'fullrank' in self.distribution:
             Psi = 1/(np.sum(beta))*(beta[:,None]*X).T@X

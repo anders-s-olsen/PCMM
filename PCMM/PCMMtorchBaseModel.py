@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-
-# import the numpy models for initializing parameters
 from PCMM.PCMMnumpy import Watson, ACG, MACG, SingularWishart, Normal
 
 class PCMMtorchBaseModel(nn.Module):
@@ -42,12 +40,14 @@ class PCMMtorchBaseModel(nn.Module):
                 self.gamma = nn.Parameter(torch.ones(self.K))
 
         # mixture or HMM settings
-        self.pi = nn.Parameter(params['pi'])
+        if 'pi' in params:
+            self.pi = nn.Parameter(params['pi'])
+        else:
+            self.pi = nn.Parameter(torch.ones(self.K)/self.K)
 
         if self.HMM:
             if 'T' in params:
                 self.T = nn.Parameter(params['T'])
-                # otherwise T will be initialized in mixture_torch_loop
 
     def _format_samples_per_sequence(self,N):
         if torch.all(self.samples_per_sequence == 0):
@@ -83,11 +83,7 @@ class PCMMtorchBaseModel(nn.Module):
             delta = delta.mean(dim=0)
             delta = delta / delta.sum() # normalize to sum to 1
             T = torch.mean(T,dim=0) # average over sequences
-            # T = torch.zeros(self.K,self.K)
-            # for i in range(len(X)-1):
-            #     T += beta[:,i][:,None]*beta[:,i+1][None,:]
             T = T/T.sum(dim=1)[:,None]
-            # self.T = nn.Parameter(T)
             return T, delta
 
     def initialize(self,X,init_method=None):
@@ -219,16 +215,10 @@ class PCMMtorchBaseModel(nn.Module):
 
     def forward(self, X, return_samplewise_likelihood=False, recompute_statics=False):
         log_pdf = self.log_pdf(X,recompute_statics=recompute_statics)
-        if self.K==1:
-            if return_samplewise_likelihood:
-                return torch.sum(log_pdf), log_pdf[0].numpy()
-            else:
-                return torch.sum(log_pdf)
+        if self.HMM:
+            return self.HMM_log_likelihood_seq(log_pdf,return_samplewise_likelihood)
         else:
-            if self.HMM:
-                return self.HMM_log_likelihood_seq(log_pdf,return_samplewise_likelihood)
-            else:
-                return self.MM_log_likelihood(log_pdf,return_samplewise_likelihood)
+            return self.MM_log_likelihood(log_pdf,return_samplewise_likelihood)
         
     def test_log_likelihood(self,X):
         with torch.no_grad():

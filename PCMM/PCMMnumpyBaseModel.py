@@ -1,5 +1,5 @@
 import numpy as np
-from PCMM.phase_coherence_kmeans import diametrical_clustering, plusplus_initialization, grassmann_clustering, weighted_grassmann_clustering, least_squares_sign_flip
+from PCMM.phase_coherence_kmeans import diametrical_clustering, plusplus_initialization, grassmann_clustering, weighted_grassmann_clustering
 from scipy.cluster.vq import kmeans2
 
 def init_M_svd(V,r):
@@ -17,9 +17,6 @@ def init_M_svd(V,r):
         epsilon = np.sum(S[r:])/(V.shape[1]-r)
         M = U[:,:r]@np.diag(np.sqrt(((S[:r]-epsilon)/epsilon)))
 
-    # if 'Normal' in self.distribution and r==1:
-    #     return M,epsilon#/V.shape[1]        
-    # else:
     return M,epsilon/V.shape[1]      
     
 def init_M_svd_given_M_init(X,K,r,M_init,beta=None,gamma=None,distribution=None):
@@ -39,7 +36,6 @@ def init_M_svd_given_M_init(X,K,r,M_init,beta=None,gamma=None,distribution=None)
         raise ValueError('r=1 not implemented')
 
     # initialize remainder using the svd of the residual of X after subtracting the projection on M_init
-    # if 'Complex' in self.distribution:
     if X.dtype==complex:
         M = np.zeros((K,p,r),dtype=complex)
     else:
@@ -59,7 +55,6 @@ def init_M_svd_given_M_init(X,K,r,M_init,beta=None,gamma=None,distribution=None)
             M_proj = M_init[k]@np.linalg.inv(M_init[k].T.conj()@M_init[k]+np.eye(M_init[k].shape[1]))@M_init[k].T.conj()
         elif distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
             M_proj = M_init[k]@np.linalg.inv(M_init[k].T.conj()@M_init[k]+gamma[k]*np.eye(M_init[k].shape[1]))@M_init[k].T.conj()
-        # M_proj = M_init[k]@np.linalg.inv(M_init[k].T@M_init[k])@M_init[k].T
         V_residual = V - M_proj@V
         M_extra,_ = init_M_svd(V_residual,r=num_missing)
         M[k] = np.concatenate([M_init[k],M_extra],axis=-1)
@@ -176,7 +171,6 @@ class PCMMnumpyBaseModel():
                     if j>10000:
                         raise ValueError('Could not find a good initialization')
                     j+=1
-                # mu,X_part,_ = least_squares_sign_flip(X=X2,K=self.K,max_iter=100000,num_repl=1,init='++')
             
             if 'Watson' in self.distribution:
                 print('Initializing mu based on the clustering centroid')
@@ -192,9 +186,6 @@ class PCMMnumpyBaseModel():
                     self.M[k],gamma[k] = init_M_svd(X[X_part==k].T,self.r)
                 if self.distribution in ['Normal_lowrank','Complex_Normal_lowrank','SingularWishart_lowrank']:
                     self.gamma = gamma
-                # if 'Normal' in self.distribution:
-                #     num_points = np.bincount(X_part)
-                #     self.M = self.M*num_points
             elif self.distribution in ['MACG_lowrank']:
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
                 self.M = np.zeros((self.K,self.p,self.r),dtype=X.dtype)
@@ -301,17 +292,11 @@ class PCMMnumpyBaseModel():
 
     def log_likelihood(self, X, return_samplewise_likelihood=False):
         log_pdf = self.log_pdf(X)
-        if self.K==1:
-            if return_samplewise_likelihood:
-                return np.sum(log_pdf), log_pdf[0]
-            else:
-                return np.sum(log_pdf)
+        log_likelihood, self.log_density, self.logsum_density = self.MM_log_likelihood(log_pdf)
+        if return_samplewise_likelihood:
+            return log_likelihood, self.logsum_density
         else:
-            log_likelihood, self.log_density, self.logsum_density = self.MM_log_likelihood(log_pdf)
-            if return_samplewise_likelihood:
-                return log_likelihood, self.logsum_density
-            else:
-                return log_likelihood
+            return log_likelihood
         
     def test_log_likelihood(self,X):
         return self.log_likelihood(X,return_samplewise_likelihood=True)
