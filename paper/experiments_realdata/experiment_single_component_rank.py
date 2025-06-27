@@ -23,7 +23,7 @@ def run_experiment(extraoptions={},suppress_output=False):
     ranks = np.concatenate([np.ones(1).astype(int),np.arange(2,10,2).astype(int),np.arange(10,116,5).astype(int)])
     # ranks = np.arange(100,116,5).astype(int)
     options['experiment_name'] = options['dataset']+'rank_realdata_'+options['modelname']+'_K='+str(K)
-    options['LR'] = 0.1
+    options['LR'] = 0
 
     df = pd.DataFrame()
     num_done = 0
@@ -76,7 +76,7 @@ if __name__=="__main__":
         options['dataset'] = sys.argv[3]
         run_experiment(extraoptions=options,suppress_output=True)
     else: #test
-        modelnames = ['Complex_Normal']#'Complex_ACG',
+        modelnames = ['Complex_ACG']#'Complex_ACG',
         dataset = 'REST1REST2' # 'REST' or 'MOTOR' or 'SOCIAL' REST1REST2
         # modelnames = ['Complex_ACG']
         K = 1

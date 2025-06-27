@@ -1,14 +1,11 @@
 import numpy as np
 import torch
 from tqdm import tqdm
-# from PCMM.PCMMtorchBaseModel import PCMMtorchBaseModel
 from PCMM.PCMMnumpyBaseModel import init_M_svd_given_M_init
 from copy import deepcopy
-# from memory_profiler import profile
-# @profile
+
 def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,LR=0.1,suppress_output=False,threads=8,decrease_lr_on_plateau=False,num_comparison=50):
     torch.set_num_threads(threads)
-    # torch.set_num_interop_threads(threads)
     torch.set_default_dtype(torch.float64)
     best_loglik = -np.inf
 
@@ -18,7 +15,6 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
 
     #check if data is a torch tensor
     if not isinstance(data,torch.Tensor):
-        # data = torch.tensor(data)
         data = torch.from_numpy(data)
     
     if 'Complex' in model.distribution:
@@ -47,13 +43,11 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                 model2 = deepcopy(model)
                 model2.r = model2.M.shape[-1]
                 beta = model2.posterior(X=data)
-                # numpymodel = PCMMnumpyBaseModel()
                 if model.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
                     gamma = None
                 elif model.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
                     gamma = model.gamma.detach().numpy()
                 M = init_M_svd_given_M_init(X=data.numpy(),K=model.K,r=model.r,M_init=model.M.detach().numpy(),beta=beta,gamma=gamma,distribution=model.distribution)
-                # model.M = torch.nn.Parameter(torch.tensor(M))
                 model.M = torch.nn.Parameter(torch.from_numpy(M))
             
         if model.HMM:
@@ -65,9 +59,6 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                     T,delta = model.initialize_transition_matrix_hmm(X=data)
                     model.T = torch.nn.Parameter(T)
                     model.pi = torch.nn.Parameter(delta)
-            # # reinitialize pi to be the probability for only the first data point
-            # log_pdf_first_sample = model.log_pdf(X=data[0][None],recompute_statics=True)
-            # model.pi = torch.nn.Parameter(model.posterior_MM(log_pdf_first_sample)[:,0])
 
         optimizer = torch.optim.Adam(model.parameters(),lr=LR)
         loglik = []
@@ -95,10 +86,7 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                 if loglik[-1]>best_epoch_loglik:
                     best_model_params = deepcopy(model.get_params())
                     best_epoch_loglik = loglik[-1]
-                # params.append(deepcopy(model.get_params()))
-                # if len(params)>num_comparison:
-                #     params.pop(0)
-                
+                    
                 if epoch>=num_comparison:
                     latest = np.array(loglik[-num_comparison:])
                     maxval = np.max(latest)
@@ -114,39 +102,18 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                             if flag_already_decreased_lr:
                                 done = True
                             else:                       
-                                # done = True
                                 optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr']/10
                                 print('Learning rate reduced to:',optimizer.param_groups[0]['lr'],'after',epoch,'iterations')
-                                # params = []
                                 flag_already_decreased_lr = True
                         else:
                             done = True
-                    # pbar.set_description('Convergence towards tol: %.2e'%crit)
-                    # pbar.set_postfix({'Epoch':epoch})
-                    # pbar.n = epoch + 1
                     if done:
                         if best_epoch_loglik>best_loglik:
                             best_loglik = best_epoch_loglik
                             params_final = best_model_params
                             loglik_final = loglik
                             model.set_params(best_model_params)
-                            beta_final = model.posterior(X=data)
-                            # for best_model in params:
-                            #     model.set_params(best_model)
-                            #     epoch_ll = model(data)
-                            #     if epoch_ll.item()>best_loglik:
-                            #         best_loglik = epoch_ll.item()
-                            #         best_model_params = best_model
-                            # model.set_params(best_model_params)     
-
-                            # best_loglik = loglik[-1]
-                            # loglik_final = loglik
-                            # best = np.where(loglik[-10:]==maxval)[0]
-                            # if hasattr(best,"__len__")>0: # in the rare case of two equal values....
-                            #     best = best[0]
-                            # params_final = params[best]
-                            # model.set_params(params_final)
-                            # beta_final = model.posterior(X=data)         
+                            beta_final = model.posterior(X=data)        
                         break
                 else:
                     pbar.set_description('Loglik: %.2f: '%loglik[-1])

@@ -50,12 +50,6 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
                 raise ValueError("Nan reached. There can be many possible reasons for this, including the initialization of the model, the data, or the model itself. First try reinitializing the same model.")
             
             params.append(model.get_params())
-            #remove first entry in params
-            # if len(params)>10:
-            #     params.pop(0)
-            # params.append(deepcopy(model.get_params()))
-            # if len(params)>num_comparison:
-            #     params.pop(0)
             if loglik[-1]>best_epoch_loglik:
                 best_model_params = deepcopy(model.get_params())
                 best_epoch_loglik = loglik[-1]
@@ -70,7 +64,6 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
                 except:
                     crit = tol
                     done=True
-                # pbar.set_description('Convergence towards tol: %.2e'%crit)
                 pbar.set_description('Loglik: %.2f, relative change: %.2e'%(loglik[-1],crit))
                 pbar.update(1)
                 if done:
@@ -80,22 +73,10 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
                         loglik_final = loglik
                         model.set_params(best_model_params)
                         beta_final = model.posterior(X=data)
-                # if done:
-                #     if maxval>best_loglik:
-                #         best_loglik = maxval
-                #         loglik_final = loglik
-                #         best = np.where(loglik[-10:]==maxval)[0]
-                #         if hasattr(best,"__len__")>0: # in the rare case of two equal values....
-                #             best = best[0]
-                #         params_final = params[best.item()]
-                #         model2 = deepcopy(model)
-                #         model2.set_params(params_final)
-                #         beta_final = model2.posterior(X=data)
                     break
             else:
                 pbar.set_description('Loglik: %.2f: '%loglik[-1])
                 pbar.update(1)
-            # pbar.n = epoch + 1
 
             # M-step
             model.M_step(X=data)
