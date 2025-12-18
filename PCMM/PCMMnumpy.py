@@ -51,7 +51,7 @@ class Watson(PCMMnumpyBaseModel):
             logkum[idx] = self.kummer_log(k=kappa,a=self.a,c=self.c)
         return self.logSA_sphere - logkum
     
-    def log_pdf(self, X):
+    def log_pdf(self, X, recompute_statics=False):
         if not self.flag_normalized_input_data:
             if not np.allclose(np.linalg.norm(X,axis=1),1):
                 raise ValueError("For the Watson distribution, the input data vectors should be normalized to unit length.")
@@ -163,7 +163,7 @@ class ACG(PCMMnumpyBaseModel):
         log_pdf = self.logSA_sphere - self.a * log_det_L -self.c*np.log(XtLX)
         return log_pdf
 
-    def log_pdf(self, X):
+    def log_pdf(self, X, recompute_statics=False):
         if not self.flag_normalized_input_data:
             if not np.allclose(np.linalg.norm(X,axis=1),1):
                 raise ValueError("For the ACG distribution, the input data vectors should be normalized to unit length.")
@@ -300,7 +300,7 @@ class MACG(PCMMnumpyBaseModel):
         log_pdf = - (self.q/2)*np.atleast_1d(self.logdet(self.Psi))[:,None] - self.p/2*logdetXtLX
         return log_pdf
 
-    def log_pdf(self, X):
+    def log_pdf(self, X, recompute_statics=False):
         if not self.flag_normalized_input_data:
             if np.allclose(np.linalg.norm(X[:,:,0],axis=1),1)!=1:
                 raise ValueError("For the MACG distribution, the input data vectors should be normalized to unit length (and orthonormal, but this is not checked).")
@@ -396,13 +396,14 @@ class MACG(PCMMnumpyBaseModel):
                 self.Psi[k] = self.M_step_single_component(X,beta[k],None,self.Psi[k])
 
 class SingularWishart(PCMMnumpyBaseModel):
-    def __init__(self, p:int,q:int, K:int=1, rank=None, params:dict=None):
+    def __init__(self, p:int,q:int, K:int=1, rank=None, params:dict=None, force_gamma_same:bool=False):
         super().__init__()
 
         self.K = K
         self.p = p
         self.q = q
         self.half_p = self.p/2
+        self.force_gamma_same = force_gamma_same
         if rank is None or rank==0: #rank zero means the fullrank version
             self.r = p
             self.distribution = 'SingularWishart_fullrank'
@@ -421,7 +422,14 @@ class SingularWishart(PCMMnumpyBaseModel):
         if params is not None:            
             self.unpack_params(params)
     
-    def log_pdf_lowrank(self, X):
+    def log_pdf_lowrank(self, X, recompute_statics=False):
+        # while Q_q^T Q_q != U_q^T L U_q, their determinants are the same
+        if self.log_det_S11 is None:
+            self.log_det_S11 = self.logdet(np.swapaxes(X[:,:self.q,:],-2,-1)@X[:,:self.q,:])
+        if recompute_statics:
+            log_det_S11 = self.logdet(np.swapaxes(X[:,:self.q,:],-2,-1)@X[:,:self.q,:])
+        else:
+            log_det_S11 = self.log_det_S11
 
         M_tilde = self.M*np.sqrt(1/np.atleast_1d(self.gamma)[:,None,None])
         
@@ -429,20 +437,17 @@ class SingularWishart(PCMMnumpyBaseModel):
         log_det_D = self.p*np.log(self.gamma)+np.sum(np.log(1/S1**2+1),axis=-1)+2*np.sum(np.log(S1),axis=-1)
         D_sqrtinv = (np.swapaxes(V1t,-2,-1)*np.sqrt(1/(1+S1**2))[:,None])@V1t
 
-        # while Q_q^T Q_q != U_q^T L U_q, their determinants are the same
-        if self.log_det_S11 is None:
-            self.log_det_S11 = self.logdet(np.swapaxes(X[:,:self.q,:],-2,-1)@X[:,:self.q,:])
         
         v = 1/np.atleast_1d(self.gamma)[:,None]*(self.p - np.linalg.norm(np.swapaxes(X,-2,-1)[None,:,:,:]@M_tilde[:,None,:,:]@D_sqrtinv[:,None],axis=(-2,-1))**2)
-        log_pdf = self.log_norm_constant - (self.q/2)*np.atleast_1d(log_det_D)[:,None] + (self.q-self.p-1)/2*self.log_det_S11[None] - 1/2*v
+        log_pdf = self.log_norm_constant - (self.q/2)*np.atleast_1d(log_det_D)[:,None] + (self.q-self.p-1)/2*log_det_S11[None] - 1/2*v
 
         return log_pdf
 
-    def log_pdf_fullrank(self, X):
+    def log_pdf_fullrank(self, X, recompute_statics=False):
         log_pdf = self.log_norm_constant - (self.q/2)*np.atleast_1d(self.logdet(self.Psi))[:,None] - 1/2*np.trace(np.swapaxes(X,-2,-1)[None,:]@np.linalg.inv(self.Psi)[:,None]@X[None,:],axis1=-2,axis2=-1)
         return log_pdf
 
-    def log_pdf(self, X):
+    def log_pdf(self, X, recompute_statics=False):
         if not self.flag_normalized_input_data:
             X_weights = np.linalg.norm(X,axis=1)**2
             if not np.allclose(np.sum(X_weights,axis=1),self.p):
@@ -450,9 +455,9 @@ class SingularWishart(PCMMnumpyBaseModel):
             else:
                 self.flag_normalized_input_data = True
         if self.distribution == 'SingularWishart_lowrank':
-            return self.log_pdf_lowrank(X)
+            return self.log_pdf_lowrank(X, recompute_statics=recompute_statics)
         elif self.distribution == 'SingularWishart_fullrank':
-            return self.log_pdf_fullrank(X)
+            return self.log_pdf_fullrank(X, recompute_statics=recompute_statics)
         
     def M_step_single_component(self,X,beta,M=None,gamma=None,max_iter=int(1e8),tol=1e-10):
             
@@ -526,11 +531,12 @@ class SingularWishart(PCMMnumpyBaseModel):
                 self.Psi[k] = self.M_step_single_component(X,beta[k])
 
 class Normal(PCMMnumpyBaseModel):
-    def __init__(self, p:int, rank:int=None, K:int=1, complex:bool=False, params:dict=None):
+    def __init__(self, p:int, rank:int=None, K:int=1, complex:bool=False, params:dict=None, force_gamma_same:bool=False):
         super().__init__()
 
         self.K = K
         self.p = p
+        self.force_gamma_same = force_gamma_same
         if rank is None or rank==0: #rank zero means the fullrank version
             self.r = p
             self.distribution = 'Normal_fullrank'
@@ -553,33 +559,63 @@ class Normal(PCMMnumpyBaseModel):
         if params is not None:            
             self.unpack_params(params)
     
-    def log_pdf_lowrank(self, X):
+    def log_pdf_lowrank(self, X, recompute_statics=False):
+        if self.norm_x is None:
+            self.norm_x = np.linalg.norm(X,axis=1)**2
+        if recompute_statics:
+            norm_x = np.linalg.norm(X,axis=1)**2
+        else:
+            norm_x = self.norm_x
 
         M_tilde = self.M*np.sqrt(1/np.atleast_1d(self.gamma)[:,None,None])
         
         _,S1,V1t = np.linalg.svd(M_tilde)
         log_det_D = self.p*np.log(self.gamma)+np.sum(np.log(1/S1**2+1),axis=-1)+2*np.sum(np.log(S1),axis=-1)
         D_sqrtinv = (np.swapaxes(V1t.conj(),-2,-1)*np.sqrt(1/(1+S1**2))[:,None])@V1t
-
-        if self.norm_x is None:
-            self.norm_x = np.linalg.norm(X,axis=1)**2
         
-        v = 1/np.atleast_1d(self.gamma)[:,None]*(self.norm_x[None,:] - np.linalg.norm(X.conj()[None,:,None,:]@M_tilde[:,None,:,:]@D_sqrtinv[:,None,:,:],axis=(-2,-1))**2)
+        v = 1/np.atleast_1d(self.gamma)[:,None]*(norm_x[None,:] - np.linalg.norm(X.conj()[None,:,None,:]@M_tilde[:,None,:,:]@D_sqrtinv[:,None,:,:],axis=(-2,-1))**2)
         log_pdf = self.log_norm_constant - self.a*np.atleast_1d(log_det_D)[:,None] - self.a*np.real(v)
 
         return log_pdf
 
-    def log_pdf_fullrank(self, X):
+    # def log_pdf(self,X, recompute_statics=False):
+    #     if self.norm_x is None:
+    #         self.norm_x = (torch.linalg.norm(X,dim=1)**2).unsqueeze(0)
+    #     if recompute_statics:
+    #         norm_x = (torch.linalg.norm(X,dim=1)**2).unsqueeze(0)
+    #     else:
+    #         norm_x = self.norm_x
+
+
+    #     gamma = torch.nn.functional.softplus(self.gamma)
+
+    #     M_tilde = self.M*torch.sqrt(1/gamma.unsqueeze(-1).unsqueeze(-1))
+
+    #     D = M_tilde.mH @ M_tilde+torch.eye(self.r)
+    #     log_det_D = self.p*torch.log(gamma)+torch.logdet(D)
+        
+    #     v = torch.zeros(self.K, X.shape[0])
+    #     for k in range(self.K):
+    #         L, Q = torch.linalg.eigh(torch.linalg.inv(D[k]))
+    #         D_sqrtinv = (Q * L.sqrt().unsqueeze(-2)) @ Q.mH
+    #         XtM_tilde = torch.conj(X).unsqueeze(-2)@M_tilde[k].unsqueeze(0)
+    #         v[k] = 1/gamma[k]*(norm_x - torch.linalg.norm(XtM_tilde@D_sqrtinv.unsqueeze(0),dim=(-2,-1))**2)
+        
+    #     log_pdf = self.log_norm_constant - self.a*log_det_D.real.unsqueeze(-1) - self.a*v
+    #     return log_pdf
+
+
+    def log_pdf_fullrank(self, X, recompute_statics=False):
         XtLX = np.real(np.sum(X.conj()@np.linalg.inv(self.Psi)*X,axis=-1)) #should be real
         log_det_L = np.atleast_1d(np.real(self.logdet(self.Psi)))[:,None] #should be real
         log_pdf = self.log_norm_constant - self.a * log_det_L -self.a*XtLX
         return log_pdf
 
-    def log_pdf(self, X):
+    def log_pdf(self, X, recompute_statics=False):
         if 'lowrank' in self.distribution:
-            return self.log_pdf_lowrank(X)
+            return self.log_pdf_lowrank(X, recompute_statics=recompute_statics)
         elif 'fullrank' in self.distribution:
-            return self.log_pdf_fullrank(X)
+            return self.log_pdf_fullrank(X, recompute_statics=recompute_statics)
         
     def M_step_single_component(self,X,beta,M=None,gamma=None,max_iter=int(1e8),tol=1e-10):
             
@@ -622,6 +658,12 @@ class Normal(PCMMnumpyBaseModel):
                 trZtZ = gamma**2*(np.sum(S1**4)+2*np.sum(S1**2)+self.p)
                 trZtZt_old = gamma*gamma_old*(np.linalg.norm(M_tilde.T.conj()@M_tilde_old)**2 + np.sum(S1**2) + np.sum(S1_old**2)+self.p)
                 loss.append(trZtZ+trZt_oldZ_old-2*trZtZt_old)
+
+                if j>0:
+                    if loss[-1]<tol:
+                        # if np.any(np.array(loss)<-tol):
+                        #     raise Warning("Loss is negative. Check M_step_single_component")
+                        break
                                 
                 # To measure convergence
                 trZt_oldZ_old = trZtZ

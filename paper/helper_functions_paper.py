@@ -2,13 +2,17 @@ import pandas as pd
 import numpy as np
 import h5py as h5
 from PCMM.helper_functions import train_model,test_model
+from PCMM.supervised_models import *
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def load_fMRI_data(data_file,options,remove_first_ten=False):
-    assert options['modelname'] in ['Watson','ACG','MACG','SingularWishart','Complex_Watson','Complex_ACG','Normal','Complex_Normal','least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann']
+def load_fMRI_data(data_file,options,remove_first_ten=False, standardize=False):
+    assert options['modelname'] in ['Watson','ACG','MACG','SingularWishart','Complex_Watson',
+                                    'Complex_ACG','Normal','Complex_Normal',
+                                    'least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann',
+                                    'linear-svm','rbf-svm','logistic']
 
-    if options['dataset'] == 'all_tasks':
+    if options['experiment'] == 'all_tasks':
         with h5.File(data_file,'r') as f:
             if options['modelname'] in ['Complex_Watson','Complex_ACG','complex_diametrical']:
                 # complex normalized phase vectors
@@ -30,12 +34,13 @@ def load_fMRI_data(data_file,options,remove_first_ten=False):
                 # complex normalized phase vectors scaled by hilbert amplitude
                 data_train = f['U_complex_train'][:]*f['A_train'][:]
                 data_test = f['U_complex_test'][:]*f['A_test'][:]
-            elif options['modelname'] in ['Normal']:
+            elif options['modelname'] in ['Normal','linear-svm','rbf-svm','logistic']:
                 # filtered time series data (no Hilbert transform)
                 data_train = f['timeseries_train'][:]
                 data_test = f['timeseries_test'][:]
             else:
                 raise ValueError("Problem")
+                        
         if remove_first_ten:
             num_pts_per_task = np.array([176,253,316,284,232,274,405])
             # new_num_pts_per_task = num_pts_per_task - 5
@@ -52,6 +57,21 @@ def load_fMRI_data(data_file,options,remove_first_ten=False):
                     data_test2.append(data_test[sub*num_pts_per_subject+cumsum_pts_per_task[task]+10:sub*num_pts_per_subject+cumsum_pts_per_task[task+1]])
             data_train = np.concatenate(data_train2,axis=0)
             data_test = np.concatenate(data_test2,axis=0)
+
+        if standardize:
+            # standardize data for each subject
+            if options['experiment'] == 'all_tasks':
+                num_pts_per_subject = [176,253,316,284,232,274,405]
+                sum_num_pts_per_subject = np.sum(num_pts_per_subject)
+            else:
+                raise ValueError('Problem')
+            
+            for sub in range(data_train.shape[0]//sum_num_pts_per_subject):
+                for task in range(7):
+                    data_train[sub*sum_num_pts_per_subject+sum(num_pts_per_subject[:task]):sub*sum_num_pts_per_subject+sum(num_pts_per_subject[:task+1])] = StandardScaler().fit_transform(data_train[sub*sum_num_pts_per_subject+sum(num_pts_per_subject[:task]):sub*sum_num_pts_per_subject+sum(num_pts_per_subject[:task+1])])
+            for sub in range(data_test.shape[0]//sum_num_pts_per_subject):
+                for task in range(7):
+                    data_test[sub*sum_num_pts_per_subject+sum(num_pts_per_subject[:task]):sub*sum_num_pts_per_subject+sum(num_pts_per_subject[:task+1])] = StandardScaler().fit_transform(data_test[sub*sum_num_pts_per_subject+sum(num_pts_per_subject[:task]):sub*sum_num_pts_per_subject+sum(num_pts_per_subject[:task+1])])
         return data_train,data_test[0:2],data_test
     with h5.File(data_file,'r') as f:
         if options['modelname'] in ['Complex_Watson','Complex_ACG','complex_diametrical']:
@@ -95,35 +115,17 @@ def load_fMRI_data(data_file,options,remove_first_ten=False):
 # test2_posterior = gm.predict_proba(data_test2).T
 
 def run(data_train,data_test1,data_test2,K,df,options,params=None,suppress_output=False,inner=None,p=116):
-    if options['dataset'] == 'all_tasks':
-        samples_per_sequence = [[176,253,316,284,232,274,405],0,[176,253,316,284,232,274,405]]
-    else:
-        samples_per_sequence = [1200,1200,2400]
-    params,train_posterior,loglik_curve = train_model(data_train,K=K,options=options,suppress_output=suppress_output,samples_per_sequence=samples_per_sequence[0],params=params)
-    
-    train_loglik,train_posterior,train_loglik_per_sample = test_model(data_test=data_train,params=params,K=K,options=options,samples_per_sequence=samples_per_sequence[0])
-    test1_loglik,test1_posterior,test1_loglik_per_sample = test_model(data_test=data_test1,params=params,K=K,options=options,samples_per_sequence=samples_per_sequence[1])
-    test2_loglik,test2_posterior,test2_loglik_per_sample = test_model(data_test=data_test2,params=params,K=K,options=options,samples_per_sequence=samples_per_sequence[2])
-    # end_logliks = [train_loglik,test1_loglik,test2_loglik]
-    posteriors = [train_posterior,test1_posterior,test2_posterior]
 
-    if options['HMM']:
-        train_ll = train_loglik_per_sample/np.sum(samples_per_sequence[0])
-        test1_ll = test1_loglik_per_sample/np.sum(samples_per_sequence[1])
-        test2_ll = test2_loglik_per_sample/np.sum(samples_per_sequence[2])
-    else:
-        train_ll,test1_ll,test2_ll = calc_ll_per_sub(train_loglik_per_sample,test1_loglik_per_sample,test2_loglik_per_sample,options)
-    end_logliks = [train_ll,test1_ll,test2_ll]
-    sets = ['train','test1','test2']
-
-    if options['dataset'] == 'MOTORSOCIAL':
-        pts_pr_subject_sum = np.array([279,279,279*2])
-        pts_pr_subject = [[284//2,274//2],[284//2,274//2],[284,274]]
-        true_labels = [np.zeros((2,pts_pr_subject_sum[0])),np.zeros((2,pts_pr_subject_sum[1])),np.zeros((2,pts_pr_subject_sum[2]))]
-        for set in range(len(sets)):
-            true_labels[set][0,:pts_pr_subject[set][0]] = 1
-            true_labels[set][1,pts_pr_subject[set][0]:] = 1
-    elif options['dataset'] == 'all_tasks':
+    # generate labels
+    if options['experiment'] == 'MOTORSOCIAL':
+        pass
+        # pts_pr_subject_sum = np.array([279,279,279*2])
+        # pts_pr_subject = [[284//2,274//2],[284//2,274//2],[284,274]]
+        # true_labels = [np.zeros((2,pts_pr_subject_sum[0])),np.zeros((2,pts_pr_subject_sum[1])),np.zeros((2,pts_pr_subject_sum[2]))]
+        # for set in range(len(sets)):
+        #     true_labels[set][0,:pts_pr_subject[set][0]] = 1
+        #     true_labels[set][1,pts_pr_subject[set][0]:] = 1
+    elif options['experiment'] == 'all_tasks':
         pts_pr_subject_sum = np.array([1940,0,1940])
         pts_pr_subject = [[0,176,253,316,284,232,274,405],[0,0,0,0,0,0,0,0],[0,176,253,316,284,232,274,405]]
         # pts_pr_subject_sum = np.array([1870,0,1870])
@@ -134,27 +136,76 @@ def run(data_train,data_test1,data_test2,K,df,options,params=None,suppress_outpu
             true_labels[0][task,cumsum_pts_pr_subject[0][task]:cumsum_pts_pr_subject[0][task+1]] = 1
             true_labels[1][task,cumsum_pts_pr_subject[1][task]:cumsum_pts_pr_subject[1][task+1]] = 1
             true_labels[2][task,cumsum_pts_pr_subject[2][task]:cumsum_pts_pr_subject[2][task+1]] = 1
+        true_labels_int = [np.hstack(155*[np.argmax(true_labels[0],axis=0)]),np.hstack(155*[np.argmax(true_labels[1],axis=0)]),np.hstack(155*[np.argmax(true_labels[2],axis=0)])]
     else:
         pts_pr_subject_sum = np.array([1200,1200,2400])
 
-    if options['dataset'] == 'all_tasks':
+    # for HMM, specify samples per sequence
+    if options['experiment'] == 'all_tasks':
+        samples_per_sequence = [[176,253,316,284,232,274,405],0,[176,253,316,284,232,274,405]]
+    else:
+        samples_per_sequence = [1200,1200,2400]
+
+    if options['experiment'] == 'all_tasks':
         num_subs = [data_train.shape[0]//1940,0,data_test2.shape[0]//1940]
     else:
         num_subs = [data_train.shape[0]//1200,data_test1.shape[0]//1200,data_test2.shape[0]//2400]
+    
+    # do training if supervised models
+    if options['modelname'] == 'linear-svm':
+        params,train_posterior,test2_posterior = svm_linear_cv(train_X=data_train,train_y=true_labels_int[0],test_X=data_test2,
+                            samples_per_subject_train=155*[np.sum(samples_per_sequence[0])])
+        test1_posterior = None
+        loglik_curve = []
+    elif options['modelname'] == 'rbf-svm':
+        params,train_posterior,test2_posterior = svm_rbf_cv(train_X=data_train,train_y=true_labels_int[0],test_X=data_test2,
+                         samples_per_subject_train=155*[np.sum(samples_per_sequence[0])])
+        test1_posterior = None
+        loglik_curve = []
+    elif options['modelname'] == 'logistic':
+        params,train_posterior,test2_posterior = logistic_l2_cv(train_X=data_train,train_y=true_labels_int[0],test_X=data_test2,
+                             samples_per_subject_train=155*[np.sum(samples_per_sequence[0])])
+        test1_posterior = None
+        loglik_curve = []
+    else: #mixtures
+        params,train_posterior,loglik_curve = train_model(data_train,K=K,options=options,suppress_output=suppress_output,samples_per_sequence=samples_per_sequence[0],params=params)
+        
+        train_loglik,train_posterior,train_loglik_per_sample = test_model(data_test=data_train,params=params,K=K,options=options,samples_per_sequence=samples_per_sequence[0])
+        test1_loglik,test1_posterior,test1_loglik_per_sample = test_model(data_test=data_test1,params=params,K=K,options=options,samples_per_sequence=samples_per_sequence[1])
+        test2_loglik,test2_posterior,test2_loglik_per_sample = test_model(data_test=data_test2,params=params,K=K,options=options,samples_per_sequence=samples_per_sequence[2])
+        
+        # end_logliks = [train_loglik,test1_loglik,test2_loglik]
+    posteriors = [train_posterior,test1_posterior,test2_posterior]
+
+    if options['HMM']:
+        train_ll = train_loglik_per_sample/np.sum(samples_per_sequence[0])
+        test1_ll = test1_loglik_per_sample/np.sum(samples_per_sequence[1])
+        test2_ll = test2_loglik_per_sample/np.sum(samples_per_sequence[2])
+    else:
+        if options['modelname'] in ['linear-svm','rbf-svm','logistic']:
+            train_ll = np.zeros(num_subs[0])
+            test1_ll = np.zeros(num_subs[1])
+            test2_ll = np.zeros(num_subs[2])
+        else:
+            train_ll,test1_ll,test2_ll = calc_ll_per_sub(train_loglik_per_sample,test1_loglik_per_sample,test2_loglik_per_sample,options)
+    end_logliks = [train_ll,test1_ll,test2_ll]
+    sets = ['train','test1','test2']
+
     entries = []
     # all_test_posterior = np.zeros((K,pts_pr_subject_sum[2]))
     all_test_posterior = []
     all_train_posterior = []
     for set in range(len(sets)):
         for i in range(num_subs[set]):
-            if options['dataset'] == 'MOTORSOCIAL' and K==2:
-                posterior_sub = posteriors[set][:,i*pts_pr_subject_sum[set]:(i+1)*pts_pr_subject_sum[set]]
-                nmi = calc_NMI(posterior_sub,true_labels[set])
-                posterior_sub_binary = np.argmax(posterior_sub,axis=0)
-                classification_accuracy1 = np.sum(posterior_sub_binary==true_labels[set][0])/posterior_sub_binary.shape[0]
-                classification_accuracy2 = np.sum(posterior_sub_binary==true_labels[set][1])/posterior_sub_binary.shape[0]
-                classification_accuracy = max(classification_accuracy1,classification_accuracy2)
-            elif options['dataset'] == 'all_tasks':
+            if options['experiment'] == 'MOTORSOCIAL' and K==2:
+                pass
+                # posterior_sub = posteriors[set][:,i*pts_pr_subject_sum[set]:(i+1)*pts_pr_subject_sum[set]]
+                # nmi = calc_NMI(posterior_sub,true_labels[set])
+                # posterior_sub_binary = np.argmax(posterior_sub,axis=0)
+                # classification_accuracy1 = np.sum(posterior_sub_binary==true_labels[set][0])/posterior_sub_binary.shape[0]
+                # classification_accuracy2 = np.sum(posterior_sub_binary==true_labels[set][1])/posterior_sub_binary.shape[0]
+                # classification_accuracy = max(classification_accuracy1,classification_accuracy2)
+            elif options['experiment'] == 'all_tasks':
                 posterior_sub = np.zeros((K,pts_pr_subject_sum[set]))
                 for task in range(7):
                     posterior_sub[:,cumsum_pts_pr_subject[set][task]:cumsum_pts_pr_subject[set][task+1]] = posteriors[set][:,i*pts_pr_subject_sum[set]+cumsum_pts_pr_subject[set][task]:i*pts_pr_subject_sum[set]+cumsum_pts_pr_subject[set][task+1]]
@@ -165,9 +216,13 @@ def run(data_train,data_test1,data_test2,K,df,options,params=None,suppress_outpu
                 nmi = np.nan
                 classification_accuracy = np.nan
                 posterior_sub = posteriors[set][:,i*pts_pr_subject_sum[set]:(i+1)*pts_pr_subject_sum[set]]
+            entropy = -np.nansum(posterior_sub * np.log(posterior_sub + 1e-10), axis=(-1,-2)) #entropy per time point
+            pi_sub = np.nanmean(posterior_sub, axis=1) #mean over time points
+            entropy_pi = -np.nansum(pi_sub * np.log(pi_sub + 1e-10)) #entropy of mean posterior
             entry = {'modelname':options['modelname'],'init_method':options['init'],'LR':options['LR'],'HMM':str(options['HMM']),
                 'K':K,'p':p,'rank':options['rank'],'inner':inner,'iter':len(loglik_curve),
-                'Set':sets[set],'loglik':end_logliks[set][i],'Subject':i,'NMI':nmi,'classification_accuracy':classification_accuracy,}
+                'Set':sets[set],'loglik':end_logliks[set][i],'Subject':i,'NMI':nmi,'classification_accuracy':classification_accuracy,
+                'entropy':entropy,'entropy_pi':entropy_pi}
             entries.append(entry)
             if set==0:
                 all_train_posterior.append(posterior_sub)
@@ -181,7 +236,7 @@ def run(data_train,data_test1,data_test2,K,df,options,params=None,suppress_outpu
 def calc_ll_per_sub(train_loglik_per_sample,test1_loglik_per_sample,test2_loglik_per_sample,options):
     if train_loglik_per_sample.shape[0]==155:
         return train_loglik_per_sample,test1_loglik_per_sample,test2_loglik_per_sample
-    if options['dataset'] == 'all_tasks':
+    if options['experiment'] == 'all_tasks':
         num_subs = [155,0,99]
         num_samples_per_sub_train = train_loglik_per_sample.shape[0]//num_subs[0]
         num_samples_per_sub_test1 = test1_loglik_per_sample.shape[0]
@@ -291,6 +346,74 @@ def horizontal_boxplot(df_fig,type=1,ranks=[1,10,25]):
 
     # change the line styles
     styles = ['-']+['-']*len(ranks)+['--']+[':']+['-']*len(ranks)+['-']*len(ranks)+['--']*2+['-']+['-']*len(ranks)+['--']*2+['-']*len(ranks)+['-']*len(ranks)
+    #repeat every element of styles six times
+    styles2 = [item for item in styles for i in range(5)]
+    l = 0
+    for i,artist in enumerate(plt.gca().get_children()):
+        if isinstance(artist, plt.Line2D):
+            #if linestyle is not none
+            if artist.get_linestyle() != 'None':
+                artist.set_linestyle(styles2[l])
+                l+=1
+        # print(l)
+    # plt.savefig(savename, bbox_inches='tight', dpi=300)
+    return fig
+
+def horizontal_boxplot_revision(df_fig,type=1,ranks=[1,10,25]):
+    order = [*['Mixture: Complex ACG rank='+str(rank) for rank in ranks],
+        'K-means: Complex diametrical','space1','space2',
+        *['Mixture: Gaussian rank='+str(rank) for rank in ranks],'space3','space4',
+        *['Mixture: Complex Gaussian rank='+str(rank) for rank in ranks],'space5','space6',
+        'K-means: Diametrical','K-means: Least squares (sign-flip)']
+    palette_husl = sns.color_palette("husl", n_colors=11, desat=1)
+    palette_husl2 = [palette_husl[1]]*len(ranks)+[palette_husl[2]]+[palette_husl[-1]]*2+[(0.5,0.5,0.5)]*len(ranks)+[palette_husl[-1]]*2+[(0.3,0.3,0.3)]*len(ranks)+[palette_husl[-1]]*2 + [palette_husl[3]] + [palette_husl[4]]# df_fig = df[df['Set']=='Out-of-sample test']
+    for i in range(1,7):
+        df_fig2 = pd.concat([df_fig,pd.DataFrame({'NMI':[np.nan],'names2':['space'+str(i)]}, index=[0])], ignore_index=True)
+    fig = plt.figure(figsize=(7,5))
+    if type == 1:
+        sns.boxplot(x='NMI', y='names2', data=df_fig2, palette=palette_husl2, order=order)
+        plt.xlabel('Normalized mutual information')
+        plt.xlim([-0.01,1.01])
+        xtitlepos = -0.02
+    else:
+        sns.boxplot(x='classification_accuracy', y='names2', data=df_fig2, palette=palette_husl2, order=order)
+        plt.xlabel('Classification accuracy')
+        plt.xlim([0.49,1.01])
+        xtitlepos = 0.48
+    plt.ylabel('')
+
+    # add extra text next to y-ticks that aren't there
+    ticks_per_group = np.array([1+len(ranks), len(ranks), len(ranks),2])
+    additional_ticks = np.concatenate([[0],np.cumsum(ticks_per_group+2)])
+    # np.concatenate([np.arange(2+len(ranks)),np.arange(2+2*len(ranks))+7,np.arange(3+len(ranks))+17,np.arange(len(ranks))+25,np.arange(len(ranks))+30])
+    ticks_list = [np.arange(ticks_per_group[i]) + additional_ticks[i] for i in range(len(ticks_per_group))]
+    ticks_list = np.concatenate(ticks_list)
+    # print(ticks_list)
+    # print(np.concatenate([np.arange(2+len(ranks)),np.arange(2+2*len(ranks))+7,np.arange(3+len(ranks))+17,np.arange(len(ranks))+25,np.arange(len(ranks))+30]))
+    # additional_ticks = [0, 7, 17, 25, 30]
+    # plt.yticks(np.concatenate([np.arange(2+len(ranks)),np.arange(2+2*len(ranks))+7,np.arange(3+len(ranks))+17,np.arange(len(ranks))+25,np.arange(len(ranks))+30]),fontsize=8)
+
+    if len(ranks)==3:
+        ytitlepos = [-0.7,5.3,8.3,11.3]
+        plt.yticks(ticks_list, fontsize=8)
+        plt.ylim([27,-2])
+    elif len(ranks)==5:
+        ytitlepos = [-0.7,7.3,14.3,21.3]
+        plt.yticks(ticks_list, fontsize=7)
+        plt.ylim([24,-2])
+    elif len(ranks)==6:
+        ytitlepos = [-0.7,8.3,12.3,20.3]
+        plt.yticks(ticks_list, fontsize=6)
+        plt.ylim([22,-2])
+        
+    plt.text(xtitlepos, ytitlepos[0], 'Complex-valued phase coupling', fontsize=8,fontweight='bold', ha='right')
+    # plt.text(xtitlepos, ytitlepos[1], 'Cosine phase coupling', fontsize=8,fontweight='bold', ha='right')
+    plt.text(xtitlepos, ytitlepos[1], 'Amplitude coupling', fontsize=8,fontweight='bold', ha='right')
+    plt.text(xtitlepos, ytitlepos[2], 'Phase-amplitude coupling', fontsize=8,fontweight='bold', ha='right')
+    plt.text(xtitlepos, ytitlepos[3], 'LEiDA (reduced cosine phase coupling)', fontsize=8,fontweight='bold', ha='right')
+
+    # change the line styles
+    styles = ['-']*len(ranks)+['--']+['-']*len(ranks)+['-']*len(ranks)+['--']*2
     #repeat every element of styles six times
     styles2 = [item for item in styles for i in range(5)]
     l = 0

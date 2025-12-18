@@ -61,11 +61,12 @@ def run_experiment(extraoptions={},dataset='narrowband_phase_controlled',suppres
 
                     params = None
                     options['HMM'] = False
-                    _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
+                    params,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
 
                     if options['LR'] != 0: #rank 1 HMM
                         if do_HMM:
                             options['HMM'] = True
+                            options['init'] = 'no'
                             _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
                 elif options['experiment']=='Kmeans':
                     if options['modelname'] in ['Watson','Complex_Watson','ACG','Complex_ACG']:
@@ -74,18 +75,21 @@ def run_experiment(extraoptions={},dataset='narrowband_phase_controlled',suppres
                         options['init'] = 'gc'
                     elif options['modelname']=='SingularWishart':
                         options['init'] = 'wgc'
+                        options['force_gamma_same'] = True
                     elif options['modelname'] in ['Normal','Complex_Normal']:
                         options['init'] = 'ls'
+                        options['force_gamma_same'] = True
                     else:
                         raise ValueError("Problem")
 
                     params = None
                     options['HMM'] = False
-                    _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
+                    params,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
 
                     if options['LR'] != 0: #rank 1 HMM
                         if do_HMM:
                             options['HMM'] = True
+                            options['init'] = 'no'
                             _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
                 elif options['experiment']=='Kmeansseg':
                     if options['modelname'] in ['Watson','Complex_Watson','ACG','Complex_ACG']:
@@ -94,18 +98,21 @@ def run_experiment(extraoptions={},dataset='narrowband_phase_controlled',suppres
                         options['init'] = 'gc_seg'
                     elif options['modelname']=='SingularWishart':
                         options['init'] = 'wgc_seg'
+                        options['force_gamma_same'] = True
                     elif options['modelname'] in ['Normal','Complex_Normal']:
                         options['init'] = 'ls_seg'
+                        options['force_gamma_same'] = True
                     else:
                         raise ValueError("Problem")
 
                     params = None
                     options['HMM'] = False
-                    _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
+                    params,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
 
                     if options['LR'] != 0: #rank 1 HMM
                         if do_HMM:
                             options['HMM'] = True
+                            options['init'] = 'no'
                             _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
                 elif options['experiment']=='ALL':
                     if options['modelname'] in ['Watson','Complex_Watson']:
@@ -150,7 +157,7 @@ if __name__=="__main__":
         run_experiment(extraoptions=options,dataset=sys.argv[2],suppress_output=True)
     else:
         modelnames = ['Watson','Complex_Watson','ACG','Complex_ACG','MACG','SingularWishart']
-        modelnames = ['Complex_ACG']
-        experiment = 'ALL'
+        modelnames = ['Complex_Normal']
+        experiment = 'Kmeans'
         for modelname in modelnames:
             run_experiment(extraoptions={'modelname':modelname,'experiment':experiment},suppress_output=False)

@@ -1,5 +1,5 @@
 clear,close all
-ff = 'figures/'; %figure folder
+ff = 'paper/synthetic_analysis/figures/'; %figure folder
 %% load example dataset, fMRI
 V = double(squeeze(niftiread('paper/data/raw/100206/fMRI/rfMRI_REST1_RL_Atlas_MSMAll_hp2000_clean.dtseries.nii')));
 % Compute eigenvectors
@@ -27,7 +27,7 @@ figure('Position',[50,50,500,300])
 plot(t_fMRI/60,V_subs5(1:numel(t_fMRI),:)+0.05*[-5,0,0,0,4:3:18],'k-','LineWidth',1.5)
 set(gca,'box','off')
 xlim([-.1 5.1])
-yticks(0.05*[-5,16.5]),yticklabels({'p','1'}),ylabel('Voxel (j)'),xlabel('Time (t) [min]'),%title('fMRI time-series')
+yticks(0.05*[-5,16.5]),yticklabels({'p','1'}),ylabel('Region (j)'),xlabel('Time (t) [min]'),%title('fMRI time-series')
 exportgraphics(gca,[ff,'methods_ts_fMRI.png'],'Resolution',300,'BackgroundColor','none')
 
 %% Hilbert figure, fMRI

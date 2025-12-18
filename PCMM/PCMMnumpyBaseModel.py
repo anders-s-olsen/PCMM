@@ -185,7 +185,10 @@ class PCMMnumpyBaseModel():
                 for k in range(self.K):
                     self.M[k],gamma[k] = init_M_svd(X[X_part==k].T,self.r)
                 if self.distribution in ['Normal_lowrank','Complex_Normal_lowrank','SingularWishart_lowrank']:
-                    self.gamma = gamma
+                    if self.force_gamma_same:
+                        self.gamma = np.ones(self.K)*np.mean(gamma)
+                    else:
+                        self.gamma = gamma
             elif self.distribution in ['MACG_lowrank']:
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
                 self.M = np.zeros((self.K,self.p,self.r),dtype=X.dtype)
@@ -218,7 +221,10 @@ class PCMMnumpyBaseModel():
                 for k in range(self.K):
                     self.M[k],gamma[k] = init_M_svd(np.reshape(np.swapaxes(X[X_part==k],0,1),(self.p,np.sum(X_part==k)*self.q)),self.r)
                 if 'SingularWishart' in self.distribution:
-                    self.gamma = gamma
+                    if self.force_gamma_same:
+                        self.gamma = np.ones(self.K)*np.mean(gamma)
+                    else:
+                        self.gamma = gamma
             elif 'fullrank' in self.distribution:
                 print('Initializing Psi based on the clustering centroids')
                 self.Psi = np.zeros((self.K,self.p,self.p),dtype=X.dtype)
@@ -247,7 +253,10 @@ class PCMMnumpyBaseModel():
                 for k in range(self.K):
                     self.M[k],gamma[k] = init_M_svd(np.reshape(np.swapaxes(X[X_part==k],0,1),(self.p,np.sum(X_part==k)*self.q)),self.r)
                 if 'SingularWishart' in self.distribution:
-                    self.gamma = gamma
+                    if self.force_gamma_same:
+                        self.gamma = np.ones(self.K)*np.mean(gamma)
+                    else:
+                        self.gamma = gamma
             elif 'fullrank' in self.distribution:
                 print('Initializing Psi based on the clustering centroids')
                 self.Psi = np.zeros((self.K,self.p,self.p),dtype=X.dtype)
@@ -290,8 +299,8 @@ class PCMMnumpyBaseModel():
         log_likelihood = np.sum(logsum_density) #sum over the N samples
         return log_likelihood,log_density,logsum_density
 
-    def log_likelihood(self, X, return_samplewise_likelihood=False):
-        log_pdf = self.log_pdf(X)
+    def log_likelihood(self, X, return_samplewise_likelihood=False, recompute_statics=False):
+        log_pdf = self.log_pdf(X, recompute_statics=recompute_statics)
         log_likelihood, self.log_density, self.logsum_density = self.MM_log_likelihood(log_pdf)
         if return_samplewise_likelihood:
             return log_likelihood, self.logsum_density
@@ -299,7 +308,7 @@ class PCMMnumpyBaseModel():
             return log_likelihood
         
     def test_log_likelihood(self,X):
-        return self.log_likelihood(X,return_samplewise_likelihood=True)
+        return self.log_likelihood(X,return_samplewise_likelihood=True, recompute_statics=True)
 
     def update_pi(self,beta):
         self.pi = np.sum(beta,axis=1)/beta.shape[1]

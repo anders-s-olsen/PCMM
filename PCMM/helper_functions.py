@@ -30,6 +30,20 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
         if options['LR']!=0:
             # data_train = torch.tensor(data_train)
             data_train = torch.from_numpy(data_train)
+            if params is not None:
+                for key in params:
+                    if isinstance(params[key],np.ndarray):
+                        print('Converting params key',key,'to torch tensor')
+                        params[key] = torch.from_numpy(params[key])
+        else:
+            if params is not None:
+                for key in params:
+                    if isinstance(params[key],torch.Tensor):
+                        print('Converting params key',key,'to numpy array')
+                        params[key] = params[key].numpy()
+
+    if 'force_gamma_same' not in options:
+        options['force_gamma_same'] = False
 
     if options['modelname'] == 'Watson':
         if options['LR']==0:
@@ -58,19 +72,19 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
             model = MACG_torch(K=K,p=p,q=2,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence) 
     elif options['modelname'] == 'SingularWishart':
         if options['LR']==0:
-            model = SingularWishart_numpy(K=K,p=p,q=2,rank=rank,params=params)
+            model = SingularWishart_numpy(K=K,p=p,q=2,rank=rank,params=params, force_gamma_same=options['force_gamma_same'])
         else:
-            model = SingularWishart_torch(K=K,p=p,q=2,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence) 
+            model = SingularWishart_torch(K=K,p=p,q=2,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence, force_gamma_same=options['force_gamma_same']) 
     elif options['modelname'] == 'Normal':
         if options['LR']==0:
-            model = Normal_numpy(K=K,p=p,rank=rank,params=params)
+            model = Normal_numpy(K=K,p=p,rank=rank,params=params, force_gamma_same=options['force_gamma_same'])
         else:
-            model = Normal_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
+            model = Normal_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence, force_gamma_same=options['force_gamma_same'])
     elif options['modelname'] == 'Complex_Normal':
         if options['LR']==0:
-            model = Normal_numpy(K=K,p=p,rank=rank,params=params,complex=True)
+            model = Normal_numpy(K=K,p=p,rank=rank,params=params,complex=True, force_gamma_same=options['force_gamma_same'])
         else:
-            model = Normal_torch(K=K,p=p,rank=rank,params=params,complex=True,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
+            model = Normal_torch(K=K,p=p,rank=rank,params=params,complex=True,HMM=options['HMM'],samples_per_sequence=samples_per_sequence, force_gamma_same=options['force_gamma_same'])
     elif options['modelname'] == 'least_squares':
         C,labels,obj = least_squares_sign_flip(data_train,K=K,max_iter=options['max_iter'],num_repl=options['num_repl'],init=options['init'],tol=options['tol'])
         # X = data_train

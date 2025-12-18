@@ -109,15 +109,15 @@ class PCMMtorchBaseModel(nn.Module):
             MACGEM.initialize(X.numpy(),init_method=init_method)
             self.unpack_params(MACGEM.get_params())
         elif self.distribution == 'SingularWishart_lowrank':
-            SingularWishartEM = SingularWishart(p=self.p,K=self.K,q=self.q,rank=self.r)
+            SingularWishartEM = SingularWishart(p=self.p,K=self.K,q=self.q,rank=self.r,force_gamma_same=self.force_gamma_same)
             SingularWishartEM.initialize(X.numpy(),init_method=init_method)
             self.unpack_params(SingularWishartEM.get_params())
         elif self.distribution == 'Normal_lowrank':
-            NormalEM = Normal(p=self.p,K=self.K,rank=self.r)
+            NormalEM = Normal(p=self.p,K=self.K,rank=self.r,force_gamma_same=self.force_gamma_same)
             NormalEM.initialize(X.numpy(),init_method=init_method)
             self.unpack_params(NormalEM.get_params())
         elif self.distribution == 'Complex_Normal_lowrank':
-            NormalEM = Normal(p=self.p,K=self.K,rank=self.r,complex=True)
+            NormalEM = Normal(p=self.p,K=self.K,rank=self.r,complex=True,force_gamma_same=self.force_gamma_same)
             NormalEM.initialize(X.numpy(),init_method=init_method)
             self.unpack_params(NormalEM.get_params())
         else:

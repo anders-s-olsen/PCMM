@@ -194,7 +194,7 @@ class MACG(PCMMtorchBaseModel):
         return log_pdf
     
 class SingularWishart(PCMMtorchBaseModel):
-    def __init__(self, p:int, q:int, rank:int, K:int=1, HMM:bool=False, samples_per_sequence=0, params:dict=None):
+    def __init__(self, p:int, q:int, rank:int, K:int=1, HMM:bool=False, samples_per_sequence=0, params:dict=None, force_gamma_same:bool=False):
         super().__init__()
 
         self.p = p
@@ -207,6 +207,7 @@ class SingularWishart(PCMMtorchBaseModel):
         self.samples_per_sequence = torch.as_tensor(samples_per_sequence)
         self.distribution = 'SingularWishart_lowrank'
         self.log_det_S11 = None
+        self.force_gamma_same = force_gamma_same
         
         loggamma_q = (self.q*(self.q-1)/4)*torch.log(torch.as_tensor(math.pi))+torch.sum(torch.lgamma(torch.as_tensor(self.q)-torch.arange(self.q)/2))
         self.log_norm_constant = self.q*(self.q-self.p)/2*torch.log(torch.as_tensor(math.pi))-self.p*self.q/2*torch.log(torch.as_tensor(2))-loggamma_q
@@ -226,7 +227,7 @@ class SingularWishart(PCMMtorchBaseModel):
                 self.flag_normalized_input_data = True
 
         # while Q_q^T Q_q != U_q^T L U_q, their determinants are the same
-        if self.log_det_S11 is None:
+        if self.log_det_S11 is None or recompute_statics:
             self.log_det_S11 = torch.logdet(torch.swapaxes(X[:,:self.q,:],-2,-1)@X[:,:self.q,:]).unsqueeze(0)
         if recompute_statics:
             log_det_S11 = torch.logdet(torch.swapaxes(X[:,:self.q,:],-2,-1)@X[:,:self.q,:]).unsqueeze(0)
@@ -251,7 +252,7 @@ class SingularWishart(PCMMtorchBaseModel):
         return log_pdf
 
 class Normal(PCMMtorchBaseModel):
-    def __init__(self, p:int, rank:int, K:int=1, complex:bool=False, HMM:bool=False, samples_per_sequence=0, params:dict=None):
+    def __init__(self, p:int, rank:int, K:int=1, complex:bool=False, HMM:bool=False, samples_per_sequence=0, params:dict=None, force_gamma_same:bool=False):
         super().__init__()
 
         self.p = p
@@ -263,6 +264,7 @@ class Normal(PCMMtorchBaseModel):
         self.samples_per_sequence = torch.as_tensor(samples_per_sequence)
         self.distribution = 'Normal_lowrank'
         self.complex = complex
+        self.force_gamma_same = force_gamma_same
 
         if complex:
             self.a = torch.as_tensor(1)
