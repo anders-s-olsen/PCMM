@@ -5,6 +5,8 @@ from PCMM.helper_functions import train_model,test_model
 from PCMM.supervised_models import *
 import matplotlib.pyplot as plt
 import seaborn as sns
+from scipy.stats import f
+import warnings
 
 def load_fMRI_data(data_file,options,remove_first_ten=False, standardize=False):
     assert options['modelname'] in ['Watson','ACG','MACG','SingularWishart','Complex_Watson',
@@ -440,3 +442,117 @@ def run_phaserando(data_train,data_test1,data_test2,K,P,df,options,params=None,s
     df = pd.concat([df,pd.DataFrame([entry])],ignore_index=True)
     df.to_csv(options['outfolder']+'/'+options['experiment_name']+'.csv')
     return params,df
+
+
+
+# Paired Hotelling T² test for complex scalars (Python)
+# This code computes the paired Hotelling T² statistic (one-sample Hotelling on paired differences),
+# converts it to an F-statistic, and returns the analytic p-value.
+#
+# Requirements: numpy, scipy
+# Usage: call hotelling_paired(z1, z2, mu0=0+0j)
+#
+# Returns: dict with T2, F, pval, xbar (2-vector), S (2x2 covariance)
+
+def hotelling_paired(z1, z2, mu0=0+0j, regularize=True, reg_tol=1e-8, is_real=False):
+    """
+    Paired Hotelling T^2 test for complex scalar pairs.
+    
+    Null hypothesis: mean(z1 - z2) = mu0 (complex scalar)
+    
+    Parameters
+    ----------
+    z1, z2 : array_like, shape (n,)
+        Arrays of complex observations (paired).
+    mu0 : complex, optional
+        Hypothesized mean difference (default 0+0j).
+    regularize : bool, optional
+        If True, automatically regularize the sample covariance when it's nearly singular.
+    reg_tol : float, optional
+        Relative tolerance for regularization (small positive number).
+    
+    Returns
+    -------
+    result : dict
+        {
+          'T2': Hotelling T^2 statistic,
+          'F': corresponding F statistic,
+          'pval': right-tail p-value from F_{p, n-p},
+          'xbar': sample mean vector (2,),
+          'S': sample covariance matrix (2,2),
+          'n': sample size,
+          'p': dimension (2)
+        }
+    """
+    z1 = np.asarray(z1)
+    z2 = np.asarray(z2)
+    if z1.shape != z2.shape:
+        raise ValueError("z1 and z2 must have the same shape.")
+    if z1.ndim != 1:
+        raise ValueError("z1 and z2 must be 1-D arrays of complex scalars.")
+    if not is_real:
+        if not np.iscomplexobj(z1) or not np.iscomplexobj(z2):
+            raise ValueError("z1 and z2 must be arrays of complex numbers.")
+    
+    d = z1 - z2  # paired differences (complex)
+
+    if is_real:
+        # revert to a t-test of the real parts only
+        from scipy.stats import ttest_rel
+        t_stat, p_values = ttest_rel(z1.real, z2.real, axis=0, nan_policy='propagate')
+        return {'T2': None,'F': None,'pval': p_values,'xbar': np.array([d.real.mean(), 0.0]),'S': None,'n': d.size,'p': 1}
+
+
+    n = d.size
+    p = 2  # real dimension after stacking real+imag
+
+    # form 2D real vectors of (Re(d - mu0), Im(d - mu0))
+    d_centered = d - mu0
+    X = np.column_stack((d_centered.real, d_centered.imag))  # shape (n,2)
+    
+    xbar = X.mean(axis=0)  # sample mean (2,)
+    # sample covariance with ddof=1
+    S = np.cov(X, rowvar=False, ddof=1)
+    
+    # check invertibility / rank
+    rankS = np.linalg.matrix_rank(S)
+    if rankS < p:
+        msg = f"Sample covariance is rank {rankS} < {p}; result would be unstable."
+        if not regularize:
+            raise np.linalg.LinAlgError(msg)
+        # regularize: add small multiple of identity proportional to trace(S)
+        traceS = np.trace(S)
+        # fallback if trace is zero
+        base = traceS if traceS > 0 else 1.0
+        eps = reg_tol * base
+        S = S + eps * np.eye(p)
+        warnings.warn(msg + f" Regularizing with eps={eps:.2e}.", UserWarning)
+    
+    # compute T^2 = n * xbar' S^{-1} xbar
+    try:
+        Sinv_x = np.linalg.solve(S, xbar)  # solve S * y = xbar
+        T2 = n * float(xbar.dot(Sinv_x))
+    except np.linalg.LinAlgError:
+        # as a last resort, use pseudo-inverse (shouldn't be needed with regularization)
+        Sinv = np.linalg.pinv(S)
+        T2 = n * float(xbar.dot(Sinv.dot(xbar)))
+        warnings.warn("Used pseudo-inverse for S.", UserWarning)
+    
+    # convert to F
+    Fnum = (n - p) / (p * (n - 1)) if n > p else np.nan
+    Fstat = Fnum * T2
+    # p-value (right tail)
+    if not np.isnan(Fstat):
+        pval = 1.0 - f.cdf(Fstat, dfn=p, dfd=(n - p))
+    else:
+        pval = np.nan
+    
+    return {
+        'T2': T2,
+        'F': Fstat,
+        'pval': pval,
+        'xbar': xbar,
+        'S': S,
+        'n': n,
+        'p': p
+    }
