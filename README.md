@@ -13,13 +13,13 @@
 
 ## Setup Instructions
 
-1. **Create a New Environment** (recommended):
+0. (recommended) **Create a New Environment**:
     ```bash
     conda create -n PCMM python
     conda activate PCMM
     ```
     
-2. **Install necessary dependencies**
+1. **Install necessary dependencies**
     PCMM requirements for EM estimation
     ```bash
     conda install scipy numpy
@@ -32,13 +32,13 @@
     pip install tqdm
     ```
     
-4. **Clone the Repository**:
+2. **Clone the Repository**:
     ```bash
     git clone https://github.com/anders-s-olsen/PCMM.git
     cd PCMM
     ```
 
-5. **Install the PCMM subfolder as a package**:
+3. **Install the PCMM subfolder as a package**:
     - For standard installation:
         ```bash
         pip install .
