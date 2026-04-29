@@ -6,8 +6,15 @@ subjects = np.loadtxt('paper/data/255unrelatedsubjectsIDs.txt', dtype='str')
 # ################### All tasks
 add_GSR = '_GSR'
 # add_GSR = ''
+if add_GSR == '_GSR':
+    add_GSR2 = '_GSR'
+else:    
+    add_GSR2 = '_noGSR'
+split_6040_or_8020 = '8020' # '6040' or '8020'
+if split_6040_or_8020 == '8020':
+    split_idx = 4
 atlas = 'SchaeferTian116' # SchaeferTian116, SchaeferTian232, Schaefer400
-dataset = 'Atlas_MSMAll_hp0_clean_rclean_tclean' # Atlas_MSMAll, Atlas_MSMAll_hp0_clean_rclean_tclean
+dataset = 'Atlas_MSMAll' # Atlas_MSMAll, Atlas_MSMAll_hp0_clean_rclean_tclean
 if dataset != 'Atlas_MSMAll':
     add_preproc = '2025'
 else:
@@ -15,16 +22,31 @@ else:
 p = int(atlas[-3:])
 tasks = ['EMOTION','GAMBLING','LANGUAGE','MOTOR','RELATIONAL','SOCIAL','WM']
 # tasks = ['EMOTION','GAMBLING','LANGUAGE','MOTOR']
-subject_split = 155
 num_subs = len(subjects)
+remove_first_vols = np.array([15,11,0,11,11,11,11])
 num_points = np.array([176,253,316,284,232,274,405])
-cumsum_points = np.cumsum(num_points)
+num_points_after_removal = num_points - remove_first_vols
+sum_points = np.sum(num_points_after_removal)
+cumsum_points = np.cumsum(num_points_after_removal) #changed from num_points to num_points_after_removal
 cumsum_points = np.insert(cumsum_points,0,0)
 np.random.seed(0)
 np.random.shuffle(subjects)
-subjects = subjects[subjects!='134627']
-# save the subject split
+subjects = subjects[subjects!='134627'] # reverse the order of removal...
 np.savetxt('paper/data/all_tasks_subject_split.txt',subjects,fmt='%s')
+
+if split_6040_or_8020 == '6040':
+    num_train_subjects = 155
+    num_test_subjects = 99
+    train_subjects = subjects[:num_train_subjects]
+    test_subjects = subjects[num_train_subjects:]
+elif split_6040_or_8020 == '8020':
+    num_train_subjects = 203
+    num_test_subjects = 51
+    test_subjects = subjects[split_idx*num_test_subjects:(split_idx+1)*num_test_subjects]
+    if split_idx == 4:
+        test_subjects = np.append(test_subjects, subjects[0]) # add back the first subject...
+    train_subjects = np.setdiff1d(subjects, test_subjects)
+
 print('Working on dataset:',dataset,'with atlas:',atlas,'and GSR:',add_GSR)
 for j,task in enumerate(tasks):
     complex_evecs_train = []
@@ -55,18 +77,21 @@ for j,task in enumerate(tasks):
         evals_cos[:,1] = tmp_evals[1::2]
         timeseries = np.loadtxt('paper/data/processed/'+task+'fMRI_'+atlas+add_GSR+'/'+str(sub)+'_tfMRI_'+task+'_RL_'+dataset+'_timeseries.csv',delimiter=',')
         # choose one or two as train
-        if i<subject_split: #split each scan into train and test
-            complex_evecs_train.append(evecs_complex)
-            amplitude_train.append(hilbert_amplitude)
-            cos_evecs_train.append(evecs_cos)
-            cos_evals_train.append(evals_cos)
-            ts_train.append(timeseries)
-        else: #make only test set
-            complex_evecs_test.append(evecs_complex)
-            amplitude_test.append(hilbert_amplitude)
-            cos_evecs_test.append(evecs_cos)
-            cos_evals_test.append(evals_cos)
-            ts_test.append(timeseries)    #concatenate over tasks
+        # if i<subject_split: #split each scan into train and test
+        if sub in train_subjects:
+            complex_evecs_train.append(evecs_complex[remove_first_vols[j]:,:])
+            amplitude_train.append(hilbert_amplitude[remove_first_vols[j]:,:])
+            cos_evecs_train.append(evecs_cos[remove_first_vols[j]:,:])
+            cos_evals_train.append(evals_cos[remove_first_vols[j]:,:])
+            ts_train.append(timeseries[remove_first_vols[j]:,:])
+        elif sub in test_subjects: #make only test set
+            complex_evecs_test.append(evecs_complex[remove_first_vols[j]:,:])
+            amplitude_test.append(hilbert_amplitude[remove_first_vols[j]:,:])
+            cos_evecs_test.append(evecs_cos[remove_first_vols[j]:,:])
+            cos_evals_test.append(evals_cos[remove_first_vols[j]:,:])
+            ts_test.append(timeseries[remove_first_vols[j]:,:])    #concatenate over tasks
+        else:
+            raise ValueError(f"Subject {sub} not found in either train or test subjects.")
     complex_evecs_train = np.concatenate(complex_evecs_train)
     amplitude_train = np.concatenate(amplitude_train)
     cos_evecs_train = np.concatenate(cos_evecs_train)
@@ -77,7 +102,11 @@ for j,task in enumerate(tasks):
     cos_evecs_test = np.concatenate(cos_evecs_test)
     cos_evals_test = np.concatenate(cos_evals_test)
     ts_test = np.concatenate(ts_test)
-    with h5.File('paper/data/processed/concatenated_datasets/'+add_preproc+task+'fMRI_'+atlas+add_GSR+'.h5','w') as f:
+    if split_6040_or_8020 == '6040':
+        tmp_filename = 'paper/data/processed/concatenated_datasets/'+add_preproc+task+'fMRI_'+atlas+add_GSR+'.h5'
+    elif split_6040_or_8020 == '8020':
+        tmp_filename = 'paper/data/processed/concatenated_datasets/'+add_preproc+task+'fMRI_'+atlas+add_GSR+'_8020split'+str(split_idx)+'.h5'
+    with h5.File(tmp_filename,'w') as f:
         f.create_dataset('U_complex_train',data=complex_evecs_train)
         f.create_dataset('U_complex_test',data=complex_evecs_test)
         f.create_dataset('A_train',data=amplitude_train)
@@ -91,66 +120,48 @@ for j,task in enumerate(tasks):
 
 tasks = ['EMOTION','GAMBLING','LANGUAGE','MOTOR','RELATIONAL','SOCIAL','WM']
 # concatenate the seven task h5 files into one file
-with h5.File('paper/data/processed/concatenated_datasets/all_tasks'+add_preproc+'fMRI_'+atlas+add_GSR+'.h5','w') as f:
-    U_complex_train = np.zeros((155*np.sum(num_points),p),dtype='complex')
-    U_complex_test = np.zeros((99*np.sum(num_points),p),dtype='complex')
-    A_train = np.zeros((155*np.sum(num_points),p))
-    A_test = np.zeros((99*np.sum(num_points),p))
-    U_cos_train = np.zeros((155*np.sum(num_points),p,2))
-    U_cos_test = np.zeros((99*np.sum(num_points),p,2))
-    L_cos_train = np.zeros((155*np.sum(num_points),2))
-    L_cos_test = np.zeros((99*np.sum(num_points),2))
-    timeseries_train = np.zeros((155*np.sum(num_points),p))
-    timeseries_test = np.zeros((99*np.sum(num_points),p))
-    # U_complex_train = []
-    # U_complex_test = []
-    # A_train = []
-    # A_test = []
-    # U_cos_train = []
-    # U_cos_test = []
-    # L_cos_train = []
-    # L_cos_test = []
-    # timeseries_train = []
-    # timeseries_test = []
+if split_6040_or_8020 == '6040':
+    final_filename = 'paper/data/processed/concatenated_datasets/all_tasks'+add_preproc+'fMRI_'+atlas+add_GSR2+'.h5'
+elif split_6040_or_8020 == '8020':
+    final_filename = 'paper/data/processed/concatenated_datasets/all_tasks'+add_preproc+'fMRI_'+atlas+add_GSR2+'_8020split'+str(split_idx)+'.h5'
+with h5.File(final_filename,'w') as f:
+    U_complex_train = np.zeros((num_train_subjects*sum_points,p),dtype='complex')
+    U_complex_test = np.zeros((num_test_subjects*sum_points,p),dtype='complex')
+    A_train = np.zeros((num_train_subjects*sum_points,p))
+    A_test = np.zeros((num_test_subjects*sum_points,p))
+    U_cos_train = np.zeros((num_train_subjects*sum_points,p,2))
+    U_cos_test = np.zeros((num_test_subjects*sum_points,p,2))
+    L_cos_train = np.zeros((num_train_subjects*sum_points,2))
+    L_cos_test = np.zeros((num_test_subjects*sum_points,2))
+    timeseries_train = np.zeros((num_train_subjects*sum_points,p))
+    timeseries_test = np.zeros((num_test_subjects*sum_points,p))
     for j,task in enumerate(tasks):
-        with h5.File('paper/data/processed/concatenated_datasets/'+add_preproc+task+'fMRI_'+atlas+add_GSR+'.h5','r') as f_task:
-            for i in range(len(subjects)):
+        if split_6040_or_8020 == '6040':
+            tmp_filename = 'paper/data/processed/concatenated_datasets/'+add_preproc+task+'fMRI_'+atlas+add_GSR+'.h5'
+        elif split_6040_or_8020 == '8020':
+            tmp_filename = 'paper/data/processed/concatenated_datasets/'+add_preproc+task+'fMRI_'+atlas+add_GSR+'_8020split'+str(split_idx)+'.h5'
+        train_count = 0
+        test_count = 0
+        with h5.File(tmp_filename,'r') as f_task:
+            for i,sub in enumerate(subjects):
                 print(task,i)
-                if i < 155:  # subject_split
-                    U_complex_train[i*np.sum(num_points)+cumsum_points[j]:i*np.sum(num_points)+cumsum_points[j+1]] = f_task['U_complex_train'][:][i*num_points[j]:(i+1)*num_points[j]]
-                    A_train[i*np.sum(num_points)+cumsum_points[j]:i*np.sum(num_points)+cumsum_points[j+1]] = f_task['A_train'][:][i*num_points[j]:(i+1)*num_points[j]]
-                    U_cos_train[i*np.sum(num_points)+cumsum_points[j]:i*np.sum(num_points)+cumsum_points[j+1]] = f_task['U_cos_train'][:][i*num_points[j]:(i+1)*num_points[j]]
-                    L_cos_train[i*np.sum(num_points)+cumsum_points[j]:i*np.sum(num_points)+cumsum_points[j+1]] = f_task['L_cos_train'][:][i*num_points[j]:(i+1)*num_points[j]]
-                    timeseries_train[i*np.sum(num_points)+cumsum_points[j]:i*np.sum(num_points)+cumsum_points[j+1]] = f_task['timeseries_train'][:][i*num_points[j]:(i+1)*num_points[j]]
-                # else:
-                    # U_complex_train.append(f_task['U_complex_train'][:][i*num_points[j]:(i+1)*num_points[j]])
-                    # A_train.append(f_task['A_train'][:][i*num_points[j]:(i+1)*num_points[j]])
-                    # U_cos_train.append(f_task['U_cos_train'][:][i*num_points[j]:(i+1)*num_points[j]])
-                    # L_cos_train.append(f_task['L_cos_train'][:][i*num_points[j]:(i+1)*num_points[j]])
-                    # timeseries_train.append(f_task['timeseries_train'][:][i*num_points[j]:(i+1)*num_points[j]])
-                if i < 99:
-                    U_complex_test[i*np.sum(num_points)+cumsum_points[j]:i*np.sum(num_points)+cumsum_points[j+1]] = f_task['U_complex_test'][:][i*num_points[j]:(i+1)*num_points[j]]
-                    A_test[i*np.sum(num_points)+cumsum_points[j]:i*np.sum(num_points)+cumsum_points[j+1]] = f_task['A_test'][:][i*num_points[j]:(i+1)*num_points[j]]
-                    U_cos_test[i*np.sum(num_points)+cumsum_points[j]:i*np.sum(num_points)+cumsum_points[j+1]] = f_task['U_cos_test'][:][i*num_points[j]:(i+1)*num_points[j]]
-                    L_cos_test[i*np.sum(num_points)+cumsum_points[j]:i*np.sum(num_points)+cumsum_points[j+1]] = f_task['L_cos_test'][:][i*num_points[j]:(i+1)*num_points[j]]
-                    timeseries_test[i*np.sum(num_points)+cumsum_points[j]:i*np.sum(num_points)+cumsum_points[j+1]] = f_task['timeseries_test'][:][i*num_points[j]:(i+1)*num_points[j]]
-                # else:
-                    # U_complex_test.append(f_task['U_complex_test'][:][i*num_points[j]:(i+1)*num_points[j]])
-                    # A_test.append(f_task['A_test'][:][i*num_points[j]:(i+1)*num_points[j]])
-                    # U_cos_test.append(f_task['U_cos_test'][:][i*num_points[j]:(i+1)*num_points[j]])
-                    # L_cos_test.append(f_task['L_cos_test'][:][i*num_points[j]:(i+1)*num_points[j]])
-                    # timeseries_test.append(f_task['timeseries_test'][:][i*num_points[j]:(i+1)*num_points[j]])
-
-    # U_complex_train = np.concatenate(U_complex_train)
-    # U_complex_test = np.concatenate(U_complex_test)
-    # A_train = np.concatenate(A_train)
-    # A_test = np.concatenate(A_test)
-    # U_cos_train = np.concatenate(U_cos_train)
-    # U_cos_test = np.concatenate(U_cos_test)
-    # L_cos_train = np.concatenate(L_cos_train)
-    # L_cos_test = np.concatenate(L_cos_test)
-    # timeseries_train = np.concatenate(timeseries_train)
-    # timeseries_test = np.concatenate(timeseries_test)
+                if sub in train_subjects:  # subject_split
+                    U_complex_train[train_count*sum_points+cumsum_points[j]:train_count*sum_points+cumsum_points[j+1]] = f_task['U_complex_train'][:][train_count*num_points_after_removal[j]:(train_count+1)*num_points_after_removal[j]]
+                    A_train[train_count*sum_points+cumsum_points[j]:train_count*sum_points+cumsum_points[j+1]] = f_task['A_train'][:][train_count*num_points_after_removal[j]:(train_count+1)*num_points_after_removal[j]]
+                    U_cos_train[train_count*sum_points+cumsum_points[j]:train_count*sum_points+cumsum_points[j+1]] = f_task['U_cos_train'][:][train_count*num_points_after_removal[j]:(train_count+1)*num_points_after_removal[j]]
+                    L_cos_train[train_count*sum_points+cumsum_points[j]:train_count*sum_points+cumsum_points[j+1]] = f_task['L_cos_train'][:][train_count*num_points_after_removal[j]:(train_count+1)*num_points_after_removal[j]]
+                    timeseries_train[train_count*sum_points+cumsum_points[j]:train_count*sum_points+cumsum_points[j+1]] = f_task['timeseries_train'][:][train_count*num_points_after_removal[j]:(train_count+1)*num_points_after_removal[j]]
+                    train_count += 1
+                elif sub in test_subjects: # subject_split
+                    U_complex_test[test_count*sum_points+cumsum_points[j]:test_count*sum_points+cumsum_points[j+1]] = f_task['U_complex_test'][:][test_count*num_points_after_removal[j]:(test_count+1)*num_points_after_removal[j]]
+                    A_test[test_count*sum_points+cumsum_points[j]:test_count*sum_points+cumsum_points[j+1]] = f_task['A_test'][:][test_count*num_points_after_removal[j]:(test_count+1)*num_points_after_removal[j]]
+                    U_cos_test[test_count*sum_points+cumsum_points[j]:test_count*sum_points+cumsum_points[j+1]] = f_task['U_cos_test'][:][test_count*num_points_after_removal[j]:(test_count+1)*num_points_after_removal[j]]
+                    L_cos_test[test_count*sum_points+cumsum_points[j]:test_count*sum_points+cumsum_points[j+1]] = f_task['L_cos_test'][:][test_count*num_points_after_removal[j]:(test_count+1)*num_points_after_removal[j]]
+                    timeseries_test[test_count*sum_points+cumsum_points[j]:test_count*sum_points+cumsum_points[j+1]] = f_task['timeseries_test'][:][test_count*num_points_after_removal[j]:(test_count+1)*num_points_after_removal[j]]
+                    test_count += 1
+                else:
+                    raise ValueError(f"Subject {sub} not found in either train or test subjects.")
+        
     f.create_dataset('U_complex_train',data=U_complex_train)
     f.create_dataset('U_complex_test',data=U_complex_test)
     f.create_dataset('A_train',data=A_train)

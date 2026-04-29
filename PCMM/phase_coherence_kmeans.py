@@ -80,7 +80,7 @@ def projective_hyperplane_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol
     C_collector = []
 
     for _ in range(num_repl):
-        if init is None or init=='++' or init=='plusplus' or init == 'diametrical_clustering_plusplus':
+        if init is None or init=='++' or init=='plusplus' or init == 'diametrical_clustering_plusplus' or init == 'dc++':
             C,_,_ = plusplus_initialization(X,K,dist='diametrical')
         elif init=='uniform' or init=='unif':
             if X.dtype == 'complex':

@@ -7,8 +7,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import f
 import warnings
+from paper.extract_first_N_poststimulus_volumes import extract_first_N_poststim_volumes
 
-def load_fMRI_data(data_file,options,remove_first_ten=False, standardize=False):
+def load_fMRI_data(data_file,options, standardize=False, covariance=False):
     assert options['modelname'] in ['Watson','ACG','MACG','SingularWishart','Complex_Watson',
                                     'Complex_ACG','Normal','Complex_Normal',
                                     'least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann',
@@ -42,31 +43,14 @@ def load_fMRI_data(data_file,options,remove_first_ten=False, standardize=False):
                 data_test = f['timeseries_test'][:]
             else:
                 raise ValueError("Problem")
-                        
-        if remove_first_ten:
-            num_pts_per_task = np.array([176,253,316,284,232,274,405])
-            # new_num_pts_per_task = num_pts_per_task - 5
-            cumsum_pts_per_task = np.concatenate([np.zeros(1),np.cumsum(num_pts_per_task)]).astype(int)
-            # new_cumsum_pts_per_task = np.concatenate([np.zeros(1),np.cumsum(new_num_pts_per_task)])
-            num_pts_per_subject = np.sum(num_pts_per_task)
-            data_train2 = []
-            data_test2 = []
-            for sub in range(155):
-                for task in range(7):
-                    data_train2.append(data_train[sub*num_pts_per_subject+cumsum_pts_per_task[task]+10:sub*num_pts_per_subject+cumsum_pts_per_task[task+1]])
-            for sub in range(99):
-                for task in range(7):
-                    data_test2.append(data_test[sub*num_pts_per_subject+cumsum_pts_per_task[task]+10:sub*num_pts_per_subject+cumsum_pts_per_task[task+1]])
-            data_train = np.concatenate(data_train2,axis=0)
-            data_test = np.concatenate(data_test2,axis=0)
 
+        # standardize data for each subject
+        if options['experiment'] == 'all_tasks':
+            num_pts_per_subject = [176,253,316,284,232,274,405]
+            sum_num_pts_per_subject = np.sum(num_pts_per_subject)
+        else:
+            raise ValueError('Problem')
         if standardize:
-            # standardize data for each subject
-            if options['experiment'] == 'all_tasks':
-                num_pts_per_subject = [176,253,316,284,232,274,405]
-                sum_num_pts_per_subject = np.sum(num_pts_per_subject)
-            else:
-                raise ValueError('Problem')
             
             for sub in range(data_train.shape[0]//sum_num_pts_per_subject):
                 for task in range(7):
@@ -74,7 +58,71 @@ def load_fMRI_data(data_file,options,remove_first_ten=False, standardize=False):
             for sub in range(data_test.shape[0]//sum_num_pts_per_subject):
                 for task in range(7):
                     data_test[sub*sum_num_pts_per_subject+sum(num_pts_per_subject[:task]):sub*sum_num_pts_per_subject+sum(num_pts_per_subject[:task+1])] = StandardScaler().fit_transform(data_test[sub*sum_num_pts_per_subject+sum(num_pts_per_subject[:task]):sub*sum_num_pts_per_subject+sum(num_pts_per_subject[:task+1])])
+        
+        if options.get('first_N_poststim_volumes') not in ['cov','all',None]:
+            num_pts_per_task = np.array([176,253,316,284,232,274,405])
+            cumsum_pts_per_task = np.concatenate([np.zeros(1),np.cumsum(num_pts_per_task)]).astype(int)
+            num_pts_per_subject = np.sum(num_pts_per_task)
+            data_train2 = []
+            data_test2 = []
+            subjectlist = np.loadtxt('paper/data/all_tasks_subject_split.txt',dtype=str)
+            subjects_train = subjectlist[:155]
+            subjects_test = subjectlist[155:]
+            tasks = ['EMOTION','GAMBLING','LANGUAGE','MOTOR','RELATIONAL','SOCIAL','WM']
+            print('\n')
+            true_labels_train = []
+            true_labels_test = []
+            pts_per_subject_train = []
+            pts_per_subject_test = []
+            for sub in range(155):
+                pts_per_task = []
+                for task in range(7):
+                    print('Extracting first',options['first_N_poststim_volumes'],'post-stimulus volumes for train subject',sub+1,end='\r')
+                    tmp = data_train[sub*num_pts_per_subject+cumsum_pts_per_task[task]:sub*num_pts_per_subject+cumsum_pts_per_task[task+1]]
+                    tmp2 = extract_first_N_poststim_volumes(data=tmp,subject=subjects_train[sub],task=tasks[task],N=options['first_N_poststim_volumes'],tr=0.72,first_poststimulus_volume=1)[0]
+                    data_train2.append(tmp2)
+                    pts_per_task.append(np.shape(tmp2)[0])
+                    true_labels_train.append(np.shape(tmp2)[0]*[task])
+                pts_per_subject_train.append(np.array(pts_per_task))
+            print('\n')
+            for sub in range(99):
+                pts_per_task = []
+                for task in range(7):
+                    print('Extracting first',options['first_N_poststim_volumes'],'post-stimulus volumes for test subject',sub+1,end='\r')
+                    tmp = data_test[sub*num_pts_per_subject+cumsum_pts_per_task[task]:sub*num_pts_per_subject+cumsum_pts_per_task[task+1]]
+                    tmp2 = extract_first_N_poststim_volumes(data=tmp,subject=subjects_test[sub],task=tasks[task],N=options['first_N_poststim_volumes'],tr=0.72,first_poststimulus_volume=1)[0]
+                    data_test2.append(tmp2)
+                    true_labels_test.append(np.shape(tmp2)[0]*[task])
+                    pts_per_task.append(np.shape(tmp2)[0])
+                pts_per_subject_test.append(np.array(pts_per_task))
+            data_train = np.concatenate(data_train2,axis=0)
+            data_test = np.concatenate(data_test2,axis=0)
+            true_labels_train = np.concatenate(true_labels_train,axis=0)
+            true_labels_test = np.concatenate(true_labels_test,axis=0)
+            return data_train,data_test[0:2],data_test, true_labels_train, true_labels_test, pts_per_subject_train, pts_per_subject_test
+
+        if covariance:
+            if options.get('first_N_poststim_volumes') is not None:
+                raise ValueError('Covariance not implemented with first N poststim volumes option')
+            data_train_cov = []
+            data_test_cov = []
+            for sub in range(data_train.shape[0]//sum_num_pts_per_subject):
+                for task in range(7):
+                    data_sub_task = data_train[sub*sum_num_pts_per_subject+sum(num_pts_per_subject[:task]):sub*sum_num_pts_per_subject+sum(num_pts_per_subject[:task+1])]
+                    cov_mat = np.cov(data_sub_task,rowvar=False)
+                    cov_mat = cov_mat[np.triu_indices(cov_mat.shape[0],k=1)]
+                    data_train_cov.append(cov_mat.flatten())
+            for sub in range(data_test.shape[0]//sum_num_pts_per_subject):
+                for task in range(7):
+                    data_sub_task = data_test[sub*sum_num_pts_per_subject+sum(num_pts_per_subject[:task]):sub*sum_num_pts_per_subject+sum(num_pts_per_subject[:task+1])]
+                    cov_mat = np.cov(data_sub_task,rowvar=False)
+                    cov_mat = cov_mat[np.triu_indices(cov_mat.shape[0],k=1)]
+                    data_test_cov.append(cov_mat.flatten())
+            data_train = np.array(data_train_cov)
+            data_test = np.array(data_test_cov)
+        
         return data_train,data_test[0:2],data_test
+    # else if options['experiment'] == 'REST1REST2':
     with h5.File(data_file,'r') as f:
         if options['modelname'] in ['Complex_Watson','Complex_ACG','complex_diametrical']:
             # complex normalized phase vectors
@@ -116,67 +164,123 @@ def load_fMRI_data(data_file,options,remove_first_ten=False, standardize=False):
 # test1_posterior = gm.predict_proba(data_test1).T
 # test2_posterior = gm.predict_proba(data_test2).T
 
-def run(data_train,data_test1,data_test2,K,df,options,params=None,suppress_output=False,inner=None,p=116):
+def run(data_train,data_test1,data_test2,K,df,options,params=None,suppress_output=False,inner=None,p=116,true_labels_train=None,true_labels_test=None, pts_per_subject_train=None, pts_per_subject_test=None,train_or_not=True):
 
-    # generate labels
-    if options['experiment'] == 'MOTORSOCIAL':
-        pass
-        # pts_pr_subject_sum = np.array([279,279,279*2])
-        # pts_pr_subject = [[284//2,274//2],[284//2,274//2],[284,274]]
-        # true_labels = [np.zeros((2,pts_pr_subject_sum[0])),np.zeros((2,pts_pr_subject_sum[1])),np.zeros((2,pts_pr_subject_sum[2]))]
-        # for set in range(len(sets)):
-        #     true_labels[set][0,:pts_pr_subject[set][0]] = 1
-        #     true_labels[set][1,pts_pr_subject[set][0]:] = 1
-    elif options['experiment'] == 'all_tasks':
-        pts_pr_subject_sum = np.array([1940,0,1940])
-        pts_pr_subject = [[0,176,253,316,284,232,274,405],[0,0,0,0,0,0,0,0],[0,176,253,316,284,232,274,405]]
-        # pts_pr_subject_sum = np.array([1870,0,1870])
-        # pts_pr_subject = [[0,166,243,306,274,222,264,395],[0,0,0,0,0,0,0,0],[0,166,243,306,274,222,264,395]]
-        cumsum_pts_pr_subject = np.cumsum(pts_pr_subject,axis=1)
+    if data_train.shape[1]==6670: # covariance features as input
+        samples_per_sequence = [1,1,1]
+        # repeat 0..6 for each subject
+        true_labels_int = [np.hstack(155*[np.arange(7)]),np.hstack(155*[np.arange(7)]),np.hstack(99*[np.arange(7)])]
+        num_subs = [155,155,99]
+        pts_pr_subject_sum = np.array([7,7,7])
+        num_pts_per_subject = [pts_pr_subject_sum[0],pts_pr_subject_sum[1],pts_pr_subject_sum[2]]
+        reduced_number_of_points = True
+        cumsum_pts_pr_task = np.array([np.arange(8), np.arange(8), np.arange(8)])
         true_labels = [np.zeros((7,pts_pr_subject_sum[0])),np.zeros((7,pts_pr_subject_sum[1])),np.zeros((7,pts_pr_subject_sum[2]))]
         for task in range(7):
-            true_labels[0][task,cumsum_pts_pr_subject[0][task]:cumsum_pts_pr_subject[0][task+1]] = 1
-            true_labels[1][task,cumsum_pts_pr_subject[1][task]:cumsum_pts_pr_subject[1][task+1]] = 1
-            true_labels[2][task,cumsum_pts_pr_subject[2][task]:cumsum_pts_pr_subject[2][task+1]] = 1
-        true_labels_int = [np.hstack(155*[np.argmax(true_labels[0],axis=0)]),np.hstack(155*[np.argmax(true_labels[1],axis=0)]),np.hstack(155*[np.argmax(true_labels[2],axis=0)])]
-    else:
+            true_labels[0][task,task::7] = 1
+            true_labels[1][task,task::7] = 1
+            true_labels[2][task,task::7] = 1
+
+    elif options.get('first_N_poststim_volumes') not in ['cov','all',None]: # first N post-stim volumes
+        reduced_number_of_points = True
+        samples_per_sequence = [options['first_N_poststim_volumes'],options['first_N_poststim_volumes'],options['first_N_poststim_volumes']]
+        true_labels_int = [true_labels_train, true_labels_train, true_labels_test]
+        num_subs = [155,155,99]
+        num_pts_per_task = [pts_per_subject_train, pts_per_subject_train, pts_per_subject_test]
+        num_pts_per_subject = [np.sum(np.array(pts_per_subject_train),axis=1),np.sum(np.array(pts_per_subject_train),axis=1),np.sum(np.array(pts_per_subject_test),axis=1)]
+        cumsum_pts_pr_task = [np.zeros((num_subs[0],8)).astype(int),np.zeros((num_subs[1],8)).astype(int),np.zeros((num_subs[2],8)).astype(int)]
+        cumsum_pts_pr_task = [np.concatenate([np.zeros(1),np.cumsum(num_pts_per_subject[0])]).astype(int),
+                                    np.concatenate([np.zeros(1),np.cumsum(num_pts_per_subject[1])]).astype(int),
+                                    np.concatenate([np.zeros(1),np.cumsum(num_pts_per_subject[2])]).astype(int)]
+        true_labels = [np.zeros((7,data_train.shape[0])),np.zeros((7,data_train.shape[0])),np.zeros((7,data_test2.shape[0]))]
+        pts_pr_subject_sum = [np.zeros(num_subs[0]),np.zeros(num_subs[1]),np.zeros(num_subs[2])]
+        for Set in range(3):
+            for sub in range(num_subs[Set]):
+                cumsum_pts_pr_task[Set][sub,1:] = np.cumsum(num_pts_per_task[Set][sub]).astype(int)
+                pts_pr_subject_sum[Set][sub] = np.sum(num_pts_per_task[Set][sub])
+                true_labels_sub = true_labels_int[Set][cumsum_pts_pr_task[Set][sub]:cumsum_pts_pr_task[Set][sub+1]]
+                for task in range(7):
+                    true_labels[Set][task,cumsum_pts_pr_task[Set][sub]:cumsum_pts_pr_task[Set][sub+1]][true_labels_sub==task] = 1
+    
+    elif options['experiment'] == 'all_tasks':
+        if 'split' in options['outfolder']:
+            num_pts_per_subject = data_train.shape[0]//203
+        else:
+            num_pts_per_subject = data_train.shape[0]//155
+        tasks = ['EMOTION','GAMBLING','LANGUAGE','MOTOR','RELATIONAL','SOCIAL','WM']
+        reduced_number_of_points = False
+
+        if num_pts_per_subject == 1870: # minus [15,11,0,11,11,11,11]
+            samples_per_sequence = [[176-15,253-11,316,284-11,232-11,274-11,405-11],0,[176-15,253-11,316,284-11,232-11,274-11,405-11]]
+            pts_pr_subject = [[0,176-15,253-11,316,284-11,232-11,274-11,405-11],[0,0,0,0,0,0,0,0],[0,176-15,253-11,316,284-11,232-11,274-11,405-11]]
+            num_subs = [data_train.shape[0]//1870,0,data_test2.shape[0]//1870]
+            pts_pr_subject_sum = np.array([1870,0,1870])
+
+            cumsum_pts_pr_task = np.cumsum(pts_pr_subject,axis=1)
+            true_labels = [np.zeros((7,pts_pr_subject_sum[0])),np.zeros((7,pts_pr_subject_sum[1])),np.zeros((7,pts_pr_subject_sum[2]))]
+            for task in range(7):
+                task_indices = np.loadtxt('paper/data/task_indices/100206_'+tasks[task]+'_task_vector.txt')
+                if tasks[task] in ['EMOTION']:
+                    task_indices = task_indices[15:]
+                elif tasks[task] in ['GAMBLING','MOTOR','RELATIONAL','SOCIAL','WM']:
+                    task_indices = task_indices[11:]
+                true_labels[0][task,cumsum_pts_pr_task[0][task]+np.where(task_indices)] = 1
+                # true_labels[1][task,cumsum_pts_pr_subject[1][task]+np.where(task_indices)] = 1
+                true_labels[2][task,cumsum_pts_pr_task[2][task]+np.where(task_indices)] = 1
+            # true_labels_int = [np.hstack(155*[np.argmax(true_labels[0],axis=0)+1]),np.hstack(155*[np.argmax(true_labels[1],axis=0)]),np.hstack(155*[np.argmax(true_labels[2],axis=0)+1])]
+            result = np.argmax(true_labels[0], axis=0) + 1
+            result[np.sum(true_labels[0], axis=0) == 0] = 0
+            true_labels_int = [result,np.hstack(155*[np.argmax(true_labels[1],axis=0)]),result]
+        else:
+            samples_per_sequence = [[176,253,316,284,232,274,405],0,[176,253,316,284,232,274,405]]
+            pts_pr_subject = [[0,176,253,316,284,232,274,405],[0,0,0,0,0,0,0,0],[0,176,253,316,284,232,274,405]]
+            num_subs = [data_train.shape[0]//1940,0,data_test2.shape[0]//1940]
+            pts_pr_subject_sum = np.array([1940,0,1940])
+
+            cumsum_pts_pr_task = np.cumsum(pts_pr_subject,axis=1)
+            true_labels = [np.zeros((7,pts_pr_subject_sum[0])),np.zeros((7,pts_pr_subject_sum[1])),np.zeros((7,pts_pr_subject_sum[2]))]
+            for task in range(7):
+                true_labels[0][task,cumsum_pts_pr_task[0][task]:cumsum_pts_pr_task[0][task+1]] = 1
+                true_labels[1][task,cumsum_pts_pr_task[1][task]:cumsum_pts_pr_task[1][task+1]] = 1
+                true_labels[2][task,cumsum_pts_pr_task[2][task]:cumsum_pts_pr_task[2][task+1]] = 1
+            true_labels_int = [np.hstack(155*[np.argmax(true_labels[0],axis=0)]),np.hstack(155*[np.argmax(true_labels[1],axis=0)]),np.hstack(155*[np.argmax(true_labels[2],axis=0)])]
+
+    else: # resting-state
         pts_pr_subject_sum = np.array([1200,1200,2400])
-
-    # for HMM, specify samples per sequence
-    if options['experiment'] == 'all_tasks':
-        samples_per_sequence = [[176,253,316,284,232,274,405],0,[176,253,316,284,232,274,405]]
-    else:
         samples_per_sequence = [1200,1200,2400]
-
-    if options['experiment'] == 'all_tasks':
-        num_subs = [data_train.shape[0]//1940,0,data_test2.shape[0]//1940]
-    else:
         num_subs = [data_train.shape[0]//1200,data_test1.shape[0]//1200,data_test2.shape[0]//2400]
     
     # do training if supervised models
-    if options['modelname'] == 'linear-svm':
-        params,train_posterior,test2_posterior = svm_linear_cv(train_X=data_train,train_y=true_labels_int[0],test_X=data_test2,
-                            samples_per_subject_train=155*[np.sum(samples_per_sequence[0])])
-        test1_posterior = None
-        loglik_curve = []
-    elif options['modelname'] == 'rbf-svm':
-        params,train_posterior,test2_posterior = svm_rbf_cv(train_X=data_train,train_y=true_labels_int[0],test_X=data_test2,
-                         samples_per_subject_train=155*[np.sum(samples_per_sequence[0])])
-        test1_posterior = None
-        loglik_curve = []
-    elif options['modelname'] == 'logistic':
-        params,train_posterior,test2_posterior = logistic_l2_cv(train_X=data_train,train_y=true_labels_int[0],test_X=data_test2,
-                             samples_per_subject_train=155*[np.sum(samples_per_sequence[0])])
-        test1_posterior = None
-        loglik_curve = []
-    else: #mixtures
-        params,train_posterior,loglik_curve = train_model(data_train,K=K,options=options,suppress_output=suppress_output,samples_per_sequence=samples_per_sequence[0],params=params)
+    if train_or_not:
+        if options['modelname'] == 'linear-svm':
+            params,train_posterior,test2_posterior = svm_linear_cv(train_X=data_train,train_y=true_labels_int[0],test_X=data_test2,
+                                samples_per_subject_train=None)
+            test1_posterior = np.zeros_like(train_posterior)
+            loglik_curve = []
+        elif options['modelname'] == 'rbf-svm':
+            params,train_posterior,test2_posterior = svm_rbf_cv(train_X=data_train,train_y=true_labels_int[0],test_X=data_test2,
+                            samples_per_subject_train=None)
+            test1_posterior = np.zeros_like(train_posterior)
+            loglik_curve = []
+        elif options['modelname'] == 'logistic':
+            params,train_posterior,test2_posterior = logistic_l2_cv(train_X=data_train,train_y=true_labels_int[0],test_X=data_test2,
+                                samples_per_subject_train=None) #155*[np.sum(samples_per_sequence[0])])
+            test1_posterior = np.zeros_like(train_posterior)
+            loglik_curve = []
+        else: #mixtures
+            params,train_posterior,loglik_curve = train_model(data_train,K=K,options=options,suppress_output=suppress_output,samples_per_sequence=samples_per_sequence[0],params=params)
+            
+            train_loglik,train_posterior,train_loglik_per_sample = test_model(data_test=data_train,params=params,K=K,options=options,samples_per_sequence=samples_per_sequence[0])
+            test1_loglik,test1_posterior,test1_loglik_per_sample = test_model(data_test=data_test1,params=params,K=K,options=options,samples_per_sequence=samples_per_sequence[1])
+            test2_loglik,test2_posterior,test2_loglik_per_sample = test_model(data_test=data_test2,params=params,K=K,options=options,samples_per_sequence=samples_per_sequence[2])
         
+    else: # skip training and use provided params
+        if options['modelname'] in ['linear-svm','rbf-svm','logistic']:
+            raise ValueError('Cannot skip training for supervised models')
         train_loglik,train_posterior,train_loglik_per_sample = test_model(data_test=data_train,params=params,K=K,options=options,samples_per_sequence=samples_per_sequence[0])
         test1_loglik,test1_posterior,test1_loglik_per_sample = test_model(data_test=data_test1,params=params,K=K,options=options,samples_per_sequence=samples_per_sequence[1])
         test2_loglik,test2_posterior,test2_loglik_per_sample = test_model(data_test=data_test2,params=params,K=K,options=options,samples_per_sequence=samples_per_sequence[2])
-        
-        # end_logliks = [train_loglik,test1_loglik,test2_loglik]
+        loglik_curve = []
     posteriors = [train_posterior,test1_posterior,test2_posterior]
 
     if options['HMM']:
@@ -193,27 +297,74 @@ def run(data_train,data_test1,data_test2,K,df,options,params=None,suppress_outpu
     end_logliks = [train_ll,test1_ll,test2_ll]
     sets = ['train','test1','test2']
 
+    comp_order = None
+    if not train_or_not:
+        if options['modelname']=='Complex_ACG':
+            comp_order = [0,3,4,2,1,6,5]
+        elif options['modelname']=='Complex_Normal':
+            comp_order = [2,6,1,4,3,5,0]
+        elif options['modelname']=='Normal':
+            comp_order = [0,2,5,1,6,3,4]
+    elif options['modelname'] not in ['linear-svm','rbf-svm','logistic'] and options['first_N_poststim_volumes'] is not None: #mixtures
+        # average the train posterior first within subject, then across subjects to get a component order
+        sub_posteriors = []
+        for i in range(num_subs[0]):
+            posterior_sub = train_posterior[:,num_pts_per_subject*i:num_pts_per_subject*(i+1)]
+            # average within subject based on task lengths
+            posterior_task = np.zeros((K,7))
+            for task in range(7):
+                posterior_task[:,task] = np.nanmean(posterior_sub[:,cumsum_pts_pr_task[0][task]:cumsum_pts_pr_task[0][task+1]],axis=1)
+            sub_posteriors.append(posterior_task)
+        mean_posteriors = np.mean(np.stack(sub_posteriors,axis=2),axis=2) #Kx7
+        from scipy.optimize import linear_sum_assignment
+        row_ind, col_ind = linear_sum_assignment(-mean_posteriors)
+        comp_order = row_ind[np.argsort(col_ind)]
+        # reorder posteriors based on this component order and params
+        train_posterior = train_posterior[comp_order,:]
+        # test1_posterior = test1_posterior[comp_order,:] 
+        test2_posterior = test2_posterior[comp_order,:]
+        posteriors = [train_posterior,test1_posterior,test2_posterior]
+        param_keys = list(params.keys())
+        for key in param_keys:
+            params[key] = params[key][comp_order]
+
     entries = []
-    # all_test_posterior = np.zeros((K,pts_pr_subject_sum[2]))
     all_test_posterior = []
     all_train_posterior = []
     for set in range(len(sets)):
         for i in range(num_subs[set]):
-            if options['experiment'] == 'MOTORSOCIAL' and K==2:
-                pass
-                # posterior_sub = posteriors[set][:,i*pts_pr_subject_sum[set]:(i+1)*pts_pr_subject_sum[set]]
-                # nmi = calc_NMI(posterior_sub,true_labels[set])
-                # posterior_sub_binary = np.argmax(posterior_sub,axis=0)
-                # classification_accuracy1 = np.sum(posterior_sub_binary==true_labels[set][0])/posterior_sub_binary.shape[0]
-                # classification_accuracy2 = np.sum(posterior_sub_binary==true_labels[set][1])/posterior_sub_binary.shape[0]
-                # classification_accuracy = max(classification_accuracy1,classification_accuracy2)
-            elif options['experiment'] == 'all_tasks':
-                posterior_sub = np.zeros((K,pts_pr_subject_sum[set]))
-                for task in range(7):
-                    posterior_sub[:,cumsum_pts_pr_subject[set][task]:cumsum_pts_pr_subject[set][task+1]] = posteriors[set][:,i*pts_pr_subject_sum[set]+cumsum_pts_pr_subject[set][task]:i*pts_pr_subject_sum[set]+cumsum_pts_pr_subject[set][task+1]]
-                # posterior = posteriors[set][:,i*pts_pr_subject_sum[set]:(i+1)*pts_pr_subject_sum[set]]
-                nmi = calc_NMI(posterior_sub,true_labels[set])
-                classification_accuracy = np.nan
+            if options['experiment'] == 'all_tasks':
+                if set==1:
+                    continue
+                if reduced_number_of_points:
+                    posterior_sub = np.zeros((K,num_pts_per_subject[set][i]))
+                    for task in range(7):
+                        posterior_sub[:,cumsum_pts_pr_task[set][i][task]:cumsum_pts_pr_task[set][i][task+1]] = posteriors[set][:,cumsum_pts_pr_task[set][i]+cumsum_pts_pr_task[set][i][task]:cumsum_pts_pr_task[set][i]+cumsum_pts_pr_task[set][i][task+1]]
+                    nmi = calc_NMI(posterior_sub,true_labels[set][:,cumsum_pts_pr_task[set][i]:cumsum_pts_pr_task[set][i+1]])
+                    # calculate classification accuracy, assume that component one corresponds to task one etc
+                    # if comp_order is not None:
+                    #     posterior_sub = posterior_sub[comp_order,:]
+                    predicted_labels = np.argmax(posterior_sub,axis=0)
+                    true_labels_sub = true_labels_int[set][cumsum_pts_pr_task[set][i]:cumsum_pts_pr_task[set][i+1]]
+                    classification_accuracy = np.mean(predicted_labels==true_labels_sub)
+                else:
+                    posterior_sub = np.zeros((K,pts_pr_subject_sum[set]))
+                    for task in range(7):
+                        posterior_sub[:,cumsum_pts_pr_task[set][task]:cumsum_pts_pr_task[set][task+1]] = posteriors[set][:,i*pts_pr_subject_sum[set]+cumsum_pts_pr_task[set][task]:i*pts_pr_subject_sum[set]+cumsum_pts_pr_task[set][task+1]]
+                    # posterior = posteriors[set][:,i*pts_pr_subject_sum[set]:(i+1)*pts_pr_subject_sum[set]]
+                    if len(np.unique(true_labels_int[set]))==8:
+                        nonzero_idx = true_labels_int[set]>0
+                        nmi = calc_NMI(posterior_sub[:,nonzero_idx],true_labels[set][:,nonzero_idx])
+                    else:
+                        nmi = calc_NMI(posterior_sub,true_labels[set])
+                    # if comp_order is not None:
+                    #     posterior_sub = posterior_sub[comp_order,:]
+                    if options['modelname'] in ['linear-svm','rbf-svm','logistic'] or train_or_not==False:
+                        predicted_labels = np.argmax(posterior_sub,axis=0)
+                        true_labels_sub = true_labels_int[set][i*pts_pr_subject_sum[set]:(i+1)*pts_pr_subject_sum[set]]
+                        classification_accuracy = np.mean(predicted_labels==true_labels_sub)
+                    else:
+                        classification_accuracy = np.nan
             else:
                 nmi = np.nan
                 classification_accuracy = np.nan
@@ -231,15 +382,27 @@ def run(data_train,data_test1,data_test2,K,df,options,params=None,suppress_outpu
             if set==2:
                 all_test_posterior.append(posterior_sub)
 
+
+    # accs, accs_ensemble = posterior_to_accuracy(
+    #     train_posterior,
+    #     test2_posterior,
+    #     cov_or_ts='ts',
+    # )
+
     df = pd.concat([df,pd.DataFrame(entries)],ignore_index=True)
+    print(options['first_N_poststim_volumes'],df[df['Set']=='test2']['classification_accuracy'].mean())
+    print(options['first_N_poststim_volumes'],df[df['Set']=='test2']['NMI'].mean())
     return params,df,np.concatenate(all_train_posterior,axis=1),np.concatenate(all_test_posterior,axis=1)
-# tasks = ['EMOTION','GAMBLING','LANGUAGE','MOTOR','RELATIONAL','SOCIAL','WM']
 
 def calc_ll_per_sub(train_loglik_per_sample,test1_loglik_per_sample,test2_loglik_per_sample,options):
     if train_loglik_per_sample.shape[0]==155:
         return train_loglik_per_sample,test1_loglik_per_sample,test2_loglik_per_sample
     if options['experiment'] == 'all_tasks':
-        num_subs = [155,0,99]
+        if 'split' in options['outfolder']:
+            num_subs = [203,0,51]
+        else:
+            num_subs = [155,0,99]
+        # num_subs = [155,0,99]
         num_samples_per_sub_train = train_loglik_per_sample.shape[0]//num_subs[0]
         num_samples_per_sub_test1 = test1_loglik_per_sample.shape[0]
         num_samples_per_sub_test2 = test2_loglik_per_sample.shape[0]//num_subs[2]
@@ -265,6 +428,8 @@ def calc_ll_per_sub(train_loglik_per_sample,test1_loglik_per_sample,test2_loglik
 def calc_MI(Z1,Z2):
     P=Z1@Z2.T
     PXY=P/np.sum(P)
+    if np.isclose(np.sum(P),0):
+        a=7
     PXPY=np.outer(np.sum(PXY,axis=1),np.sum(PXY,axis=0))
     ind=np.where(PXY>0) #PXY should always be >0
     MI=np.sum(PXY[ind]*np.log(PXY[ind]/PXPY[ind]))
@@ -556,3 +721,74 @@ def hotelling_paired(z1, z2, mu0=0+0j, regularize=True, reg_tol=1e-8, is_real=Fa
         'n': n,
         'p': p
     }
+
+
+from scipy.optimize import linear_sum_assignment
+def posterior_to_accuracy(
+        posterior_train,
+        posterior_test,
+        cov_or_ts='cov'
+):
+    if cov_or_ts == 'ts':
+        num_points = np.array([176,253,316,284,232,274,405])
+    else:
+        num_points = np.array([1,1,1,1,1,1,1])  # for cov
+    K = len(num_points)
+    total_points = np.sum(num_points)
+
+    # cumulative indices
+    cumsum_num_points = np.concatenate([[0], np.cumsum(num_points)]).astype(int)
+
+    # true labels
+    true_labels = np.zeros(total_points, dtype=int)
+    for i in range(K):
+        true_labels[cumsum_num_points[i]:cumsum_num_points[i+1]] = i
+
+    n_subjects = 99
+    n_train_subjects = 155
+
+    accs = np.zeros((n_subjects))
+    accs_ensemble = np.zeros((n_subjects))
+
+    # average training posterior across subjects
+    avg_train_posterior = np.zeros((K, total_points))
+    for sub in range(n_train_subjects):
+        avg_train_posterior += posterior_train[:, sub*total_points:(sub+1)*total_points] / n_train_subjects
+
+    # normalize + binarize
+    norm_avg_train_posterior = avg_train_posterior / np.sum(
+        avg_train_posterior, axis=0, keepdims=True
+    )
+    bin_norm_avg_train_posterior = np.argmax(norm_avg_train_posterior, axis=0)
+
+    # compute task–component accuracy matrix
+    avg_accs = np.zeros((K, K))
+    for k1 in range(K):          # true task
+        for k2 in range(K):      # component
+            avg_accs[k1, k2] = np.sum(
+                (true_labels == k1) & (bin_norm_avg_train_posterior == k2)
+            ) / np.sum(true_labels == k1)
+
+    # Hungarian matching
+    _, order = linear_sum_assignment(-avg_accs)
+
+    for sub in range(n_subjects):
+        test_posterior_sub = posterior_test[
+            order, sub*total_points:(sub+1)*total_points
+        ]
+
+        # point-wise prediction
+        tmp = np.argmax(test_posterior_sub, axis=0)
+
+        accs[sub] = np.mean(tmp == true_labels)
+
+        # ensemble accuracy
+        if cov_or_ts == 'ts':
+            for scan in range(K):
+                tmp2 = test_posterior_sub[
+                    :, cumsum_num_points[scan]:cumsum_num_points[scan+1]
+                ].mean(axis=1)
+                most_often_occurring_label = np.argmax(tmp2)
+                accs_ensemble[sub] += (most_often_occurring_label == scan) / K
+
+    return accs, accs_ensemble

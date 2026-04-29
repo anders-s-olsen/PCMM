@@ -3,7 +3,7 @@
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import GridSearchCV, StratifiedKFold, GroupKFold
+from sklearn.model_selection import GridSearchCV, LeaveOneOut, StratifiedKFold, GroupKFold
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.decomposition import PCA
@@ -41,16 +41,19 @@ def _complex_to_real(X, mode="split"):
     # else:
     #     raise NotImplementedError("Only 'identity' mode is currently implemented for complex inputs. (uncomment below to see how it works)")
     if mode == "split":
+        print("Using 'split' mode for complex to real conversion.")
         real = X.real
         imag = X.imag
         return np.hstack([real, imag]).astype(float)
     elif mode == "magphase":
+        print("Using 'magphase' mode for complex to real conversion.")
         mag = np.abs(X)
         phase = np.angle(X)
         cosp = np.cos(phase)
         sinp = np.sin(phase)
         return np.hstack([mag, cosp, sinp]).astype(float)
     elif mode == "cos_sin_phase":
+        print("Using 'cos_sin_phase' mode for complex to real conversion.")
         # Useful when X contains phases (angles) only
         phase = np.angle(X)
         cosp = np.cos(phase)
@@ -84,8 +87,8 @@ def logistic_l2_cv(train_X, train_y, test_X,
     Xtr = _complex_to_real(train_X, mode=complex_mode)
     Xte = _complex_to_real(test_X, mode=complex_mode)
     ytr = np.asarray(train_y)
-    Xtr = np.abs(Xtr)
-    Xte = np.abs(Xte)
+    # Xtr = np.abs(Xtr)
+    # Xte = np.abs(Xte)
     # Xtr = Xtr[:1940*1]
     # ytr = ytr[:1940*1]
     # samples_per_subject_train = 1*[1940]
@@ -105,14 +108,14 @@ def logistic_l2_cv(train_X, train_y, test_X,
 
     # --- pipeline: scaling + logistic ---
     pipe = Pipeline([
-        # ("scaler", StandardScaler()),
+        ("scaler", StandardScaler()),
         # ("pca", PCA(n_components=10, random_state=random_state)),
         ("clf", LogisticRegression(penalty="l2", solver="lbfgs", max_iter=max_iter, random_state=random_state, class_weight=class_weights))
     ])
 
     param_grid = {"clf__C": list(Cs)}
 
-    grid = GridSearchCV(pipe, param_grid, cv=cv_splitter, scoring=scoring, n_jobs=1, refit=True, verbose=1000)
+    grid = GridSearchCV(pipe, param_grid, cv=cv_splitter, scoring=scoring, n_jobs=1, refit=True, verbose=0)
     grid.fit(Xtr, ytr, **({"groups": groups} if groups is not None else {}))
 
     best = grid.best_estimator_
@@ -153,12 +156,13 @@ def svm_linear_cv(train_X, train_y, test_X,
         cv_splitter = GroupKFold(n_splits=n_splits)
     else:
         cv_splitter = StratifiedKFold(n_splits=cv, shuffle=True, random_state=random_state)
+        # cv_splitter = LeaveOneOut()
 
     class_weights = None
     class_weights = 'balanced'
 
     pipe = Pipeline([
-        # ("scaler", StandardScaler()),
+        ("scaler", StandardScaler()),
         # ("pca", PCA(n_components=10, random_state=random_state)),
         ("svc", SVC(kernel="linear", probability=False, random_state=random_state, class_weight=class_weights))
     ])
@@ -183,7 +187,7 @@ def svm_rbf_cv(train_X, train_y, test_X,
                samples_per_subject_train=None,
                cv=5,
                Cs=(0.01, 0.1, 1, 10, 100),
-               gammas=("scale", 0.01, 0.1, 1, 10),
+               gammas=("scale", 0.001,0.01, 0.1, 1),
                scoring="accuracy",
                complex_mode="split",
                random_state=0,
@@ -196,7 +200,8 @@ def svm_rbf_cv(train_X, train_y, test_X,
     Xte = _complex_to_real(test_X, mode=complex_mode)
     ytr = np.asarray(train_y)
 
-    groups = _make_groups_from_counts(samples_per_subject_train)
+    # groups = _make_groups_from_counts(samples_per_subject_train)
+    groups = None
     if groups is not None:
         n_subjects = len(samples_per_subject_train)
         n_splits = min(cv, n_subjects)
@@ -212,7 +217,7 @@ def svm_rbf_cv(train_X, train_y, test_X,
     ])
     param_grid = {"svc__C": list(Cs), "svc__gamma": list(gammas)}
 
-    grid = GridSearchCV(pipe, param_grid, cv=cv_splitter, scoring=scoring, n_jobs=-1, refit=True, verbose=1000)
+    grid = GridSearchCV(pipe, param_grid, cv=cv_splitter, scoring=scoring, n_jobs=1, refit=True, verbose=1000)
     grid.fit(Xtr, ytr, **({"groups": groups} if groups is not None else {}))
 
     best = grid.best_estimator_

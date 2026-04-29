@@ -40,6 +40,7 @@ paper/data/external/*
 paper/data/processed/*
 paper/data/raw/*
 paper/data/results/*
+paper/data/results_orig/*
 paper/data/synthetic/*
 
 # any EEG data and results, these were not included in the final paper

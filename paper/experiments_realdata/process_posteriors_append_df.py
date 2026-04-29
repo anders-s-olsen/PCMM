@@ -3,10 +3,13 @@ import pandas as pd
 from paper.helper_functions_paper import calc_NMI
 
 modelnames = ['Complex_ACG','Normal','Complex_Normal','least_squares','diametrical','complex_diametrical']
+datasets = ['fMRI_SchaeferTian116_noGSR', 'fMRI_SchaeferTian116_GSR', 'fMRI_SchaeferTian232_GSR', 
+            'fMRI_Schaefer400_GSR', '2025fMRI_SchaeferTian116_GSR',
+            'fMRI_SchaeferTian116_GSR_8020split1', 'fMRI_SchaeferTian116_GSR_8020split2', 'fMRI_SchaeferTian116_GSR_8020split3', 'fMRI_SchaeferTian116_GSR_8020split4', 'fMRI_SchaeferTian116_GSR_8020split5']
 # load posteriors
 
 for experiment in ['all_tasks']: #, REST1REST2, all_tasks
-    for dataset in ['fMRI_SchaeferTian116', 'fMRI_SchaeferTian116_GSR', 'fMRI_SchaeferTian232_GSR', 'fMRI_Schaefer400_GSR', '2025fMRI_SchaeferTian116_GSR']:# fMRI_SchaeferTian116, fMRI_SchaeferTian116_GSR, fMRI_SchaeferTian232_GSR, fMRI_Schaefer400_GSR
+    for dataset in datasets:# 
         if experiment == 'REST1REST2' and dataset!='fMRI_SchaeferTian116_GSR':
             continue
         for modelname in modelnames:
@@ -24,6 +27,8 @@ for experiment in ['all_tasks']: #, REST1REST2, all_tasks
                     posteriors_train = []
                     posteriors_test = []
                     for inner in range(10):
+                        if inner>4 and dataset in ['fMRI_SchaeferTian116_GSR_8020split1', 'fMRI_SchaeferTian116_GSR_8020split2', 'fMRI_SchaeferTian116_GSR_8020split3', 'fMRI_SchaeferTian116_GSR_8020split4', 'fMRI_SchaeferTian116_GSR_8020split5']:
+                            continue
                         try:
                             df = pd.read_csv('paper/data/results/'+dataset+'/dfs/'+experiment+'modelorder_realdata_'+modelname+'_K='+str(K)+'_rank='+str(rank)+'_inner='+str(inner)+'.csv')
                             df2 = df.loc[(df['modelname']==modelname) & (df['K']==K) & (df['rank']==rank) & (df['inner']==inner)].copy()

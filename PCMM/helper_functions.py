@@ -41,6 +41,24 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
                     if isinstance(params[key],torch.Tensor):
                         print('Converting params key',key,'to numpy array')
                         params[key] = params[key].numpy()
+        
+    #if the element 'tol' doesn't exist in options, set it to default 1e-10
+    if 'tol' not in options:
+        options['tol'] = 1e-10
+    if 'max_iter' not in options:
+        options['max_iter'] = 100000
+    if 'num_repl' not in options:
+        options['num_repl'] = 1
+    if 'init' not in options:
+        raise ValueError('Please provide an initialization method')
+    if 'LR' not in options:
+        options['LR'] = 0
+    if 'threads' not in options:
+        options['threads'] = 8
+    if 'decrease_lr_on_plateau' not in options:
+        options['decrease_lr_on_plateau'] = False
+    if 'num_comparison' not in options:
+        options['num_comparison'] = 50
 
     if 'force_gamma_same' not in options:
         options['force_gamma_same'] = False
@@ -113,24 +131,6 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
         return params,labels,obj
     else:
         raise ValueError("Problem")
-        
-    #if the element 'tol' doesn't exist in options, set it to default 1e-10
-    if 'tol' not in options:
-        options['tol'] = 1e-10
-    if 'max_iter' not in options:
-        options['max_iter'] = 100000
-    if 'num_repl' not in options:
-        options['num_repl'] = 1
-    if 'init' not in options:
-        raise ValueError('Please provide an initialization method')
-    if 'LR' not in options:
-        options['LR'] = 0
-    if 'threads' not in options:
-        options['threads'] = 8
-    if 'decrease_lr_on_plateau' not in options:
-        options['decrease_lr_on_plateau'] = False
-    if 'num_comparison' not in options:
-        options['num_comparison'] = 50
 
     if options['LR']==0: #EM
         params,posterior,loglik = mixture_EM_loop(model,data_train,tol=options['tol'],max_iter=options['max_iter'],
