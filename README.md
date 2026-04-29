@@ -26,7 +26,7 @@
     pip install tqdm
     ```
 
-    PCMM requirements for PyTorch estimation:
+    (optional) PCMM requirements for PyTorch estimation:
     ```bash
     conda install scipy pytorch cpuonly -c pytorch
     pip install tqdm
