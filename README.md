@@ -1,6 +1,6 @@
 # Phase Coherence Mixture Modeling (PCMM)
 
-**PCMM** is a Python-based toolbox designed to facilitate multivariate mixture modeling for multivariate dynamic phase coherence in functional brain imaging and beyond. This repository provides implementations of clustering using several statistical models, including the **Complex Angular Central Gaussian (ACG)** distribution, as well as analyses for both synthetic and real datasets pertaining to our paper [Uncovering dynamic human brain phase coherence networks](https://www.biorxiv.org/content/10.1101/2024.11.15.623830v2). 
+**PCMM** is a Python-based toolbox designed to facilitate multivariate mixture modeling for multivariate dynamic phase coherence in functional brain imaging and beyond. This repository provides implementations of clustering using several statistical models, including the **Complex Angular Central Gaussian (ACG)** distribution, as well as analyses for both synthetic and real datasets pertaining to our paper [Uncovering dynamic human brain phase coherence networks](https://www.biorxiv.org/content/10.1101/2024.11.15.623830v4). 
 
 ## Table of Contents
 1. [Setup Instructions](#setup-instructions)
@@ -13,32 +13,32 @@
 
 ## Setup Instructions
 
-1. **Create a New Environment** (recommended):
+0. (recommended) **Create a New Environment**:
     ```bash
     conda create -n PCMM python
     conda activate PCMM
     ```
     
-2. **Install necessary dependencies**
+1. **Install necessary dependencies**
     PCMM requirements for EM estimation
     ```bash
     conda install scipy numpy
     pip install tqdm
     ```
 
-    PCMM requirements for PyTorch estimation:
+    (optional) PCMM requirements for PyTorch estimation:
     ```bash
     conda install scipy pytorch cpuonly -c pytorch
     pip install tqdm
     ```
     
-4. **Clone the Repository**:
+2. **Clone the Repository**:
     ```bash
     git clone https://github.com/anders-s-olsen/PCMM.git
     cd PCMM
     ```
 
-5. **Install the PCMM subfolder as a package**:
+3. **Install the PCMM subfolder as a package**:
     - For standard installation:
         ```bash
         pip install .
@@ -74,7 +74,7 @@ C,X_part,obj = diametrical_clustering(X,K,max_iter=max_iter,num_repl=num_repl,in
 
 This produces:
 - **`C`**: Estimated centroids of size `(K,p)`.
-- **`X_part`**: Data partition of size `(K, n)`.
+- **`X_part`**: Data partition of size `(n,)`.
 - **`obj`**: Log-likelihood curve.
 
 ### Complex ACG mixture model EM estimation
