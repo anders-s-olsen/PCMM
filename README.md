@@ -74,7 +74,7 @@ C,X_part,obj = diametrical_clustering(X,K,max_iter=max_iter,num_repl=num_repl,in
 
 This produces:
 - **`C`**: Estimated centroids of size `(K,p)`.
-- **`X_part`**: Data partition of size `(K, n)`.
+- **`X_part`**: Data partition of size `(n,)`.
 - **`obj`**: Log-likelihood curve.
 
 ### Complex ACG mixture model EM estimation
