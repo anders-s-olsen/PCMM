@@ -65,12 +65,15 @@ def plusplus_initialization(X,K,dist='diametrical'):
     # else:
     return C,X_part,obj
     
-def projective_hyperplane_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10,suppress_output=False):
+def projective_hyperplane_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10,suppress_output=False, random_state=None):
     # faster version of diametrical clustering but not as precise. 
     # same distance function but the update rule is different.
 
     if not np.allclose(np.linalg.norm(X,axis=1),1):
         raise ValueError("In projective hyperplane clustering, the input data vectors should be normalized to unit length.")
+
+    if random_state is not None and not isinstance(random_state, (int, np.integer)):
+        raise TypeError("random_state must be an int or None.")
 
     n,p = X.shape
 
@@ -79,8 +82,10 @@ def projective_hyperplane_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol
     part_collector = []
     C_collector = []
 
-    for _ in range(num_repl):
-        if init is None or init=='++' or init=='plusplus' or init == 'diametrical_clustering_plusplus' or init == 'dc++':
+    for repl_idx in range(num_repl):
+        if random_state is not None:
+            np.random.seed(int(random_state) + repl_idx)
+        if init is None or init=='++' or init=='plusplus' or init == 'diametrical_clustering_plusplus':
             C,_,_ = plusplus_initialization(X,K,dist='diametrical')
         elif init=='uniform' or init=='unif':
             if X.dtype == 'complex':
@@ -132,10 +137,13 @@ def projective_hyperplane_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol
     
     return C_collector[best],part_collector[best],obj_collector[best]
 
-def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10,suppress_output=False):
+def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10,suppress_output=False, random_state=None):
 
     if not np.allclose(np.linalg.norm(X,axis=1),1):
         raise ValueError("In diametrical clustering, the input data vectors should be normalized to unit length.")
+
+    if random_state is not None and not isinstance(random_state, (int, np.integer)):
+        raise TypeError("random_state must be an int or None.")
 
     n,p = X.shape
 
@@ -144,7 +152,9 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10,sup
     part_collector = []
     C_collector = []
 
-    for _ in range(num_repl):
+    for repl_idx in range(num_repl):
+        if random_state is not None:
+            np.random.seed(int(random_state) + repl_idx)
         if init is None or init=='++' or init=='plusplus' or init == 'diametrical_clustering_plusplus':
             C,_,_ = plusplus_initialization(X,K,dist='diametrical')
         elif init=='uniform' or init=='unif':
@@ -195,13 +205,17 @@ def diametrical_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10,sup
             X_part_previous = X_part.copy()
             iter += 1
     best = np.nanargmax(np.array(obj_final_collector))
-    
+    # remove the pbar
+    # pbar.close()
     return C_collector[best],part_collector[best],obj_collector[best]
 
-def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10,suppress_output=False):
+def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10,suppress_output=False, random_state=None):
     
     if np.allclose(np.linalg.norm(X[:,:,0],axis=1),1)!=1:
         raise ValueError("In grassmann clustering, the input data vectors should be normalized to unit length.")
+
+    if random_state is not None and not isinstance(random_state, (int, np.integer)):
+        raise TypeError("random_state must be an int or None.")
 
     n,p,q = X.shape
 
@@ -211,7 +225,9 @@ def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10,suppr
     C_collector = [] # cluster center collector
 
     # loop over the number of repetitions
-    for _ in range(num_repl):
+    for repl_idx in range(num_repl):
+        if random_state is not None:
+            np.random.seed(int(random_state) + repl_idx)
         # initialize cluster centers
         if init is None or init in ['++','plusplus','grassmann_clustering_plusplus']:
             C,_,_ = plusplus_initialization(X,K,dist='grassmann')
@@ -265,7 +281,7 @@ def grassmann_clustering(X,K,max_iter=10000,num_repl=1,init=None,tol=1e-10,suppr
     best = np.nanargmax(np.array(obj_final_collector))
     return C_collector[best],part_collector[best],obj_collector[best]
 
-def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None,suppress_output=False):
+def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None,suppress_output=False, random_state=None):
     """"
     Weighted grassmannian clustering using the chordal distance function and a SVD-based update rule
     
@@ -283,13 +299,18 @@ def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=N
     if not np.allclose(np.sum(X_weights,axis=1),p):
         raise ValueError("In weighted grassmann clustering, the scale of the input data vectors should be equal to the square root of the eigenvalues. If the scale does not sum to the dimensionality, this error is thrown")
 
+    if random_state is not None and not isinstance(random_state, (int, np.integer)):
+        raise TypeError("random_state must be an int or None.")
+
     obj_collector = [] # objective function collector
     obj_final_collector = [] # final objective function collector
     part_collector = [] # partition collector
     C_collector = [] # cluster center collector
 
     # loop over the number of repetitions
-    for _ in range(num_repl):
+    for repl_idx in range(num_repl):
+        if random_state is not None:
+            np.random.seed(int(random_state) + repl_idx)
         # initialize cluster centers
         if init is None or init=='++' or init=='plusplus' or init == 'weighted_grassmann_clustering_plusplus':
             C,_,_ = plusplus_initialization(X,K,dist='weighted_grassmann')
@@ -348,7 +369,7 @@ def weighted_grassmann_clustering(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=N
     best = np.nanargmax(np.array(obj_final_collector))
     return C_collector[best],part_collector[best],obj_collector[best]
 
-def least_squares_sign_flip(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None,disable=None):
+def least_squares_sign_flip(X,K,max_iter=10000,num_repl=1,tol=1e-10,init=None):
     if init=='uniform':
         init = 'random'
     n,p = X.shape
