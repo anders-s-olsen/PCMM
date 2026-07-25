@@ -28,8 +28,7 @@
 
     (optional) PCMM requirements for PyTorch estimation:
     ```bash
-    conda install scipy pytorch cpuonly -c pytorch
-    pip install tqdm
+    conda install pytorch cpuonly -c pytorch
     ```
     
 2. **Clone the Repository**:

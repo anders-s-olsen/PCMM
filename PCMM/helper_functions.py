@@ -68,7 +68,8 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
         options['decrease_lr_on_plateau'] = False
     if 'num_comparison' not in options:
         options['num_comparison'] = 50
-
+    if 'HMM' not in options:
+        options['HMM'] = False
     if 'force_gamma_same' not in options:
         options['force_gamma_same'] = False
 

@@ -93,7 +93,6 @@ def projective_hyperplane_clustering(X, K, max_iter=10000, num_repl=1, init=None
 
         iter = 0
         obj = []
-        # partsum = np.zeros((max_iter,K))
 
         pbar = tqdm(total=max_iter, disable=suppress_output)
         X_part_previous = np.zeros(n)
@@ -160,7 +159,6 @@ def diametrical_clustering(X, K, max_iter=10000, num_repl=1, init=None, tol=1e-1
 
         iter = 0
         obj = []
-        # partsum = np.zeros((max_iter,K))
 
         pbar = tqdm(total=max_iter, disable=suppress_output)
         X_part_previous = np.zeros(n)
@@ -193,7 +191,7 @@ def diametrical_clustering(X, K, max_iter=10000, num_repl=1, init=None, tol=1e-1
             if iter > 0:
                 pbar.set_description("Observations shifted between clusters: " + str(np.sum(X_part != X_part_previous)) + (", convergence towards tol: {crit:.2e}").format(crit=obj[-1] - obj[-2]))
             pbar.update(1)
-            X_part_previous = X_part.copy()
+            X_part_previous = X_part
             iter += 1
     best = np.nanargmax(np.array(obj_final_collector))
 
@@ -309,7 +307,6 @@ def weighted_grassmann_clustering(X, K, max_iter=10000, num_repl=1, tol=1e-10, i
         # initialize counters
         iter = 0
         obj = []
-        # partsum = np.zeros((max_iter,K))
 
         pbar = tqdm(total=max_iter, disable=suppress_output)
         X_part_previous = np.zeros(n)
