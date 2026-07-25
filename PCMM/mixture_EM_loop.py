@@ -5,7 +5,7 @@ from PCMM.PCMMnumpyBaseModel import init_M_svd_given_M_init
 
 def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,suppress_output=False, num_comparison=10):
 
-    best_loglik = -1000000
+    best_loglik = -np.inf
     if 'Complex' in model.distribution:
         # check if data is also complex
         if not np.iscomplexobj(data):
@@ -37,7 +37,6 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
 
         loglik = []
         best_epoch_loglik = -np.inf
-        params = []
         if not suppress_output:
             tqdm.write('Beginning EM loop')
         pbar = tqdm(total=max_iter,disable=suppress_output)
@@ -50,7 +49,6 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
             if np.isnan(loglik[-1]):
                 raise ValueError("Nan reached. There can be many possible reasons for this, including the initialization of the model, the data, or the model itself. First try reinitializing the same model.")
             
-            params.append(model.get_params())
             if loglik[-1]>best_epoch_loglik:
                 best_model_params = deepcopy(model.get_params())
                 best_epoch_loglik = loglik[-1]
@@ -61,19 +59,13 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
                     secondhighest = np.max(latest[latest!=maxval])
                     crit = (maxval-secondhighest)/np.abs(maxval)
                     if crit<tol or latest[-1]==np.min(latest):
-                        done=True
-                except:
+                        done = True
+                except ValueError:
                     crit = tol
-                    done=True
+                    done = True
                 pbar.set_description('Loglik: %.2f, relative change: %.2e'%(loglik[-1],crit))
                 pbar.update(1)
                 if done:
-                    if best_epoch_loglik>best_loglik:
-                        best_loglik = best_epoch_loglik
-                        params_final = best_model_params
-                        loglik_final = loglik
-                        model.set_params(best_model_params)
-                        beta_final = model.posterior(X=data)
                     break
             else:
                 pbar.set_description('Loglik: %.2f: '%loglik[-1])
@@ -83,10 +75,12 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
             model.M_step(X=data)
         pbar.close()
 
-    # if no params_final variable exists
-    if 'params_final' not in locals():
-        params_final = model.get_params()
-        beta_final = model.posterior(X=data)
-        loglik_final = loglik
+        if best_epoch_loglik > best_loglik:
+            best_loglik = best_epoch_loglik
+            params_final = best_model_params
+            loglik_final = loglik
+
+    model.set_params(params_final)
+    beta_final = model.posterior(X=data)
     
     return params_final,beta_final,loglik_final

@@ -6,7 +6,6 @@ from copy import deepcopy
 
 def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,LR=0.1,suppress_output=False,threads=8,decrease_lr_on_plateau=False,num_comparison=50):
     torch.set_num_threads(threads)
-    torch.set_default_dtype(torch.float64)
     best_loglik = -np.inf
 
     if 'lowrank' in model.distribution:
@@ -38,6 +37,7 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
             # fresh initialization, including when a previous replication has
             # already registered parameters on the model.
             model.initialize(X=data,init_method=init)
+        model.to(device=data.device)
         param_names = [name for name, _ in model.named_parameters()]
 
         if 'lowrank' in model.distribution:
@@ -48,16 +48,31 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                 if model.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
                     gamma = None
                 elif model.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
-                    gamma = model.gamma.detach().numpy()
-                M = init_M_svd_given_M_init(X=data.numpy(),K=model.K,r=model.r,M_init=model.M.detach().numpy(),beta=beta,gamma=gamma,distribution=model.distribution)
-                model.M = torch.nn.Parameter(torch.from_numpy(M))
+                    gamma = model.gamma.detach().cpu().numpy()
+                M = init_M_svd_given_M_init(
+                    X=data.detach().cpu().numpy(),
+                    K=model.K,
+                    r=model.r,
+                    M_init=model.M.detach().cpu().numpy(),
+                    beta=beta,
+                    gamma=gamma,
+                    distribution=model.distribution,
+                )
+                model.M = torch.nn.Parameter(torch.as_tensor(M, dtype=data.dtype, device=data.device))
             
         if model.HMM:
             # A newly initialized replication must not retain the transition
             # matrix fitted or initialized by the preceding replication.
             if init != 'no' or 'T' not in param_names:
                 if init in ['unif','uniform']:
-                    model.T = torch.nn.Parameter(torch.full((model.K, model.K), 1/model.K))
+                    model.T = torch.nn.Parameter(
+                        torch.full(
+                            (model.K, model.K),
+                            1 / model.K,
+                            dtype=data.real.dtype,
+                            device=data.device,
+                        )
+                    )
                 else:
                     T,delta = model.initialize_transition_matrix_hmm(X=data)
                     model.T = torch.nn.Parameter(T)
@@ -82,21 +97,22 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
             
             optimizer.zero_grad(set_to_none=True)
             epoch_nll.backward()
-            optimizer.step()
             loglik.append(-epoch_nll.item())
 
             with torch.no_grad():
-                # get state dict
                 if loglik[-1]>best_epoch_loglik:
                     best_model_params = deepcopy(model.get_params())
                     best_epoch_loglik = loglik[-1]
-                    
+
+            optimizer.step()
+
+            with torch.no_grad():
                 if epoch>=num_comparison:
                     latest = np.array(loglik[-num_comparison:])
                     maxval = np.max(latest)
                     try:
                         secondhighest = np.max(latest[latest!=maxval])
-                    except:
+                    except ValueError:
                         secondhighest = maxval
                     crit = (maxval-secondhighest)/np.abs(maxval)
                     pbar.set_description('Loglik: %.2f, relative change: %.2e'%(loglik[-1],crit))
@@ -116,21 +132,19 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                         else:
                             done = True
                     if done:
-                        if best_epoch_loglik>best_loglik:
-                            best_loglik = best_epoch_loglik
-                            params_final = best_model_params
-                            loglik_final = loglik
-                            model.set_params(best_model_params)
-                            beta_final = model.posterior(X=data)        
                         break
                 else:
                     pbar.set_description('Loglik: %.2f: '%loglik[-1])
                     pbar.update(1)
         pbar.close()
-    if 'params_final' not in locals():
-        with torch.no_grad():
-            params_final = model.get_params()
-            beta_final = model.posterior(X=data)
+
+        if best_epoch_loglik > best_loglik:
+            best_loglik = best_epoch_loglik
+            params_final = best_model_params
             loglik_final = loglik
+
+    with torch.no_grad():
+        model.set_params(params_final)
+        beta_final = model.posterior(X=data)
         
     return params_final,beta_final,loglik_final
