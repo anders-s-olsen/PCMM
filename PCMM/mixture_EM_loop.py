@@ -14,16 +14,16 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
         if np.iscomplexobj(data):
             raise ValueError('Data must be real for real models')
 
+    if init == 'no' and 'pi' not in model.__dict__:
+        raise ValueError('Model not initialized, please provide an initialization method or a set of parameters')
+
     for repl in range(num_repl):
         done = False
         # print(['Initializing repl '+str(repl)])
         if init != 'no':
-            if 'pi' in model.__dict__:
-                raise ValueError('Model already initialized, please set params=None or init=''no''')
+            # Replications are independent: overwrite every model parameter
+            # with a fresh initialization on every pass through the loop.
             model.initialize(X=data,init_method=init) #NB using 'data', not 'X'
-        else:
-            if 'pi' not in model.__dict__:
-                raise ValueError('Model not initialized, please provide an initialization method or a set of parameters')
 
         if 'lowrank' in model.distribution:
             if model.M.shape[-1]!=model.r:
@@ -38,7 +38,8 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
         loglik = []
         best_epoch_loglik = -np.inf
         params = []
-        print('Beginning EM loop')
+        if not suppress_output:
+            tqdm.write('Beginning EM loop')
         pbar = tqdm(total=max_iter,disable=suppress_output)
         pbar.set_description('In the initial phase')
         pbar.update(0)
@@ -80,7 +81,8 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
 
             # M-step
             model.M_step(X=data)
-            
+        pbar.close()
+
     # if no params_final variable exists
     if 'params_final' not in locals():
         params_final = model.get_params()

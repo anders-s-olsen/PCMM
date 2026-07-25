@@ -25,18 +25,20 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
         if data.is_complex():
             raise ValueError('Data must be real for real models')
 
+    param_names = [name for name, _ in model.named_parameters()]
+    if init == 'no' and 'pi' not in param_names:
+        raise ValueError('Model not initialized, please provide an initialization method or a set of parameters')
+
     for repl in range(num_repl):
         if decrease_lr_on_plateau:
             flag_already_decreased_lr = False
         # print(['Initializing inner repl '+str(repl)])
-        param_names = [name for name, param in model.named_parameters()]
         if init != 'no':
-            if 'pi' in param_names:
-                raise ValueError('Model already initialized, please set params=None or init=''no''')
+            # Each replication is an independent fit and therefore needs a
+            # fresh initialization, including when a previous replication has
+            # already registered parameters on the model.
             model.initialize(X=data,init_method=init)
-        param_names = [name for name, param in model.named_parameters()]
-        if 'pi' not in param_names:
-            raise ValueError('Model not initialized, please provide an initialization method or a set of parameters')
+        param_names = [name for name, _ in model.named_parameters()]
 
         if 'lowrank' in model.distribution:
             if model.M.shape[-1]!=model.r:
@@ -51,10 +53,11 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                 model.M = torch.nn.Parameter(torch.from_numpy(M))
             
         if model.HMM:
-            #if T is not initialized, initialize it
-            if 'T' not in param_names:
+            # A newly initialized replication must not retain the transition
+            # matrix fitted or initialized by the preceding replication.
+            if init != 'no' or 'T' not in param_names:
                 if init in ['unif','uniform']:
-                    model.T = torch.nn.Parameter(1/model.K.repeat(model.K,model.K))
+                    model.T = torch.nn.Parameter(torch.full((model.K, model.K), 1/model.K))
                 else:
                     T,delta = model.initialize_transition_matrix_hmm(X=data)
                     model.T = torch.nn.Parameter(T)
@@ -64,7 +67,8 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
         loglik = []
         best_epoch_loglik = -np.inf
         done = False
-        print('Beginning numerical optimization loop')
+        if not suppress_output:
+            tqdm.write('Beginning numerical optimization loop')
 
         pbar = tqdm(total=max_iter,disable=suppress_output)
         pbar.set_description('In the initial phase')
@@ -103,7 +107,11 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                                 done = True
                             else:                       
                                 optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr']/10
-                                print('Learning rate reduced to:',optimizer.param_groups[0]['lr'],'after',epoch,'iterations')
+                                if not suppress_output:
+                                    tqdm.write(
+                                        'Learning rate reduced to: %s after %d iterations'
+                                        % (optimizer.param_groups[0]['lr'], epoch)
+                                    )
                                 flag_already_decreased_lr = True
                         else:
                             done = True
@@ -118,6 +126,7 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                 else:
                     pbar.set_description('Loglik: %.2f: '%loglik[-1])
                     pbar.update(1)
+        pbar.close()
     if 'params_final' not in locals():
         with torch.no_grad():
             params_final = model.get_params()
