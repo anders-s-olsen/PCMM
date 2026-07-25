@@ -1,4 +1,5 @@
 import torch
+import warnings
 import torch.nn as nn
 from PCMM.PCMMtorchBaseModel import PCMMtorchBaseModel
 import math
@@ -374,7 +375,10 @@ class SingularWishart(PCMMtorchBaseModel):
         X_weights = torch.linalg.norm(X, dim=1)**2
         expected = torch.full((X.shape[0],), self.p, dtype=X.real.dtype, device=X.device)
         if not torch.allclose(torch.sum(X_weights, dim=1), expected):
-            Warning("While not explicitly required, the scale of the input data vectors is expected to be equal to the square root of the eigenvalues. If the scale does not sum to the dimensionality, this warning is thrown")
+            warnings.warn(
+                "The input scales are expected to be square roots of eigenvalues whose sum equals the dimensionality.",
+                RuntimeWarning,
+            )
 
         # while Q_q^T Q_q != U_q^T L U_q, their determinants are the same
         # log_det_S11 = torch.logdet(torch.swapaxes(X[:,:self.q,:],-2,-1) @ X[:,:self.q,:]).unsqueeze(0)

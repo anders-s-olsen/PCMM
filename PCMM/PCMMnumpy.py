@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 from PCMM.PCMMnumpyBaseModel import PCMMnumpyBaseModel
 from scipy.sparse.linalg import svds
 from scipy.optimize import minimize_scalar
@@ -177,7 +178,10 @@ class ACG(PCMMnumpyBaseModel):
     def M_step_single_component(self,X,beta,M=None,Psi=None,max_iter=int(1e5),tol=1e-10):
         n,p = X.shape
         if n<p*(p-1):
-            Warning("Too high dimensionality compared to number of observations. Psi cannot be calculated")
+            warnings.warn(
+                "Too high dimensionality compared to number of observations. Psi cannot be calculated",
+                RuntimeWarning,
+            )
         if self.distribution in ['ACG_lowrank','Complex_ACG_lowrank']:
             Q = (beta[:,None]*X).T
 
@@ -221,7 +225,7 @@ class ACG(PCMMnumpyBaseModel):
                 if j>0:
                     if loss[-1]<tol:
                         if np.any(np.array(loss)<-tol):
-                            raise Warning("Loss is negative. Check M_step_single_component")
+                            warnings.warn("Loss is negative. Check M_step_single_component", RuntimeWarning)
                         break
                 
                 # # # To measure convergence
@@ -232,7 +236,7 @@ class ACG(PCMMnumpyBaseModel):
                 M_tilde_old = M_tilde
 
             if j==max_iter-1:
-                raise Warning("M-step did not converge")
+                warnings.warn("M-step did not converge", RuntimeWarning)
 
             # output the unnormalized M such that the log_pdf is computed without having to include the normalization factor (pdf is scale invariant)
             M = M/np.sqrt(gamma)
@@ -348,7 +352,7 @@ class MACG(PCMMnumpyBaseModel):
                 if j>0:
                     if loss[-1]<tol:
                         if np.any(np.array(loss)<-tol):
-                            raise Warning("Loss is negative. Check M_step_single_component")
+                            warnings.warn("Loss is negative. Check M_step_single_component", RuntimeWarning)
                         break
                 
                 # To measure convergence
@@ -358,7 +362,7 @@ class MACG(PCMMnumpyBaseModel):
                 S1_old = S1
 
             if j==max_iter-1:
-                raise Warning("M-step did not converge")
+                warnings.warn("M-step did not converge", RuntimeWarning)
             
             # output the unnormalized M such that the log_pdf is computed without having to include the normalization factor (pdf is scale invariant)
             M = M/np.sqrt(gamma)
@@ -499,7 +503,7 @@ class SingularWishart(PCMMnumpyBaseModel):
                 if j>0:
                     if loss[-1]<tol:
                         if np.any(np.array(loss)<-tol):
-                            raise Warning("Loss is negative. Check M_step_single_component")
+                            warnings.warn("Loss is negative. Check M_step_single_component", RuntimeWarning)
                         break
                 
                 # To measure convergence
@@ -509,7 +513,7 @@ class SingularWishart(PCMMnumpyBaseModel):
                 S1_old = S1
 
             if j==max_iter-1:
-                raise Warning("M-step did not converge")
+                warnings.warn("M-step did not converge", RuntimeWarning)
 
             # output M, not M_tilde
             M = M_tilde*np.sqrt(gamma)
@@ -662,7 +666,6 @@ class Normal(PCMMnumpyBaseModel):
                 if j>0:
                     if loss[-1]<tol:
                         # if np.any(np.array(loss)<-tol):
-                        #     raise Warning("Loss is negative. Check M_step_single_component")
                         break
                                 
                 # To measure convergence
@@ -672,7 +675,7 @@ class Normal(PCMMnumpyBaseModel):
                 S1_old = S1
 
             if j==max_iter-1:
-                raise Warning("M-step did not converge")
+                warnings.warn("M-step did not converge", RuntimeWarning)
 
             # output M, not M_tilde
             M = M_tilde*np.sqrt(gamma)
