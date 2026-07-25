@@ -96,6 +96,25 @@ class PCMMtorchBaseModel(nn.Module):
             WatsonEM = Watson(p=self.p,K=self.K,complex=True)
             WatsonEM.initialize(X.numpy(),init_method=init_method)
             self.unpack_params(WatsonEM.get_params())
+        elif self.distribution in ['Bingham_lowrank','Complex_Bingham_lowrank']:
+            # A Watson fit supplies stable axial mixture assignments and is a
+            # natural rotationally-symmetric starting point for Bingham.
+            WatsonEM = Watson(p=self.p,K=self.K,complex=self.complex)
+            WatsonEM.initialize(X.numpy(),init_method=init_method)
+            watson_params = WatsonEM.get_params()
+            mu = torch.as_tensor(watson_params['mu'], dtype=X.dtype)
+            kappa = torch.as_tensor(watson_params['kappa'], dtype=X.real.dtype)
+            M = torch.zeros((self.K,self.p,self.r), dtype=X.dtype, device=X.device)
+            for k in range(self.K):
+                A = kappa[k] * torch.outer(mu[k],mu[k].conj())
+                eigenvalues, eigenvectors = torch.linalg.eigh(A)
+                eigenvalues = eigenvalues - eigenvalues[0]
+                order = torch.argsort(eigenvalues,descending=True)[:self.r]
+                M[k] = eigenvectors[:,order] * torch.sqrt(
+                    torch.clamp(eigenvalues[order],min=0)
+                )[None,:]
+            pi = torch.as_tensor(watson_params['pi'],dtype=X.real.dtype,device=X.device)
+            self.unpack_params({'M':M,'pi':pi})
         elif self.distribution == 'ACG_lowrank':
             ACGEM = ACG(p=self.p,K=self.K,rank=self.r)
             ACGEM.initialize(X.numpy(),init_method=init_method)
@@ -271,18 +290,19 @@ class PCMMtorchBaseModel(nn.Module):
         if self.HMM:
             if 'Watson' in self.distribution:
                 return {'mu':self.mu.detach(),'kappa':self.kappa.detach(),'pi':self.pi.detach(),'T':self.T.detach()}
-            elif self.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
+            elif self.distribution in ['Bingham_lowrank','Complex_Bingham_lowrank',
+                                       'ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
                 return {'M':self.M.detach(),'pi':self.pi.detach(),'T':self.T.detach()}
             elif self.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
                 return {'M':self.M.detach(),'gamma':self.gamma.detach(),'pi':self.pi.detach(),'T':self.T.detach()}
         else:
             if 'Watson' in self.distribution:
                 return {'mu':self.mu.detach(),'kappa':self.kappa.detach(),'pi':self.pi.detach()}
-            elif self.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
+            elif self.distribution in ['Bingham_lowrank','Complex_Bingham_lowrank',
+                                       'ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
                 return {'M':self.M.detach(),'pi':self.pi.detach()}
             elif self.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
                 return {'M':self.M.detach(),'gamma':self.gamma.detach(),'pi':self.pi.detach()}
         
     def set_params(self,params):
         self.unpack_params(params)
-        

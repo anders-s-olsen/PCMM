@@ -13,14 +13,23 @@ from PCMM.phase_coherence_kmeans import *
 
 from PCMM.mixture_torch_loop import mixture_torch_loop
 from PCMM.PCMMtorch import Watson as Watson_torch
+from PCMM.PCMMtorch import Bingham as Bingham_torch
 from PCMM.PCMMtorch import ACG as ACG_torch
 from PCMM.PCMMtorch import MACG as MACG_torch
 from PCMM.PCMMtorch import SingularWishart as SingularWishart_torch
 from PCMM.PCMMtorch import Normal as Normal_torch
+from PCMM.PCMMtorch import WrappedNormal as WrappedNormal_torch
+from PCMM.VMVM_PCMMtorch import VMVM as VMVM_torch
+
+TORCH_MODEL_NAMES = ['Watson','Complex_Watson','Bingham','Complex_Bingham',
+                     'ACG','Complex_ACG','MACG',
+                     'SingularWishart','Normal','Complex_Normal','WrappedNormal','VMVM']
 
 def train_model(data_train,K,options,params=None,suppress_output=False,samples_per_sequence=0):
     p = data_train.shape[1]
-    if options['modelname'] in ['Watson','Complex_Watson','ACG','Complex_ACG','MACG','SingularWishart','Normal','Complex_Normal']:
+    if options['modelname'] in TORCH_MODEL_NAMES:
+        if options['modelname'] in ['Bingham','Complex_Bingham','VMVM','WrappedNormal'] and options['LR'] == 0:
+            raise ValueError(options['modelname']+' is implemented only in PyTorch; set LR to a positive value')
         if options['rank']=='fullrank':
             rank=0
         elif options['rank']=='lowrank': #assume full rank in lowrank setting
@@ -73,6 +82,13 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
             model = Watson_numpy(K=K,p=p,complex=True,params=params)
         else:
             model = Watson_torch(K=K,p=p,complex=True,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
+    elif options['modelname'] in ['Bingham','Complex_Bingham']:
+        model = Bingham_torch(
+            K=K, p=p, rank=p if rank == 0 else rank,
+            complex=options['modelname'] == 'Complex_Bingham',
+            params=params, HMM=options['HMM'],
+            samples_per_sequence=samples_per_sequence,
+        )
     elif options['modelname'] == 'ACG':
         if options['LR']==0:
             model = ACG_numpy(K=K,p=p,rank=rank,params=params)
@@ -103,6 +119,10 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
             model = Normal_numpy(K=K,p=p,rank=rank,params=params,complex=True, force_gamma_same=options['force_gamma_same'])
         else:
             model = Normal_torch(K=K,p=p,rank=rank,params=params,complex=True,HMM=options['HMM'],samples_per_sequence=samples_per_sequence, force_gamma_same=options['force_gamma_same'])
+    elif options['modelname'] == 'WrappedNormal':
+        model = WrappedNormal_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence, force_gamma_same=options['force_gamma_same'])
+    elif options['modelname'] == 'VMVM':
+        model = VMVM_torch(K=K,p=p,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
     elif options['modelname'] == 'least_squares':
         C,labels,obj = least_squares_sign_flip(data_train,K=K,max_iter=options['max_iter'],num_repl=options['num_repl'],init=options['init'],tol=options['tol'])
         # X = data_train
@@ -153,7 +173,9 @@ def test_model(data_test,params,K,options,samples_per_sequence=0):
         else: 
             rank=options['rank']
     
-    if options['modelname'] in ['Watson','Complex_Watson','ACG','Complex_ACG','MACG','SingularWishart','Normal','Complex_Normal']:
+    if options['modelname'] in TORCH_MODEL_NAMES:
+        if options['modelname'] in ['Bingham','Complex_Bingham','VMVM','WrappedNormal'] and options['LR'] == 0:
+            raise ValueError(options['modelname']+' is implemented only in PyTorch; set LR to a positive value')
         if options['LR']!=0:
             # data_test = torch.tensor(data_test)
             data_test = torch.from_numpy(data_test)
@@ -168,6 +190,13 @@ def test_model(data_test,params,K,options,samples_per_sequence=0):
                 model = Watson_numpy(K=K,p=p,complex=True,params=params)
             else:
                 model = Watson_torch(K=K,p=p,complex=True,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
+        elif options['modelname'] in ['Bingham','Complex_Bingham']:
+            model = Bingham_torch(
+                K=K, p=p, rank=p if rank == 0 else rank,
+                complex=options['modelname'] == 'Complex_Bingham',
+                params=params, HMM=options['HMM'],
+                samples_per_sequence=samples_per_sequence,
+            )
         elif options['modelname'] == 'ACG':
             if options['LR']==0:
                 model = ACG_numpy(K=K,p=p,rank=rank,params=params)
@@ -198,6 +227,10 @@ def test_model(data_test,params,K,options,samples_per_sequence=0):
                 model = Normal_numpy(K=K,p=p,rank=rank,complex=True,params=params)
             else:
                 model = Normal_torch(K=K,p=p,rank=rank,complex=True,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
+        elif options['modelname'] == 'WrappedNormal':
+            model = WrappedNormal_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
+        elif options['modelname'] == 'VMVM':
+            model = VMVM_torch(K=K,p=p,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
         test_loglik, test_loglik_per_sample = model.test_log_likelihood(X=data_test)
         test_posterior = model.posterior(X=data_test)
     elif options['modelname'] in ['least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann']:

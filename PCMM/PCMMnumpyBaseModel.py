@@ -1,23 +1,22 @@
 import numpy as np
-from PCMM.phase_coherence_kmeans import diametrical_clustering, plusplus_initialization, grassmann_clustering, weighted_grassmann_clustering
+from PCMM.phase_coherence_kmeans import diametrical_clustering, plusplus_initialization, grassmann_clustering, torus_clustering, weighted_grassmann_clustering
 from scipy.cluster.vq import kmeans2
 
-def init_M_svd(V,r):
-    p = V.shape[0]
-    if r>V.shape[1]:
-        raise ValueError('rank should be less than or equal to the number of columns of V. Consider reducing r or changing initialization method')
+def init_M_svd(V,r,normalize_noise=False):
+    if V.ndim!=2:
+        raise ValueError('V should be a two-dimensional array')
+    p,n = V.shape
+    if not isinstance(r,(int,np.integer)) or r<1 or r>=min(p,n):
+        raise ValueError('rank should satisfy 1 <= r < min(V.shape) so the residual variance can be estimated')
     U,S,_ = np.linalg.svd(V,full_matrices=False)
-    if p == r:
-        epsilon = 1
-        M = U[:,:r]@np.diag(np.sqrt(S[:r]))
-    elif V.shape[1]>p:
-        epsilon = np.sum(S[r:])/(p-r)
-        M = U[:,:r]@np.diag(np.sqrt(((S[:r]-epsilon)/epsilon)))
-    else:
-        epsilon = np.sum(S[r:])/(V.shape[1]-r)
-        M = U[:,:r]@np.diag(np.sqrt(((S[:r]-epsilon)/epsilon)))
-
-    return M,epsilon/V.shape[1]      
+    eigenvalues = S**2/n
+    gamma = np.sum(eigenvalues[r:])/(p-r)
+    tolerance = np.finfo(eigenvalues.dtype).eps*max(eigenvalues[0],1)
+    if gamma<=tolerance:
+        raise ValueError('Residual variance is numerically zero. Consider reducing r or using a regularized initialization')
+    signal_eigenvalues = np.maximum(eigenvalues[:r]-gamma,0)
+    loadings = np.sqrt(signal_eigenvalues/gamma if normalize_noise else signal_eigenvalues)
+    return U[:,:r]*loadings[None,:],gamma
     
 def init_M_svd_given_M_init(X,K,r,M_init,beta=None,gamma=None,distribution=None):
     n = X.shape[0]
@@ -27,6 +26,7 @@ def init_M_svd_given_M_init(X,K,r,M_init,beta=None,gamma=None,distribution=None)
     elif beta.ndim==1:
         raise ValueError('beta should be KxN')
 
+    M_init = np.array(M_init,copy=True)
     # M_init should be Kxpxr_1, where r_1<r.
     if M_init.ndim==2:
         M_init = M_init[:,:,None]
@@ -42,11 +42,15 @@ def init_M_svd_given_M_init(X,K,r,M_init,beta=None,gamma=None,distribution=None)
         M = np.zeros((K,p,r))
     
     for k in range(K):
+        beta_sum = np.sum(beta[k])
+        if beta_sum<=0:
+            raise ValueError('Each row of beta should have a positive sum')
+        weights = np.sqrt(np.maximum(beta[k],0)*n/beta_sum)
         if X.ndim==2:
-            V = (beta[k][:,None]*X).T
+            V = (weights[:,None]*X).T
         else:
             q = X.shape[2]
-            V = np.reshape(np.swapaxes(beta[k][:,None,None]*X,0,1),(p,q*n))
+            V = np.reshape(np.swapaxes(weights[:,None,None]*X,0,1),(p,q*n))
             
         # projection matrix of M
         if distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
@@ -56,7 +60,7 @@ def init_M_svd_given_M_init(X,K,r,M_init,beta=None,gamma=None,distribution=None)
         elif distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
             M_proj = M_init[k]@np.linalg.inv(M_init[k].T.conj()@M_init[k]+gamma[k]*np.eye(M_init[k].shape[1]))@M_init[k].T.conj()
         V_residual = V - M_proj@V
-        M_extra,_ = init_M_svd(V_residual,r=num_missing)
+        M_extra,_ = init_M_svd(V_residual,r=num_missing,normalize_noise=distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank'])
         M[k] = np.concatenate([M_init[k],M_extra],axis=-1)
     return M
     
@@ -107,6 +111,7 @@ class PCMMnumpyBaseModel():
                                'dc','diametrical_clustering','dc_seg','diametrical_clustering_seg',
                                'gc','grassmann_clustering','gc_seg','grassmann_clustering_seg',
                                'wgc','weighted_grassmann_clustering','wgc_seg','weighted_grassmann_clustering_seg',
+                               'tc','torus_clustering','tc++','torus_clustering_plusplus',
                                'ls','ls_seg']
         assert self.distribution in ['Watson','Complex_Watson',
                                      'ACG_lowrank','ACG_fullrank',
@@ -144,15 +149,27 @@ class PCMMnumpyBaseModel():
                 if 'SingularWishart_lowrank' in self.distribution or 'Normal_lowrank' in self.distribution:
                     self.gamma = np.ones(self.K)
             return           
-        elif init_method in ['ls','ls_seg','diametrical_clustering_plusplus','dc++','dc++_seg','diametrical_clustering_plusplus_seg','dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
-            # for clustering methods on projective hyperplane
+        elif init_method in ['ls','ls_seg','diametrical_clustering_plusplus','dc++','dc++_seg','diametrical_clustering_plusplus_seg','dc','diametrical_clustering',
+                            'dc_seg','diametrical_clustering_seg','tc','torus_clustering','tc++','torus_clustering_plusplus']:
+            # clustering initializers for vector-valued observations
 
             if X.ndim==3:
                 X2 = X[:,:,0]
             else:
                 X2 = X.copy()   
             
-            if init_method in ['diametrical_clustering_plusplus','dc++','diametrical_clustering_plusplus_seg','dc++_seg']:
+            if init_method in ['tc','torus_clustering','tc++','torus_clustering_plusplus']:
+                if self.distribution != 'Normal_lowrank':
+                    raise ValueError(
+                        'Torus clustering initialization is only available '
+                        'for real low-rank Normal models.'
+                    )
+                print('Running torus clustering initialization')
+                mu,X_part,_ = torus_clustering(
+                    X=X2,K=self.K,max_iter=10000,num_repl=1,
+                    init='++',suppress_output=False
+                )
+            elif init_method in ['diametrical_clustering_plusplus','dc++','diametrical_clustering_plusplus_seg','dc++_seg']:
                 print('Running diametrical clustering ++ initialization')
                 mu,X_part,_ = plusplus_initialization(X=X2,K=self.K)
             elif init_method in ['dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
@@ -182,8 +199,9 @@ class PCMMnumpyBaseModel():
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
                 self.M = np.zeros((self.K,self.p,self.r),dtype=X.dtype)
                 gamma = np.zeros(self.K)
+                normalize_noise = self.distribution in ['ACG_lowrank','MACG_lowrank','Complex_ACG_lowrank']
                 for k in range(self.K):
-                    self.M[k],gamma[k] = init_M_svd(X[X_part==k].T,self.r)
+                    self.M[k],gamma[k] = init_M_svd(X[X_part==k].T,self.r,normalize_noise=normalize_noise)
                 if self.distribution in ['Normal_lowrank','Complex_Normal_lowrank','SingularWishart_lowrank']:
                     if self.force_gamma_same:
                         self.gamma = np.ones(self.K)*np.mean(gamma)
@@ -193,7 +211,8 @@ class PCMMnumpyBaseModel():
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
                 self.M = np.zeros((self.K,self.p,self.r),dtype=X.dtype)
                 for k in range(self.K):
-                    self.M[k],_ = init_M_svd(np.reshape(np.swapaxes(X[X_part==k],0,1),(self.p,np.sum(X_part==k)*self.q)),self.r)
+                    V = np.reshape(np.swapaxes(X[X_part==k],0,1),(self.p,np.sum(X_part==k)*self.q))
+                    self.M[k],_ = init_M_svd(V,self.r,normalize_noise=True)
             elif 'fullrank' in self.distribution:
                 print('Initializing Psi based on the clustering centroids')
                 self.Psi = np.zeros((self.K,self.p,self.p),dtype=X.dtype)
@@ -218,8 +237,10 @@ class PCMMnumpyBaseModel():
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
                 self.M = np.zeros((self.K,self.p,self.r),dtype=X.dtype)
                 gamma = np.zeros(self.K)
+                normalize_noise = 'SingularWishart' not in self.distribution
                 for k in range(self.K):
-                    self.M[k],gamma[k] = init_M_svd(np.reshape(np.swapaxes(X[X_part==k],0,1),(self.p,np.sum(X_part==k)*self.q)),self.r)
+                    V = np.reshape(np.swapaxes(X[X_part==k],0,1),(self.p,np.sum(X_part==k)*self.q))
+                    self.M[k],gamma[k] = init_M_svd(V,self.r,normalize_noise=normalize_noise)
                 if 'SingularWishart' in self.distribution:
                     if self.force_gamma_same:
                         self.gamma = np.ones(self.K)*np.mean(gamma)
@@ -233,7 +254,8 @@ class PCMMnumpyBaseModel():
                     if self.distribution in ['MACG_fullrank']:
                         self.Psi[k] = self.p*self.Psi[k]/np.trace(self.Psi[k])
 
-        elif init_method in ['weighted_grassmann_clustering','weighted_grassmann_clustering_seg','wgc','wgc_seg','weighted_grassmann_clustering_plusplus','wgc++','weighted_grassmann_clustering_plusplus_seg','wgc++_seg']:
+        elif init_method in ['weighted_grassmann_clustering','weighted_grassmann_clustering_seg','wgc','wgc_seg','weighted_grassmann_clustering_plusplus','wgc++',
+                            'weighted_grassmann_clustering_plusplus_seg','wgc++_seg']:
             # For clustering methods on the symmetric positive definite matrix manifold
 
             if X.ndim!=3:
@@ -250,8 +272,10 @@ class PCMMnumpyBaseModel():
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
                 self.M = np.zeros((self.K,self.p,self.r),dtype=X.dtype)
                 gamma = np.zeros(self.K)
+                normalize_noise = 'SingularWishart' not in self.distribution
                 for k in range(self.K):
-                    self.M[k],gamma[k] = init_M_svd(np.reshape(np.swapaxes(X[X_part==k],0,1),(self.p,np.sum(X_part==k)*self.q)),self.r)
+                    V = np.reshape(np.swapaxes(X[X_part==k],0,1),(self.p,np.sum(X_part==k)*self.q))
+                    self.M[k],gamma[k] = init_M_svd(V,self.r,normalize_noise=normalize_noise)
                 if 'SingularWishart' in self.distribution:
                     if self.force_gamma_same:
                         self.gamma = np.ones(self.K)*np.mean(gamma)
