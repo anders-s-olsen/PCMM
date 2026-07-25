@@ -74,8 +74,8 @@ class PCMMtorchBaseModel(nn.Module):
             K,N = beta.shape
             samples_per_sequence, sequence_starts = self._format_samples_per_sequence(N)
             
-            T = torch.zeros(samples_per_sequence.size(0),self.K,self.K)
-            delta = torch.zeros(samples_per_sequence.size(0),self.K)
+            T = beta.new_zeros((samples_per_sequence.size(0), self.K, self.K))
+            delta = beta.new_zeros((samples_per_sequence.size(0), self.K))
             for seq in range(samples_per_sequence.size(0)):
                 for t in range(samples_per_sequence[seq]-1):
                     T[seq] += 1/samples_per_sequence[seq] * torch.outer(beta[:,sequence_starts[seq]+t],beta[:,sequence_starts[seq]+t+1])
@@ -87,20 +87,21 @@ class PCMMtorchBaseModel(nn.Module):
             return T, delta
 
     def initialize(self,X,init_method=None):
+        X_numpy = X.detach().cpu().numpy()
         # initialize using analytical optimization only
         if self.distribution == 'Watson':
             WatsonEM = Watson(p=self.p,K=self.K)
-            WatsonEM.initialize(X.numpy(),init_method=init_method)
+            WatsonEM.initialize(X_numpy,init_method=init_method)
             self.unpack_params(WatsonEM.get_params())
         elif self.distribution == 'Complex_Watson':
             WatsonEM = Watson(p=self.p,K=self.K,complex=True)
-            WatsonEM.initialize(X.numpy(),init_method=init_method)
+            WatsonEM.initialize(X_numpy,init_method=init_method)
             self.unpack_params(WatsonEM.get_params())
         elif self.distribution in ['Bingham_lowrank','Complex_Bingham_lowrank']:
             # A Watson fit supplies stable axial mixture assignments and is a
             # natural rotationally-symmetric starting point for Bingham.
             WatsonEM = Watson(p=self.p,K=self.K,complex=self.complex)
-            WatsonEM.initialize(X.numpy(),init_method=init_method)
+            WatsonEM.initialize(X_numpy,init_method=init_method)
             watson_params = WatsonEM.get_params()
             mu = torch.as_tensor(watson_params['mu'], dtype=X.dtype)
             kappa = torch.as_tensor(watson_params['kappa'], dtype=X.real.dtype)
@@ -117,37 +118,47 @@ class PCMMtorchBaseModel(nn.Module):
             self.unpack_params({'M':M,'pi':pi})
         elif self.distribution == 'ACG_lowrank':
             ACGEM = ACG(p=self.p,K=self.K,rank=self.r)
-            ACGEM.initialize(X.numpy(),init_method=init_method)
+            ACGEM.initialize(X_numpy,init_method=init_method)
             self.unpack_params(ACGEM.get_params())
         elif self.distribution == 'Complex_ACG_lowrank':
             ACGEM = ACG(p=self.p,K=self.K,rank=self.r,complex=True)
-            ACGEM.initialize(X.numpy(),init_method=init_method)
+            ACGEM.initialize(X_numpy,init_method=init_method)
             self.unpack_params(ACGEM.get_params())
         elif self.distribution == 'MACG_lowrank':
             MACGEM = MACG(p=self.p,K=self.K,rank=self.r,q=self.q)
-            MACGEM.initialize(X.numpy(),init_method=init_method)
+            MACGEM.initialize(X_numpy,init_method=init_method)
             self.unpack_params(MACGEM.get_params())
         elif self.distribution == 'SingularWishart_lowrank':
-            SingularWishartEM = SingularWishart(p=self.p,K=self.K,q=self.q,rank=self.r,force_gamma_same=self.force_gamma_same)
-            SingularWishartEM.initialize(X.numpy(),init_method=init_method)
+            SingularWishartEM = SingularWishart(
+                p=self.p,
+                K=self.K,
+                q=self.q,
+                rank=self.r,
+                force_gamma_same=self.force_gamma_same,
+            )
+            SingularWishartEM.initialize(X_numpy,init_method=init_method)
             self.unpack_params(SingularWishartEM.get_params())
         elif self.distribution == 'Normal_lowrank':
             NormalEM = Normal(p=self.p,K=self.K,rank=self.r,force_gamma_same=self.force_gamma_same)
-            NormalEM.initialize(X.numpy(),init_method=init_method)
+            NormalEM.initialize(X_numpy,init_method=init_method)
             self.unpack_params(NormalEM.get_params())
         elif self.distribution == 'Complex_Normal_lowrank':
             NormalEM = Normal(p=self.p,K=self.K,rank=self.r,complex=True,force_gamma_same=self.force_gamma_same)
-            NormalEM.initialize(X.numpy(),init_method=init_method)
+            NormalEM.initialize(X_numpy,init_method=init_method)
             self.unpack_params(NormalEM.get_params())
         else:
             raise ValueError('Invalid distribution')
+        self.to(device=X.device)
+        for name, parameter in self.named_parameters():
+            dtype = X.dtype if name in {'M', 'mu'} else X.real.dtype
+            parameter.data = parameter.data.to(dtype=dtype)
 
     def MM_log_likelihood(self,log_pdf,return_samplewise_likelihood=False):
         log_density = log_pdf+self.LogSoftmax_pi(self.pi)[:,None] #each pdf gets "multiplied" with the weight
         logsum_density = torch.logsumexp(log_density,dim=0) #sum over the K components
         log_likelihood = torch.sum(logsum_density) #sum over the N samples
         if return_samplewise_likelihood:
-            return log_likelihood, logsum_density.numpy()
+            return log_likelihood, logsum_density.detach().cpu().numpy()
         else:
             return log_likelihood
 
@@ -157,7 +168,7 @@ class PCMMtorchBaseModel(nn.Module):
         log_T = self.LogSoftmax_T(self.T) # size KxK
         log_pi = self.LogSoftmax_pi(self.pi) #size K
 
-        log_prob = torch.zeros(len(self.samples_per_sequence))
+        log_prob = log_pdf.new_zeros(len(self.samples_per_sequence))
         for seq in range(self.samples_per_sequence.size(0)):
             Ns = self.samples_per_sequence[seq]
 
@@ -180,12 +191,12 @@ class PCMMtorchBaseModel(nn.Module):
         log_T = self.LogSoftmax_T(self.T) # size KxK
         log_pi = self.LogSoftmax_pi(self.pi) #size K
 
-        log_prob = torch.zeros(len(self.samples_per_sequence))
-        log_t_sub = torch.zeros(num_subs) # to store the log likelihood for each subject
+        log_prob = log_pdf.new_zeros(len(self.samples_per_sequence))
+        log_t_sub = log_pdf.new_zeros(num_subs) # to store the log likelihood for each subject
         for seq in range(self.samples_per_sequence.size(0)):
             Ns = self.samples_per_sequence[seq]
 
-            log_alpha = log_pdf_reshaped[:,:,0] + log_pi[None] #add the log_pdf to the log_alpha
+            log_alpha = log_pdf_reshaped[:, :, sequence_starts[seq]] + log_pi[None]
             for t in range(1,Ns):
                 log_alpha = log_pdf_reshaped[:,:,sequence_starts[seq]+t] + torch.logsumexp(log_alpha[:,:,None]+log_T[None],dim=1)
 
@@ -194,7 +205,7 @@ class PCMMtorchBaseModel(nn.Module):
             log_prob[seq] = torch.sum(log_t) #sum over subjects
         
         if return_samplewise_likelihood:
-            return torch.sum(log_prob), log_t_sub.numpy()
+            return torch.sum(log_prob), log_t_sub.detach().cpu().numpy()
         else:
             return torch.sum(log_prob)
     
@@ -228,7 +239,7 @@ class PCMMtorchBaseModel(nn.Module):
         log_prob = torch.sum(log_t) #sum over sequences
 
         if return_samplewise_likelihood:
-            return log_prob, log_t.numpy()
+            return log_prob, log_t.detach().cpu().numpy()
         else:
             return log_prob
 
@@ -258,7 +269,7 @@ class PCMMtorchBaseModel(nn.Module):
         Z_path_all = []
         for seq in range(samples_per_sequence.size(0)):
             Ns = samples_per_sequence[seq]
-            log_psi = torch.zeros(Ns,K)
+            log_psi = log_pdf.new_zeros((Ns, K))
 
             log_psi[0,:] = log_pdf[:,sequence_starts[seq]]+log_pi
 
@@ -268,13 +279,13 @@ class PCMMtorchBaseModel(nn.Module):
                 log_psi[t,:] = log_psi[t,:]+log_pdf[:,sequence_starts[seq]+t]
 
             Z_T = torch.argmax(log_psi[-1,:])
-            Z_path = torch.zeros(Ns,dtype=torch.int32)
+            Z_path = torch.zeros(Ns, dtype=torch.long, device=log_pdf.device)
             Z_path[-1] = Z_T
             for t in range(Ns-2,-1,-1):
                 Z_path[t] = torch.argmax(log_psi[t,:]+log_T[:,Z_path[t+1]])
 
             # from partition vector to partition matrix
-            Z_path_all.append(torch.eye(K)[Z_path].T)
+            Z_path_all.append(torch.eye(K, dtype=log_pdf.dtype, device=log_pdf.device)[Z_path].T)
 
         return torch.hstack(Z_path_all)
     
@@ -282,9 +293,9 @@ class PCMMtorchBaseModel(nn.Module):
         with torch.no_grad():
             log_pdf = self.log_pdf(X)
             if self.HMM:
-                return self.viterbi(log_pdf).numpy()
+                return self.viterbi(log_pdf).detach().cpu().numpy()
             else:
-                return self.posterior_MM(log_pdf).numpy()
+                return self.posterior_MM(log_pdf).detach().cpu().numpy()
     
     def get_params(self):
         if self.HMM:

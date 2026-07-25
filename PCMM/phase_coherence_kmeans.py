@@ -7,6 +7,8 @@ from tqdm import tqdm
 def plusplus_initialization(X, K, dist="diametrical"):
     assert dist in ["diametrical", "grassmann", "weighted_grassmann"]
     n = X.shape[0]
+    if not isinstance(K, (int, np.integer)) or not 1 <= K <= n:
+        raise ValueError("K must be an integer satisfying 1 <= K <= the number of observations.")
     if X.ndim == 3:
         q = X.shape[2]
 
@@ -50,8 +52,14 @@ def plusplus_initialization(X, K, dist="diametrical"):
             obj = np.mean(np.max(-dis, axis=1))
             break
 
-        prob_dist = mindis / np.sum(mindis)  # construct the prob. distribution
-        cluster_idx = np.random.choice(n, p=prob_dist)  # assume existing idx can never be chosen because p=0
+        total_distance = np.sum(mindis)
+        if not np.isfinite(total_distance) or total_distance <= np.finfo(float).eps:
+            available = np.setdiff1d(np.arange(n), all_cluster_idx[: k + 1], assume_unique=False)
+            cluster_idx = np.random.choice(available)
+        else:
+            prob_dist = mindis / total_distance
+            cluster_idx = np.random.choice(n, p=prob_dist)
+        all_cluster_idx[k + 1] = cluster_idx
 
         # if dist == 'diametrical':
         #     C = np.hstack((C,X[cluster_idx][:,np.newaxis]))
@@ -103,6 +111,8 @@ def projective_hyperplane_clustering(X, K, max_iter=10000, num_repl=1, init=None
             maxsim = np.max(sim, axis=1)
             X_part = np.argmax(sim, axis=1)
             obj.append(np.mean(maxsim))
+            if np.unique(X_part).size != K:
+                raise ValueError("An empty cluster was found. Try another initialization or reduce K.")
 
             # for k in range(K):
             #     partsum[iter,k] = np.sum(X_part==k)
@@ -169,6 +179,8 @@ def diametrical_clustering(X, K, max_iter=10000, num_repl=1, init=None, tol=1e-1
             maxsim = np.max(sim, axis=1)
             X_part = np.argmax(sim, axis=1)
             obj.append(np.mean(maxsim))
+            if np.unique(X_part).size != K:
+                raise ValueError("An empty cluster was found. Try another initialization or reduce K.")
 
             # for k in range(K):
             #     partsum[iter,k] = np.sum(X_part==k)
@@ -235,6 +247,8 @@ def grassmann_clustering(X, K, max_iter=10000, num_repl=1, init=None, tol=1e-10,
             maxsim = np.max(sim, axis=1)  # find the maximum similarity
             X_part = np.argmax(sim, axis=1)  # assign each point to the cluster with the highest similarity
             obj.append(np.mean(maxsim))
+            if np.unique(X_part).size != K:
+                raise ValueError("An empty cluster was found. Try another initialization or reduce K.")
 
             # check for convergence
             # for k in range(K):
@@ -316,9 +330,11 @@ def weighted_grassmann_clustering(X, K, max_iter=10000, num_repl=1, tol=1e-10, i
             B = np.swapaxes(X, -2, -1)[:, None] @ (C[None])
             dis = 1 / np.sqrt(2) * (np.sum(X_weights**2, axis=-1)[:, None] + np.sum(C_weights**2, axis=-1)[None] - 2 * np.linalg.norm(B, axis=(-2, -1)) ** 2)  #
             sim = -dis
-            maxsim = np.max(sim, axis=1)  # find the maximum similarity - the sum of this value is the objective function
+            maxsim = np.max(sim, axis=1)
             X_part = np.argmax(sim, axis=1)  # assign each point to the cluster with the highest similarity
             obj.append(np.mean(maxsim))
+            if np.unique(X_part).size != K:
+                raise ValueError("An empty cluster was found. Try another initialization or reduce K.")
 
             # check for convergence
             # for k in range(K):
@@ -353,6 +369,7 @@ def weighted_grassmann_clustering(X, K, max_iter=10000, num_repl=1, tol=1e-10, i
 def least_squares_sign_flip(X, K, max_iter=10000, num_repl=1, tol=1e-10, init=None, disable=None):
     if init == "uniform":
         init = "random"
+    X = np.array(X, copy=True)
     n, p = X.shape
 
     # perform the sign flip

@@ -195,7 +195,13 @@ class PCMMnumpyBaseModel():
                 self.kappa = np.zeros(self.K)
                 for k in range(self.K):
                     self.kappa[k] = self.optimize_kappa(X[X_part==k],mu=self.mu[k],beta=np.ones(np.sum(X_part==k)))
-            elif self.distribution in ['ACG_lowrank','MACG_lowrank','Complex_ACG_lowrank','Normal_lowrank','Complex_Normal_lowrank','SingularWishart_lowrank']:
+            elif self.distribution in [
+                'ACG_lowrank',
+                'Complex_ACG_lowrank',
+                'Normal_lowrank',
+                'Complex_Normal_lowrank',
+                'SingularWishart_lowrank',
+            ]:
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
                 self.M = np.zeros((self.K,self.p,self.r),dtype=X.dtype)
                 gamma = np.zeros(self.K)
@@ -207,7 +213,7 @@ class PCMMnumpyBaseModel():
                         self.gamma = np.ones(self.K)*np.mean(gamma)
                     else:
                         self.gamma = gamma
-            elif self.distribution in ['MACG_lowrank']:
+            elif self.distribution == 'MACG_lowrank':
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
                 self.M = np.zeros((self.K,self.p,self.r),dtype=X.dtype)
                 for k in range(self.K):
