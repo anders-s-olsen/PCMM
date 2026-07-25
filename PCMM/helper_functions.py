@@ -24,55 +24,63 @@ from PCMM.VMVM_PCMMtorch import VMVM as VMVM_torch
 TORCH_MODEL_NAMES = ['Watson','Complex_Watson','Bingham','Complex_Bingham',
                      'ACG','Complex_ACG','MACG',
                      'SingularWishart','Normal','Complex_Normal','WrappedNormal','VMVM']
+RANKED_MODEL_NAMES = {
+    'Bingham',
+    'Complex_Bingham',
+    'ACG',
+    'Complex_ACG',
+    'MACG',
+    'SingularWishart',
+    'Normal',
+    'Complex_Normal',
+    'WrappedNormal',
+}
 
 def train_model(data_train,K,options,params=None,suppress_output=False,samples_per_sequence=0):
+    options = options.copy()
+    options.setdefault('LR', 0)
+    options.setdefault('HMM', False)
+    options.setdefault('tol', 1e-10)
+    options.setdefault('max_iter', 100000)
+    options.setdefault('num_repl', 1)
+    options.setdefault('threads', 8)
+    options.setdefault('decrease_lr_on_plateau', False)
+    options.setdefault('num_comparison', 50)
+    options.setdefault('force_gamma_same', False)
+
+    if 'init' not in options:
+        raise ValueError('Please provide an initialization method')
+
     p = data_train.shape[1]
     if options['modelname'] in TORCH_MODEL_NAMES:
         if options['modelname'] in ['Bingham','Complex_Bingham','VMVM','WrappedNormal'] and options['LR'] == 0:
             raise ValueError(options['modelname']+' is implemented only in PyTorch; set LR to a positive value')
-        if options['rank']=='fullrank':
-            rank=0
-        elif options['rank']=='lowrank': #assume full rank in lowrank setting
-            rank=p
-        else: 
-            rank=options['rank']
+        if options['modelname'] in RANKED_MODEL_NAMES:
+            if 'rank' not in options:
+                raise ValueError("A rank must be provided for model " + options['modelname'])
+            if options['rank']=='fullrank':
+                rank=0
+            elif options['rank']=='lowrank': #assume full rank in lowrank setting
+                rank=p
+            else:
+                rank=options['rank']
         if options['LR']!=0:
-            # data_train = torch.tensor(data_train)
-            data_train = torch.from_numpy(data_train)
+            if not isinstance(data_train, torch.Tensor):
+                data_train = torch.from_numpy(data_train)
             if params is not None:
                 for key in params:
                     if isinstance(params[key],np.ndarray):
                         print('Converting params key',key,'to torch tensor')
                         params[key] = torch.from_numpy(params[key])
         else:
+            if isinstance(data_train, torch.Tensor):
+                data_train = data_train.detach().cpu().numpy()
             if params is not None:
                 for key in params:
                     if isinstance(params[key],torch.Tensor):
                         print('Converting params key',key,'to numpy array')
-                        params[key] = params[key].numpy()
+                        params[key] = params[key].detach().cpu().numpy()
         
-    #if the element 'tol' doesn't exist in options, set it to default 1e-10
-    if 'tol' not in options:
-        options['tol'] = 1e-10
-    if 'max_iter' not in options:
-        options['max_iter'] = 100000
-    if 'num_repl' not in options:
-        options['num_repl'] = 1
-    if 'init' not in options:
-        raise ValueError('Please provide an initialization method')
-    if 'LR' not in options:
-        options['LR'] = 0
-    if 'threads' not in options:
-        options['threads'] = 8
-    if 'decrease_lr_on_plateau' not in options:
-        options['decrease_lr_on_plateau'] = False
-    if 'num_comparison' not in options:
-        options['num_comparison'] = 50
-    if 'HMM' not in options:
-        options['HMM'] = False
-    if 'force_gamma_same' not in options:
-        options['force_gamma_same'] = False
-
     if options['modelname'] == 'Watson':
         if options['LR']==0:
             model = Watson_numpy(K=K,p=p,params=params)
@@ -164,9 +172,14 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
     return params,posterior,loglik
     
 def test_model(data_test,params,K,options,samples_per_sequence=0):
+    options = options.copy()
+    options.setdefault('LR', 0)
+    options.setdefault('HMM', False)
+
     p = data_test.shape[1]
-    # if rank is a key in options
-    if 'rank' in options:
+    if options['modelname'] in RANKED_MODEL_NAMES:
+        if 'rank' not in options:
+            raise ValueError("A rank must be provided for model " + options['modelname'])
         if options['rank']=='fullrank':
             rank=0
         elif options['rank']=='lowrank': #assume full rank in lowrank setting
@@ -178,8 +191,8 @@ def test_model(data_test,params,K,options,samples_per_sequence=0):
         if options['modelname'] in ['Bingham','Complex_Bingham','VMVM','WrappedNormal'] and options['LR'] == 0:
             raise ValueError(options['modelname']+' is implemented only in PyTorch; set LR to a positive value')
         if options['LR']!=0:
-            # data_test = torch.tensor(data_test)
-            data_test = torch.from_numpy(data_test)
+            if not isinstance(data_test, torch.Tensor):
+                data_test = torch.from_numpy(data_test)
             
         if options['modelname'] == 'Watson':    
             if options['LR']==0:
@@ -232,12 +245,14 @@ def test_model(data_test,params,K,options,samples_per_sequence=0):
             model = WrappedNormal_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
         elif options['modelname'] == 'VMVM':
             model = VMVM_torch(K=K,p=p,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
+        if isinstance(data_test, torch.Tensor):
+            model.to(device=data_test.device)
         test_loglik, test_loglik_per_sample = model.test_log_likelihood(X=data_test)
         test_posterior = model.posterior(X=data_test)
     elif options['modelname'] in ['least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann']:
         if options['modelname'] == 'least_squares':
             #eucdliean distance
-            X=data_test
+            X = np.array(data_test, copy=True)
             X[(X>0).sum(axis=1)>p/2] = -X[(X>0).sum(axis=1)>p/2]
             sim = -np.sum((X[:,None]-params['C'][None])**2,axis=-1)
         elif options['modelname'] in ['diametrical','complex_diametrical']:
