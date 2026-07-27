@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -11,15 +10,21 @@ from PCMM.PCMMnumpy import SingularWishart as SingularWishart_numpy
 from PCMM.PCMMnumpy import Normal as Normal_numpy
 from PCMM.phase_coherence_kmeans import *
 
-from PCMM.mixture_torch_loop import mixture_torch_loop
-from PCMM.PCMMtorch import Watson as Watson_torch
-from PCMM.PCMMtorch import Bingham as Bingham_torch
-from PCMM.PCMMtorch import ACG as ACG_torch
-from PCMM.PCMMtorch import MACG as MACG_torch
-from PCMM.PCMMtorch import SingularWishart as SingularWishart_torch
-from PCMM.PCMMtorch import Normal as Normal_torch
-from PCMM.PCMMtorch import WrappedNormal as WrappedNormal_torch
-from PCMM.VMVM_PCMMtorch import VMVM as VMVM_torch
+try:
+    import torch
+except ModuleNotFoundError:
+    torch = None
+
+if torch is not None:
+    from PCMM.mixture_torch_loop import mixture_torch_loop
+    from PCMM.PCMMtorch import ACG as ACG_torch
+    from PCMM.PCMMtorch import Bingham as Bingham_torch
+    from PCMM.PCMMtorch import MACG as MACG_torch
+    from PCMM.PCMMtorch import Normal as Normal_torch
+    from PCMM.PCMMtorch import SingularWishart as SingularWishart_torch
+    from PCMM.PCMMtorch import Watson as Watson_torch
+    from PCMM.PCMMtorch import WrappedNormal as WrappedNormal_torch
+    from PCMM.VMVM_PCMMtorch import VMVM as VMVM_torch
 
 TORCH_MODEL_NAMES = ['Watson','Complex_Watson','Bingham','Complex_Bingham',
                      'ACG','Complex_ACG','MACG',
@@ -65,6 +70,8 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
             else:
                 rank=options['rank']
         if options['LR']!=0:
+            if torch is None:
+                raise ImportError("PyTorch estimation requires the optional 'torch' dependency.")
             if not isinstance(data_train, torch.Tensor):
                 data_train = torch.from_numpy(data_train)
             if params is not None:
@@ -73,11 +80,11 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
                         print('Converting params key',key,'to torch tensor')
                         params[key] = torch.from_numpy(params[key])
         else:
-            if isinstance(data_train, torch.Tensor):
+            if torch is not None and isinstance(data_train, torch.Tensor):
                 data_train = data_train.detach().cpu().numpy()
             if params is not None:
                 for key in params:
-                    if isinstance(params[key],torch.Tensor):
+                    if torch is not None and isinstance(params[key], torch.Tensor):
                         print('Converting params key',key,'to numpy array')
                         params[key] = params[key].detach().cpu().numpy()
         
@@ -191,6 +198,8 @@ def test_model(data_test,params,K,options,samples_per_sequence=0):
         if options['modelname'] in ['Bingham','Complex_Bingham','VMVM','WrappedNormal'] and options['LR'] == 0:
             raise ValueError(options['modelname']+' is implemented only in PyTorch; set LR to a positive value')
         if options['LR']!=0:
+            if torch is None:
+                raise ImportError("PyTorch estimation requires the optional 'torch' dependency.")
             if not isinstance(data_test, torch.Tensor):
                 data_test = torch.from_numpy(data_test)
             
@@ -245,7 +254,7 @@ def test_model(data_test,params,K,options,samples_per_sequence=0):
             model = WrappedNormal_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
         elif options['modelname'] == 'VMVM':
             model = VMVM_torch(K=K,p=p,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
-        if isinstance(data_test, torch.Tensor):
+        if torch is not None and isinstance(data_test, torch.Tensor):
             model.to(device=data_test.device)
         test_loglik, test_loglik_per_sample = model.test_log_likelihood(X=data_test)
         test_posterior = model.posterior(X=data_test)
