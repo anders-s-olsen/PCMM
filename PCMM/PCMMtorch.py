@@ -335,8 +335,9 @@ class MACG(PCMMtorchBaseModel):
         
         v = torch.zeros(self.K, X.shape[0], dtype=X.real.dtype, device=X.device)
         for k in range(self.K):
-            L, Q = torch.linalg.eigh(torch.linalg.inv(D[k]))
-            D_sqrtinv = (Q * L.sqrt().unsqueeze(-2)) @ Q.mH
+            # Original: L, Q = torch.linalg.eigh(torch.linalg.inv(D[k]))
+            L, Q = torch.linalg.eigh(D[k])
+            D_sqrtinv = (Q * L.rsqrt().unsqueeze(-2)) @ Q.mH
             XtM = X.mH@self.M[k].unsqueeze(0)
             S2 = torch.linalg.svdvals(XtM@D_sqrtinv.unsqueeze(0))
             v[k] = torch.sum(torch.log(1/(S2**2)-1),dim=-1)+2*torch.sum(torch.log(S2),dim=-1)
@@ -397,8 +398,9 @@ class SingularWishart(PCMMtorchBaseModel):
         
         v = torch.zeros(self.K, X.shape[0], dtype=X.real.dtype, device=X.device)
         for k in range(self.K):
-            L, Q = torch.linalg.eigh(torch.linalg.inv(D[k]))
-            D_sqrtinv = (Q * L.sqrt().unsqueeze(-2)) @ Q.mT
+            # Original: L, Q = torch.linalg.eigh(torch.linalg.inv(D[k]))
+            L, Q = torch.linalg.eigh(D[k])
+            D_sqrtinv = (Q * L.rsqrt().unsqueeze(-2)) @ Q.mT
             QtM_tilde = X.mT@M_tilde[k].unsqueeze(0)
             v[k] = 1/gamma[k]*(self.p - torch.linalg.norm(QtM_tilde@D_sqrtinv.unsqueeze(0),dim=(-2,-1))**2)
         
@@ -450,8 +452,9 @@ class Normal(PCMMtorchBaseModel):
         
         v = torch.zeros(self.K, X.shape[0], dtype=X.real.dtype, device=X.device)
         for k in range(self.K):
-            L, Q = torch.linalg.eigh(torch.linalg.inv(D[k]))
-            D_sqrtinv = (Q * L.sqrt().unsqueeze(-2)) @ Q.mH
+            # Original: L, Q = torch.linalg.eigh(torch.linalg.inv(D[k]))
+            L, Q = torch.linalg.eigh(D[k])
+            D_sqrtinv = (Q * L.rsqrt().unsqueeze(-2)) @ Q.mH
             XtM_tilde = torch.conj(X).unsqueeze(-2)@M_tilde[k].unsqueeze(0)
             v[k] = 1/gamma[k]*(norm_x - torch.linalg.norm(XtM_tilde@D_sqrtinv.unsqueeze(0),dim=(-2,-1))**2)
         
@@ -736,13 +739,46 @@ class WrappedNormal(PCMMtorchBaseModel):
             params['T'] = self.T.detach()
         return params
 
-    def initialize(self, X, init_method=None):
+    def initialize(self, X, init_method=None, posterior=None, initialization_data=None, tol=1e-10):
         if X.ndim != 2 or X.shape[1] != self.p or torch.is_complex(X):
             raise ValueError(f"WrappedNormal expects real angles with shape (n, {self.p}).")
-        from PCMM.phase_coherence_kmeans import torus_clustering
-        init = {'tc':'++', 'torus_clustering':'++'}.get(init_method, init_method)
-        centers, labels, _ = torus_clustering(X.detach().cpu().numpy(), K=self.K, init=init, num_repl=1, suppress_output=True)
-        mu = torch.as_tensor(centers, dtype=X.dtype, device=X.device)
+        if posterior is None:
+            if init_method in {'qtc', 'quotient_torus_clustering'}:
+                from PCMM.phase_coherence_kmeans import quotient_torus_clustering
+                phase_data = X if initialization_data is None else initialization_data
+                if phase_data.shape[1] == self.p:
+                    phase_data = torch.column_stack((phase_data, phase_data.new_zeros(phase_data.shape[0])))
+                _, labels, _ = quotient_torus_clustering(
+                    phase_data.detach().cpu().numpy(),
+                    K=self.K,
+                    init='++',
+                    num_repl=1,
+                    tol=tol,
+                    suppress_output=True,
+                )
+            else:
+                from PCMM.phase_coherence_kmeans import torus_clustering
+                init = {'tc':'++', 'torus_clustering':'++'}.get(init_method, init_method)
+                _, labels, _ = torus_clustering(
+                    X.detach().cpu().numpy(),
+                    K=self.K,
+                    init=init,
+                    num_repl=1,
+                    tol=tol,
+                    suppress_output=True,
+                )
+        else:
+            posterior = torch.as_tensor(posterior, device=X.device)
+            if posterior.ndim == 2:
+                posterior = posterior.argmax(dim=0 if posterior.shape[0] == self.K else 1)
+            labels = posterior.detach().cpu().numpy()
+        labels_tensor = torch.as_tensor(labels, device=X.device)
+        mu = torch.stack(
+            [
+                torch.angle(torch.exp(1j * X[labels_tensor == k]).mean(dim=0))
+                for k in range(self.K)
+            ]
+        )
         M = torch.zeros((self.K, self.p, self.r), dtype=X.dtype, device=X.device)
         component_gamma = torch.zeros(self.K, dtype=X.dtype, device=X.device)
         minimum_variance = torch.as_tensor(1e-4, dtype=X.dtype, device=X.device)

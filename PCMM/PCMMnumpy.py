@@ -333,7 +333,10 @@ class MACG(PCMMnumpyBaseModel):
             M_tilde_old = M_tilde.copy()
 
             for j in range(max_iter):
-                D_sqrtinv = sqrtm(np.linalg.inv(M.conj().T@M+np.eye(self.r)))
+                system = M.conj().T @ M + np.eye(self.r)
+                # Original: D_sqrtinv = sqrtm(np.linalg.inv(system))
+                eigenvalues, eigenvectors = np.linalg.eigh(system)
+                D_sqrtinv = (eigenvectors * eigenvalues**-0.5) @ eigenvectors.conj().T
                 U2,S2,V2t = np.linalg.svd(np.swapaxes(X,-2,-1)@(M@D_sqrtinv),full_matrices=False)
                 M = self.p/(self.q*np.sum(beta))*np.sum(Q@(U2*(S2/(1-S2**2))[:,None,:])@V2t,axis=0)@D_sqrtinv
 
