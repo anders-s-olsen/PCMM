@@ -86,22 +86,22 @@ class PCMMtorchBaseModel(nn.Module):
             T = T/T.sum(dim=1)[:,None]
             return T, delta
 
-    def initialize(self,X,init_method=None):
+    def initialize(self,X,init_method=None,tol=1e-10):
         X_numpy = X.detach().cpu().numpy()
         # initialize using analytical optimization only
         if self.distribution == 'Watson':
             WatsonEM = Watson(p=self.p,K=self.K)
-            WatsonEM.initialize(X_numpy,init_method=init_method)
+            WatsonEM.initialize(X_numpy,init_method=init_method,tol=tol)
             self.unpack_params(WatsonEM.get_params())
         elif self.distribution == 'Complex_Watson':
             WatsonEM = Watson(p=self.p,K=self.K,complex=True)
-            WatsonEM.initialize(X_numpy,init_method=init_method)
+            WatsonEM.initialize(X_numpy,init_method=init_method,tol=tol)
             self.unpack_params(WatsonEM.get_params())
         elif self.distribution in ['Bingham_lowrank','Complex_Bingham_lowrank']:
             # A Watson fit supplies stable axial mixture assignments and is a
             # natural rotationally-symmetric starting point for Bingham.
             WatsonEM = Watson(p=self.p,K=self.K,complex=self.complex)
-            WatsonEM.initialize(X_numpy,init_method=init_method)
+            WatsonEM.initialize(X_numpy,init_method=init_method,tol=tol)
             watson_params = WatsonEM.get_params()
             mu = torch.as_tensor(watson_params['mu'], dtype=X.dtype)
             kappa = torch.as_tensor(watson_params['kappa'], dtype=X.real.dtype)
@@ -118,15 +118,15 @@ class PCMMtorchBaseModel(nn.Module):
             self.unpack_params({'M':M,'pi':pi})
         elif self.distribution == 'ACG_lowrank':
             ACGEM = ACG(p=self.p,K=self.K,rank=self.r)
-            ACGEM.initialize(X_numpy,init_method=init_method)
+            ACGEM.initialize(X_numpy,init_method=init_method,tol=tol)
             self.unpack_params(ACGEM.get_params())
         elif self.distribution == 'Complex_ACG_lowrank':
             ACGEM = ACG(p=self.p,K=self.K,rank=self.r,complex=True)
-            ACGEM.initialize(X_numpy,init_method=init_method)
+            ACGEM.initialize(X_numpy,init_method=init_method,tol=tol)
             self.unpack_params(ACGEM.get_params())
         elif self.distribution == 'MACG_lowrank':
             MACGEM = MACG(p=self.p,K=self.K,rank=self.r,q=self.q)
-            MACGEM.initialize(X_numpy,init_method=init_method)
+            MACGEM.initialize(X_numpy,init_method=init_method,tol=tol)
             self.unpack_params(MACGEM.get_params())
         elif self.distribution == 'SingularWishart_lowrank':
             SingularWishartEM = SingularWishart(
@@ -136,15 +136,15 @@ class PCMMtorchBaseModel(nn.Module):
                 rank=self.r,
                 force_gamma_same=self.force_gamma_same,
             )
-            SingularWishartEM.initialize(X_numpy,init_method=init_method)
+            SingularWishartEM.initialize(X_numpy,init_method=init_method,tol=tol)
             self.unpack_params(SingularWishartEM.get_params())
         elif self.distribution == 'Normal_lowrank':
             NormalEM = Normal(p=self.p,K=self.K,rank=self.r,force_gamma_same=self.force_gamma_same)
-            NormalEM.initialize(X_numpy,init_method=init_method)
+            NormalEM.initialize(X_numpy,init_method=init_method,tol=tol)
             self.unpack_params(NormalEM.get_params())
         elif self.distribution == 'Complex_Normal_lowrank':
             NormalEM = Normal(p=self.p,K=self.K,rank=self.r,complex=True,force_gamma_same=self.force_gamma_same)
-            NormalEM.initialize(X_numpy,init_method=init_method)
+            NormalEM.initialize(X_numpy,init_method=init_method,tol=tol)
             self.unpack_params(NormalEM.get_params())
         else:
             raise ValueError('Invalid distribution')

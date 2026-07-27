@@ -57,7 +57,7 @@ def init_M_svd_given_M_init(X,K,r,M_init,beta=None,gamma=None,distribution=None)
             gamma = 1/(1+np.linalg.norm(M_init[k],'fro')**2/p)
             M_init[k] = np.sqrt(gamma)*M_init[k]
             M_proj = M_init[k]@np.linalg.inv(M_init[k].T.conj()@M_init[k]+np.eye(M_init[k].shape[1]))@M_init[k].T.conj()
-        elif distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
+        elif distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank','WrappedNormal_lowrank']:
             M_proj = M_init[k]@np.linalg.inv(M_init[k].T.conj()@M_init[k]+gamma[k]*np.eye(M_init[k].shape[1]))@M_init[k].T.conj()
         V_residual = V - M_proj@V
         M_extra,_ = init_M_svd(V_residual,r=num_missing,normalize_noise=distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank'])
@@ -103,7 +103,7 @@ class PCMMnumpyBaseModel():
         # mixture settings
         self.pi = params['pi']  
 
-    def initialize(self,X,init_method):
+    def initialize(self,X,init_method,tol=1e-10):
         assert init_method in ['uniform','unif',
                                'diametrical_clustering_plusplus','dc++','diametrical_clustering_plusplus_seg','dc++_seg',
                                'grassmann_clustering_plusplus','gc++','grassmann_clustering_plusplus_seg','gc++_seg',
@@ -133,7 +133,7 @@ class PCMMnumpyBaseModel():
                 self.mu = mu / np.linalg.norm(mu,axis=1)[:,None]
                 self.kappa = np.zeros(self.K)
                 for k in range(self.K):
-                    self.kappa[k] = self.optimize_kappa(X=X,mu=self.mu[k],beta=np.ones(X.shape[0]))
+                    self.kappa[k] = self.optimize_kappa(X=X,mu=self.mu[k],beta=np.ones(X.shape[0]),tol=tol)
             else:
                 if X.dtype==complex:
                     M = np.random.uniform(size=(self.K,self.p,self.r))+1j*np.random.uniform(size=(self.K,self.p,self.r))
@@ -167,14 +167,14 @@ class PCMMnumpyBaseModel():
                 print('Running torus clustering initialization')
                 mu,X_part,_ = torus_clustering(
                     X=X2,K=self.K,max_iter=10000,num_repl=1,
-                    init='++',suppress_output=False
+                    init='++',tol=tol,suppress_output=False
                 )
             elif init_method in ['diametrical_clustering_plusplus','dc++','diametrical_clustering_plusplus_seg','dc++_seg']:
                 print('Running diametrical clustering ++ initialization')
                 mu,X_part,_ = plusplus_initialization(X=X2,K=self.K)
             elif init_method in ['dc','diametrical_clustering','dc_seg','diametrical_clustering_seg']:
                 print('Running diametrical clustering initialization')
-                mu,X_part,_ = diametrical_clustering(X=X2,K=self.K,max_iter=100000,num_repl=1,init='++')
+                mu,X_part,_ = diametrical_clustering(X=X2,K=self.K,max_iter=100000,num_repl=1,init='++',tol=tol)
                 # mu,X_part,_ = diametrical_clustering(X=X2,K=self.K,max_iter=100000,num_repl=1,init='projective_hyperplane')
             elif init_method in ['ls','ls_seg']:
                 j=0
@@ -194,7 +194,7 @@ class PCMMnumpyBaseModel():
                 self.mu = mu
                 self.kappa = np.zeros(self.K)
                 for k in range(self.K):
-                    self.kappa[k] = self.optimize_kappa(X[X_part==k],mu=self.mu[k],beta=np.ones(np.sum(X_part==k)))
+                    self.kappa[k] = self.optimize_kappa(X[X_part==k],mu=self.mu[k],beta=np.ones(np.sum(X_part==k)),tol=tol)
             elif self.distribution in [
                 'ACG_lowrank',
                 'Complex_ACG_lowrank',
@@ -237,7 +237,7 @@ class PCMMnumpyBaseModel():
                 C,X_part,_ = plusplus_initialization(X=X,K=self.K,dist='grassmann')
             elif init_method in ['gc','grassmann_clustering','gc_seg','grassmann_clustering_seg']:
                 print('Running grassmann clustering initialization')
-                C,X_part,_ = grassmann_clustering(X=X,K=self.K,max_iter=100000,num_repl=1)
+                C,X_part,_ = grassmann_clustering(X=X,K=self.K,max_iter=100000,num_repl=1,tol=tol)
             
             if 'lowrank' in self.distribution:
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
@@ -272,7 +272,7 @@ class PCMMnumpyBaseModel():
                 C,X_part,_ = plusplus_initialization(X=X,K=self.K,dist='weighted_grassmann')
             elif init_method in ['wgc','weighted_grassmann_clustering','wgc_seg','weighted_grassmann_clustering_seg']:
                 print('Running weighted grassmann clustering initialization')
-                C,X_part,_ = weighted_grassmann_clustering(X=X,K=self.K,max_iter=100000,num_repl=1)
+                C,X_part,_ = weighted_grassmann_clustering(X=X,K=self.K,max_iter=100000,num_repl=1,tol=tol)
             
             if 'lowrank' in self.distribution:
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
@@ -302,19 +302,19 @@ class PCMMnumpyBaseModel():
             # run a single-component model on each segment
             if 'Watson' in self.distribution:
                 for k in range(self.K):
-                    self.mu[k],self.kappa[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),mu=self.mu[k],kappa=self.kappa[k])
+                    self.mu[k],self.kappa[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),mu=self.mu[k],kappa=self.kappa[k],tol=tol)
             elif self.distribution in ['ACG_lowrank','MACG_lowrank','Complex_ACG_lowrank']:
                 for k in range(self.K):
-                    self.M[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=self.M[k],Psi=None)
+                    self.M[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=self.M[k],Psi=None,tol=tol)
             elif self.distribution in ['ACG_fullrank','MACG_fullrank','Complex_ACG_fullrank']:
                 for k in range(self.K):
-                    self.Psi[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=None, Psi=self.Psi[k])
+                    self.Psi[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=None, Psi=self.Psi[k],tol=tol)
             elif self.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
                 for k in range(self.K):
-                    self.M[k],self.gamma[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=self.M[k],gamma=self.gamma[k])
+                    self.M[k],self.gamma[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=self.M[k],gamma=self.gamma[k],tol=tol)
             elif self.distribution in ['SingularWishart_fullrank','Normal_fullrank','Complex_Normal_fullrank']:
                 for k in range(self.K):
-                    self.Psi[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=None)
+                    self.Psi[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=None,tol=tol)
 
     def logdet(self,B):
         logdetsign,logdet = np.linalg.slogdet(B)
