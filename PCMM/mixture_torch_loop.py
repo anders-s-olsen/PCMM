@@ -36,7 +36,7 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
             # Each replication is an independent fit and therefore needs a
             # fresh initialization, including when a previous replication has
             # already registered parameters on the model.
-            model.initialize(X=data,init_method=init)
+            model.initialize(X=data,init_method=init,tol=tol)
         model.to(device=data.device)
         param_names = [name for name, _ in model.named_parameters()]
 
@@ -47,8 +47,13 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                 beta = model2.posterior(X=data)
                 if model.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
                     gamma = None
-                elif model.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
-                    gamma = model.gamma.detach().cpu().numpy()
+                elif model.distribution in [
+                    'SingularWishart_lowrank',
+                    'Normal_lowrank',
+                    'Complex_Normal_lowrank',
+                    'WrappedNormal_lowrank',
+                ]:
+                    gamma = torch.nn.functional.softplus(model.gamma).detach().cpu().numpy()
                 M = init_M_svd_given_M_init(
                     X=data.detach().cpu().numpy(),
                     K=model.K,
@@ -83,7 +88,10 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
         best_epoch_loglik = -np.inf
         done = False
         if not suppress_output:
-            tqdm.write('Beginning numerical optimization loop')
+            tqdm.write(
+                f'Beginning numerical optimization loop '
+                f'(replication {repl + 1}/{num_repl})'
+            )
 
         pbar = tqdm(total=max_iter,disable=suppress_output)
         pbar.set_description('In the initial phase')

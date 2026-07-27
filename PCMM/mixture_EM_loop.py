@@ -23,7 +23,7 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
         if init != 'no':
             # Replications are independent: overwrite every model parameter
             # with a fresh initialization on every pass through the loop.
-            model.initialize(X=data,init_method=init) #NB using 'data', not 'X'
+            model.initialize(X=data,init_method=init,tol=tol) #NB using 'data', not 'X'
 
         if 'lowrank' in model.distribution:
             if model.M.shape[-1]!=model.r:
@@ -38,7 +38,9 @@ def mixture_EM_loop(model,data,tol=1e-8,max_iter=10000,num_repl=1,init=None,supp
         loglik = []
         best_epoch_loglik = -np.inf
         if not suppress_output:
-            tqdm.write('Beginning EM loop')
+            tqdm.write(
+                f'Beginning EM loop (replication {repl + 1}/{num_repl})'
+            )
         pbar = tqdm(total=max_iter,disable=suppress_output)
         pbar.set_description('In the initial phase')
         pbar.update(0)
