@@ -83,6 +83,10 @@ class VMVM(PCMMtorchBaseModel):
         marginals.
     min_concentration:
         Positive floor used for both concentration families.
+    oscillatory_data:
+        Model oscillatory observations with exact circular-uniform marginals
+        and positive dependence signs. In this mode ``mu`` represents
+        dependence-phase offsets and every entry of ``q`` is fixed to +1.
     dtype, device:
         Parameter dtype and device. If omitted they follow PyTorch defaults.
 
@@ -103,6 +107,7 @@ class VMVM(PCMMtorchBaseModel):
         qs: Optional[Any] = None,
         cdf_grid_size: int = 2048,
         min_concentration: float = 1e-5,
+        oscillatory_data: bool = False,
         dtype: Optional[torch.dtype] = None,
         device: Optional[torch.device | str] = None,
     ) -> None:
@@ -126,6 +131,7 @@ class VMVM(PCMMtorchBaseModel):
         self.samples_per_sequence = torch.as_tensor(samples_per_sequence)
         self.cdf_grid_size = cdf_grid_size
         self.min_concentration = float(min_concentration)
+        self.oscillatory_data = bool(oscillatory_data)
 
         dtype = dtype or torch.get_default_dtype()
         device = torch.device(device) if device is not None else torch.device("cpu")
@@ -152,23 +158,27 @@ class VMVM(PCMMtorchBaseModel):
         )
         binding0 = self._expand_kp(binding0, "binding_kappa").clamp_min(self.min_concentration)
 
-        q0 = qs
-        if q0 is None:
-            q0 = self._read_parameter(
-                params, ("q", "qs"), default=torch.ones(K, p),
-                dtype=dtype, device=device,
-            )
+        if self.oscillatory_data:
+            q0 = torch.ones(K, p, dtype=dtype, device=device)
         else:
-            q0 = _as_tensor(q0, dtype=dtype, device=device)
-        q0 = self._expand_kp(q0, "q")
-        if not torch.all((q0 == 1) | (q0 == -1)):
-            raise ValueError("Every q entry must equal -1 or +1")
-        # q and -q encode the same component. Canonicalize q[:, 0] = +1.
-        q0 = q0 * q0[:, :1]
+            q0 = qs
+            if q0 is None:
+                q0 = self._read_parameter(
+                    params, ("q", "qs"), default=torch.ones(K, p),
+                    dtype=dtype, device=device,
+                )
+            else:
+                q0 = _as_tensor(q0, dtype=dtype, device=device)
+            q0 = self._expand_kp(q0, "q")
+            if not torch.all((q0 == 1) | (q0 == -1)):
+                raise ValueError("Every q entry must equal -1 or +1")
+            # q and -q encode the same component. Canonicalize q[:, 0] = +1.
+            q0 = q0 * q0[:, :1]
 
         self.mu = nn.Parameter(_wrap_pi(mu0))
         self.raw_marginal_kappa = nn.Parameter(
-            _inverse_softplus(marginal0 - self.min_concentration + torch.finfo(dtype).eps)
+            _inverse_softplus(marginal0 - self.min_concentration + torch.finfo(dtype).eps),
+            requires_grad=not self.oscillatory_data,
         )
         self.raw_binding_kappa = nn.Parameter(
             _inverse_softplus(binding0 - self.min_concentration + torch.finfo(dtype).eps)
@@ -213,6 +223,8 @@ class VMVM(PCMMtorchBaseModel):
     # ------------------------------------------------------------------
     @property
     def marginal_kappa(self) -> Tensor:
+        if self.oscillatory_data:
+            return torch.zeros_like(self.raw_marginal_kappa)
         return F.softplus(self.raw_marginal_kappa) + self.min_concentration
 
     @property
@@ -246,32 +258,48 @@ class VMVM(PCMMtorchBaseModel):
         del recompute_statics
         x = self._validate_x(x)
         mu = _wrap_pi(self.mu).to(dtype=x.dtype, device=x.device)
-        marginal_kappa = self.marginal_kappa.to(dtype=x.dtype, device=x.device)
         binding_kappa = self.binding_kappa.to(dtype=x.dtype, device=x.device)
-        q = self.q.to(dtype=x.dtype, device=x.device)
 
-        # Shape: (K, n, p). The density itself only needs the signed shortest
-        # angular difference; the CDF uses the cut at mu-pi, as in scipy's
-        # location-shifted von Mises CDF used by CBMD.py.
-        centered = _wrap_pi(x.unsqueeze(0) - mu.unsqueeze(1))
-        marginal_log_pdf = (
-            marginal_kappa.unsqueeze(1) * torch.cos(centered)
-            - math.log(_TWO_PI)
-            - _log_i0(marginal_kappa).unsqueeze(1)
-        )
-
-        cdf = self._von_mises_cdf(centered, marginal_kappa)
-        u = _TWO_PI * cdf
-
-        a = torch.sum(binding_kappa.unsqueeze(1) * torch.cos(u), dim=-1)
-        b = torch.sum(binding_kappa.unsqueeze(1) * q.unsqueeze(1) * torch.sin(u), dim=-1)
-        resultant = torch.hypot(a, b)
+        if self.oscillatory_data:
+            # For q=+1, a+ib = sum_j lambda_j exp(i(x_j-mu_j)).
+            # A matrix product evaluates all component resultants without ever
+            # constructing the otherwise dominant (K,n,p) phase tensor.
+            complex_dtype = (
+                torch.complex128 if x.dtype == torch.float64 else torch.complex64
+            )
+            observations = torch.exp(1j * x.to(complex_dtype))
+            coefficients = binding_kappa.to(complex_dtype) * torch.exp(
+                -1j * mu.to(complex_dtype)
+            )
+            resultant = torch.abs(observations @ coefficients.T).T
+            marginal_log_pdf = -self.p * math.log(_TWO_PI)
+        else:
+            # Shape: (K,n,p). Nonuniform marginals require each component's
+            # shifted angle for both its marginal density and CDF transform.
+            centered = _wrap_pi(x.unsqueeze(0) - mu.unsqueeze(1))
+            concentrations = binding_kappa.unsqueeze(1)
+            marginal_kappa = self.marginal_kappa.to(dtype=x.dtype, device=x.device)
+            marginal_log_pdf = (
+                marginal_kappa.unsqueeze(1) * torch.cos(centered)
+                - math.log(_TWO_PI)
+                - _log_i0(marginal_kappa).unsqueeze(1)
+            ).sum(dim=-1)
+            cdf = self._von_mises_cdf(centered, marginal_kappa)
+            u = _TWO_PI * cdf
+            a = torch.sum(concentrations * torch.cos(u), dim=-1)
+            b = torch.sum(
+                concentrations
+                * self.q.to(dtype=x.dtype, device=x.device).unsqueeze(1)
+                * torch.sin(u),
+                dim=-1,
+            )
+            resultant = torch.hypot(a, b)
 
         dependence_log_pdf = (
             _log_i0(resultant)
             - torch.sum(_log_i0(binding_kappa), dim=-1, keepdim=True)
         )
-        return marginal_log_pdf.sum(dim=-1) + dependence_log_pdf
+        return marginal_log_pdf + dependence_log_pdf
 
     def pdf(self, x: Tensor) -> Tensor:
         return torch.exp(self.log_pdf(x))
@@ -344,11 +372,14 @@ class VMVM(PCMMtorchBaseModel):
 
         ``posterior`` may be shaped ``(K,n)``, ``(n,K)``, or be an integer
         label vector of length ``n``. If it is omitted, ``init_method='tc'``
-        uses torus K-means and ``init_method='dc'`` uses complex diametrical
-        K-means. Explicit posterior assignments always take precedence.
+        uses torus K-means, ``init_method='qtc'`` restores a zero reference
+        phase and uses quotient-torus K-means, and ``init_method='dc'`` uses
+        complex diametrical K-means. Explicit posterior assignments always
+        take precedence.
         """
         X = kwargs.pop("X", None)
         init_method = kwargs.pop("init_method", None)
+        tol = kwargs.pop("tol", 1e-10)
         if kwargs:
             raise TypeError(f"Unexpected initialization arguments: {tuple(kwargs)}")
         del args
@@ -366,7 +397,26 @@ class VMVM(PCMMtorchBaseModel):
                 K=self.K,
                 init="++",
                 num_repl=1,
+                tol=tol,
                 suppress_output=True,
+            )
+            posterior = torch.as_tensor(labels, device=data.device)
+        elif posterior is None and init_method in {
+            "qtc", "qtc++", "quotient_torus", "quotient_torus_clustering",
+        }:
+            from PCMM.phase_coherence_kmeans import quotient_torus_clustering
+
+            quotient_data = torch.cat(
+                [data, torch.zeros_like(data[:, :1])],
+                dim=1,
+            )
+            _, labels, _ = quotient_torus_clustering(
+                quotient_data.detach().cpu().numpy(),
+                K=self.K,
+                init="++",
+                num_repl=1,
+                tol=tol,
+                suppress_output=False,
             )
             posterior = torch.as_tensor(labels, device=data.device)
         elif posterior is None and init_method in {
@@ -380,12 +430,13 @@ class VMVM(PCMMtorchBaseModel):
                 K=self.K,
                 init="++",
                 num_repl=1,
-                suppress_output=True,
+                tol=tol,
+                suppress_output=False,
             )
             posterior = torch.as_tensor(labels, device=data.device)
         elif posterior is None and init_method not in {None, "unif", "uniform"}:
             raise ValueError(
-                "VMVM init_method must be 'tc', 'dc', 'unif', or 'uniform'"
+                "VMVM init_method must be 'tc', 'qtc', 'dc', 'unif', or 'uniform'"
             )
 
         if posterior is None:
@@ -421,6 +472,10 @@ class VMVM(PCMMtorchBaseModel):
         totals = responsibilities.sum(dim=1).clamp_min(1e-8)
 
         z = torch.exp(1j * data.to(torch.complex128 if data.dtype == torch.float64 else torch.complex64))
+        if self.oscillatory_data:
+            # A rotating carrier makes ordinary marginal means vanish. Use a
+            # gauge-fixed relative-phase template for dependence initialization.
+            z = z * z[:, :1].conj()
         weighted_z = torch.einsum("kn,np->kp", responsibilities.to(z.dtype), z)
         means = torch.angle(weighted_z)
         resultant = torch.abs(weighted_z) / totals.unsqueeze(1)
@@ -428,9 +483,10 @@ class VMVM(PCMMtorchBaseModel):
         kappas = kappas.clamp(min=0.05, max=100.0)
 
         self.mu.copy_(means.to(self.mu))
-        self.raw_marginal_kappa.copy_(
-            _inverse_softplus(kappas.to(self.mu) - self.min_concentration + torch.finfo(self.mu.dtype).eps)
-        )
+        if not self.oscillatory_data:
+            self.raw_marginal_kappa.copy_(
+                _inverse_softplus(kappas.to(self.mu) - self.min_concentration + torch.finfo(self.mu.dtype).eps)
+            )
         # Mild dependence is a safer optimizer starting point than near independence.
         bind = torch.full_like(self.mu, 0.5)
         self.raw_binding_kappa.copy_(
@@ -440,19 +496,22 @@ class VMVM(PCMMtorchBaseModel):
         weights = (totals / totals.sum()).to(self.pi)
         self.pi.copy_(torch.log(weights.clamp_min(torch.finfo(weights.dtype).tiny)))
 
-        # Pick signs from the stronger sum/difference circular resultant after
-        # the current marginal CDF transformation.
-        transformed = _TWO_PI * self._von_mises_cdf(
-            _wrap_pi(data.unsqueeze(0) - self.mu.unsqueeze(1)), self.marginal_kappa
-        )
-        q_new = torch.ones_like(self.q)
-        for k in range(self.K):
-            w = responsibilities[k]
-            for j in range(1, self.p):
-                same = torch.abs(torch.sum(w * torch.exp(1j * (transformed[k, :, j] - transformed[k, :, 0]))))
-                opposite = torch.abs(torch.sum(w * torch.exp(1j * (transformed[k, :, j] + transformed[k, :, 0]))))
-                q_new[k, j] = 1.0 if same >= opposite else -1.0
-        self.q.copy_(q_new)
+        if self.oscillatory_data:
+            self.q.fill_(1)
+        else:
+            # Pick signs from the stronger sum/difference circular resultant
+            # after the current marginal CDF transformation.
+            transformed = _TWO_PI * self._von_mises_cdf(
+                _wrap_pi(data.unsqueeze(0) - self.mu.unsqueeze(1)), self.marginal_kappa
+            )
+            q_new = torch.ones_like(self.q)
+            for k in range(self.K):
+                w = responsibilities[k]
+                for j in range(1, self.p):
+                    same = torch.abs(torch.sum(w * torch.exp(1j * (transformed[k, :, j] - transformed[k, :, 0]))))
+                    opposite = torch.abs(torch.sum(w * torch.exp(1j * (transformed[k, :, j] + transformed[k, :, 0]))))
+                    q_new[k, j] = 1.0 if same >= opposite else -1.0
+            self.q.copy_(q_new)
 
         if self.HMM:
             self.pi.copy_(torch.log(weights.clamp_min(torch.finfo(weights.dtype).tiny)))
@@ -498,9 +557,10 @@ class VMVM(PCMMtorchBaseModel):
                 params, ("kappa", "marginal_kappa", "marginal_kappas"), None, dtype, device
             )
             value = self._expand_kp(value, "kappa").clamp_min(self.min_concentration)
-            self.raw_marginal_kappa.copy_(
-                _inverse_softplus(value - self.min_concentration + torch.finfo(dtype).eps)
-            )
+            if not self.oscillatory_data:
+                self.raw_marginal_kappa.copy_(
+                    _inverse_softplus(value - self.min_concentration + torch.finfo(dtype).eps)
+                )
         if any(k in params for k in ("lambda", "binding_kappa", "binding_kappas", "circula_kappa")):
             value = self._read_parameter(
                 params, ("lambda", "binding_kappa", "binding_kappas", "circula_kappa"),
@@ -510,7 +570,9 @@ class VMVM(PCMMtorchBaseModel):
             self.raw_binding_kappa.copy_(
                 _inverse_softplus(value - self.min_concentration + torch.finfo(dtype).eps)
             )
-        if any(k in params for k in ("q", "qs")):
+        if self.oscillatory_data:
+            self.q.fill_(1)
+        elif any(k in params for k in ("q", "qs")):
             value = self._read_parameter(params, ("q", "qs"), None, dtype, device)
             value = self._expand_kp(value, "q")
             if not torch.all((value == 1) | (value == -1)):
@@ -576,7 +638,10 @@ class VMVM(PCMMtorchBaseModel):
                 torch.zeros(self.p, dtype=dtype, device=device), self.binding_kappa[k]
             ).sample((count,))
             uniforms = torch.remainder(shifts + self.q[k].unsqueeze(0) * phi, _TWO_PI) / _TWO_PI
-            centered = self._von_mises_icdf(uniforms, self.marginal_kappa[k])
+            if self.oscillatory_data:
+                centered = _TWO_PI * uniforms - math.pi
+            else:
+                centered = self._von_mises_icdf(uniforms, self.marginal_kappa[k])
             result[mask] = _wrap_pi(centered + self.mu[k])
         return result
 
