@@ -7,8 +7,6 @@ from tqdm import tqdm
 def plusplus_initialization(X, K, dist="diametrical"):
     assert dist in ["diametrical", "grassmann", "weighted_grassmann"]
     n = X.shape[0]
-    if not isinstance(K, (int, np.integer)) or not 1 <= K <= n:
-        raise ValueError("K must be an integer satisfying 1 <= K <= the number of observations.")
     if X.ndim == 3:
         q = X.shape[2]
 
@@ -52,14 +50,8 @@ def plusplus_initialization(X, K, dist="diametrical"):
             obj = np.mean(np.max(-dis, axis=1))
             break
 
-        total_distance = np.sum(mindis)
-        if not np.isfinite(total_distance) or total_distance <= np.finfo(float).eps:
-            available = np.setdiff1d(np.arange(n), all_cluster_idx[: k + 1], assume_unique=False)
-            cluster_idx = np.random.choice(available)
-        else:
-            prob_dist = mindis / total_distance
-            cluster_idx = np.random.choice(n, p=prob_dist)
-        all_cluster_idx[k + 1] = cluster_idx
+        prob_dist = mindis / np.sum(mindis)  # construct the prob. distribution
+        cluster_idx = np.random.choice(n, p=prob_dist)  # assume existing idx can never be chosen because p=0
 
         # if dist == 'diametrical':
         #     C = np.hstack((C,X[cluster_idx][:,np.newaxis]))
@@ -111,8 +103,6 @@ def projective_hyperplane_clustering(X, K, max_iter=10000, num_repl=1, init=None
             maxsim = np.max(sim, axis=1)
             X_part = np.argmax(sim, axis=1)
             obj.append(np.mean(maxsim))
-            if np.unique(X_part).size != K:
-                raise ValueError("An empty cluster was found. Try another initialization or reduce K.")
 
             # for k in range(K):
             #     partsum[iter,k] = np.sum(X_part==k)
@@ -149,6 +139,10 @@ def diametrical_clustering(X, K, max_iter=10000, num_repl=1, init=None, tol=1e-1
         raise ValueError("In diametrical clustering, the input data vectors should be normalized to unit length.")
 
     n, p = X.shape
+    if X.dtype == "complex":
+        X_conj = X.conj()
+    else:
+        X_conj = X
 
     obj_collector = []
     obj_final_collector = []
@@ -156,7 +150,7 @@ def diametrical_clustering(X, K, max_iter=10000, num_repl=1, init=None, tol=1e-1
     C_collector = []
 
     for _ in range(num_repl):
-        if init is None or init == "++" or init == "plusplus" or init == "diametrical_clustering_plusplus":
+        if init is None or init == "++" or init == "plusplus" or init == "diametrical_clustering_plusplus" or init == "dc++":
             C, _, _ = plusplus_initialization(X, K, dist="diametrical")
         elif init == "uniform" or init == "unif":
             if X.dtype == "complex":
@@ -179,29 +173,36 @@ def diametrical_clustering(X, K, max_iter=10000, num_repl=1, init=None, tol=1e-1
             maxsim = np.max(sim, axis=1)
             X_part = np.argmax(sim, axis=1)
             obj.append(np.mean(maxsim))
-            if np.unique(X_part).size != K:
-                raise ValueError("An empty cluster was found. Try another initialization or reduce K.")
 
-            # for k in range(K):
-            #     partsum[iter,k] = np.sum(X_part==k)
+            moved = X_part != X_part_previous
 
             if iter > 0:
-                if np.sum(X_part != X_part_previous) == 0 or iter == max_iter or obj[-1] - obj[-2] < tol:
+                if np.count_nonzero(moved) == 0 or iter == max_iter or obj[-1] - obj[-2] < tol:
                     C_collector.append(C)
                     obj_collector.append(obj)
                     obj_final_collector.append(obj[-1])
                     part_collector.append(X_part)
                     break
 
+            if iter == 0:
+                # Construct the covariance matrices once.
+                C_cov = np.zeros((K, p, p), dtype=X.dtype)
+                for k in range(K):
+                    idx_k = X_part == k
+                    C_cov[k] = X[idx_k].T @ X_conj[idx_k]
+            else:
+                # Update them using only observations that changed cluster.
+                for k in range(K):
+                    leaving = moved & (X_part_previous == k)
+                    entering = moved & (X_part == k)
+                    C_cov[k] = C_cov[k] - X[leaving].T @ X_conj[leaving] + X[entering].T @ X_conj[entering]
+
             for k in range(K):
-                idx_k = X_part == k
-                # # Establish covariance matrix
-                A = X[idx_k].T @ X[idx_k].conj()
-                C[k] = A @ C[k]
+                C[k] = C_cov[k] @ C[k]
 
             C = C / np.linalg.norm(C, axis=1)[:, None]
             if iter > 0:
-                pbar.set_description("Observations shifted between clusters: " + str(np.sum(X_part != X_part_previous)) + (", convergence towards tol: {crit:.2e}").format(crit=obj[-1] - obj[-2]))
+                pbar.set_description("Observations shifted between clusters: " + str(np.count_nonzero(moved)) + (", convergence towards tol: {crit:.2e}").format(crit=obj[-1] - obj[-2]))
             pbar.update(1)
             X_part_previous = X_part
             iter += 1
@@ -238,6 +239,7 @@ def grassmann_clustering(X, K, max_iter=10000, num_repl=1, init=None, tol=1e-10,
 
         pbar = tqdm(total=max_iter, disable=suppress_output)
         X_part_previous = np.zeros(n)
+        cluster_scatter = np.zeros((K, p, p), dtype=X.dtype)
 
         while True:
 
@@ -247,31 +249,40 @@ def grassmann_clustering(X, K, max_iter=10000, num_repl=1, init=None, tol=1e-10,
             maxsim = np.max(sim, axis=1)  # find the maximum similarity
             X_part = np.argmax(sim, axis=1)  # assign each point to the cluster with the highest similarity
             obj.append(np.mean(maxsim))
-            if np.unique(X_part).size != K:
-                raise ValueError("An empty cluster was found. Try another initialization or reduce K.")
+            moved = X_part != X_part_previous
 
             # check for convergence
             # for k in range(K):
             #     partsum[iter,k] = np.sum(X_part==k)
 
             if iter > 0:
-                if np.sum(X_part != X_part_previous) == 0 or iter == max_iter or obj[-1] - obj[-2] < tol:
+                if np.count_nonzero(moved) == 0 or iter == max_iter or obj[-1] - obj[-2] < tol:
                     C_collector.append(C)
                     obj_collector.append(obj)
                     obj_final_collector.append(obj[-1])
                     part_collector.append(X_part)
                     break
 
-            # "M-step" - update the cluster centers
+            # Cache sum_i X_i X_i^T and update it only for observations
+            # that moved. Its leading eigenspace is the left singular
+            # subspace of the formerly constructed, potentially huge V.
+            if iter == 0:
+                for k in range(K):
+                    X_k = X[X_part == k]
+                    cluster_scatter[k] = np.einsum("npq,nrq->pr", X_k, X_k.conj(), optimize=True)
+            else:
+                for k in range(K):
+                    leaving = X[moved & (X_part_previous == k)]
+                    entering = X[moved & (X_part == k)]
+                    cluster_scatter[k] -= np.einsum("npq,nrq->pr", leaving, leaving.conj(), optimize=True)
+                    cluster_scatter[k] += np.einsum("npq,nrq->pr", entering, entering.conj(), optimize=True)
+
             for k in range(K):
-                idx_k = X_part == k
-                V = np.reshape(np.swapaxes(X[idx_k], 0, 1), (p, np.sum(idx_k) * q))
-                U, S, _ = scipy.sparse.linalg.svds(V, q, return_singular_vectors="u")
-                order = np.argsort(S)[::-1]
-                C[k] = U[:, order]  # [:,::-1]
-                # C[k] = U[:,:q]
+                U, eigenvalues, _ = scipy.sparse.linalg.svds(cluster_scatter[k], q, return_singular_vectors="u")
+                order = np.argsort(eigenvalues)[::-1]
+                C[k] = U[:, order]
             if iter > 0:
-                pbar.set_description("Observations shifted between clusters: " + str(np.sum(X_part != X_part_previous)) + (", convergence towards tol: {crit:.2e}").format(crit=obj[-1] - obj[-2]))
+                pbar.set_description("Observations shifted between clusters: " + str(np.count_nonzero(moved)) + (", convergence towards tol: {crit:.2e}").format(crit=obj[-1] - obj[-2]))
             pbar.update(1)
             iter += 1
             X_part_previous = X_part.copy()
@@ -295,10 +306,7 @@ def weighted_grassmann_clustering(X, K, max_iter=10000, num_repl=1, tol=1e-10, i
     # Q = X*np.sqrt(X_weights[:,None,:])
     X_weights = np.linalg.norm(X, axis=1) ** 2
     if not np.allclose(np.sum(X_weights, axis=1), p):
-        raise ValueError(
-            "In weighted grassmann clustering, the scale of the input data vectors should be equal to the square root of the eigenvalues. "
-            "If the scale does not sum to the dimensionality, this error is thrown"
-        )
+        raise ValueError( "In weighted grassmann clustering, the scale of the input data vectors should be equal to the square root of the eigenvalues. " "If the scale does not sum to the dimensionality, this error is thrown" )
 
     obj_collector = []  # objective function collector
     obj_final_collector = []  # final objective function collector
@@ -324,41 +332,50 @@ def weighted_grassmann_clustering(X, K, max_iter=10000, num_repl=1, tol=1e-10, i
 
         pbar = tqdm(total=max_iter, disable=suppress_output)
         X_part_previous = np.zeros(n)
+        cluster_scatter = np.zeros((K, p, p), dtype=X.dtype)
 
         while True:
             # "E-step" - compute the similarity between each matrix and each cluster center
             B = np.swapaxes(X, -2, -1)[:, None] @ (C[None])
             dis = 1 / np.sqrt(2) * (np.sum(X_weights**2, axis=-1)[:, None] + np.sum(C_weights**2, axis=-1)[None] - 2 * np.linalg.norm(B, axis=(-2, -1)) ** 2)  #
             sim = -dis
-            maxsim = np.max(sim, axis=1)
+            maxsim = np.max(sim, axis=1)  # find the maximum similarity - the sum of this value is the objective function
             X_part = np.argmax(sim, axis=1)  # assign each point to the cluster with the highest similarity
             obj.append(np.mean(maxsim))
-            if np.unique(X_part).size != K:
-                raise ValueError("An empty cluster was found. Try another initialization or reduce K.")
+            moved = X_part != X_part_previous
 
             # check for convergence
             # for k in range(K):
             #     partsum[iter,k] = np.sum(X_part==k)
 
             if iter > 0:
-                if np.sum(X_part != X_part_previous) == 0 or iter == max_iter or obj[-1] - obj[-2] < tol:
+                if np.count_nonzero(moved) == 0 or iter == max_iter or obj[-1] - obj[-2] < tol:
                     C_collector.append(C)
                     obj_collector.append(obj)
                     obj_final_collector.append(obj[-1])
                     part_collector.append(X_part)
                     break
 
-            # "M-step" - update the cluster centers
+            if iter == 0:
+                for k in range(K):
+                    X_k = X[X_part == k]
+                    cluster_scatter[k] = np.einsum("npq,nrq->pr", X_k, X_k.conj(), optimize=True)
+            else:
+                for k in range(K):
+                    leaving = X[moved & (X_part_previous == k)]
+                    entering = X[moved & (X_part == k)]
+                    cluster_scatter[k] -= np.einsum("npq,nrq->pr", leaving, leaving.conj(), optimize=True)
+                    cluster_scatter[k] += np.einsum("npq,nrq->pr", entering, entering.conj(), optimize=True)
+
             for k in range(K):
-                idx_k = X_part == k
-                V = np.reshape(np.swapaxes(X[idx_k], 0, 1), (p, np.sum(idx_k) * q))
-                U, S, _ = scipy.sparse.linalg.svds(V, q, return_singular_vectors="u")
-                order = np.argsort(S)[::-1]
-                C_weights[k] = S[order]
+                U, eigenvalues, _ = scipy.sparse.linalg.svds(cluster_scatter[k], q, return_singular_vectors="u")
+                order = np.argsort(eigenvalues)[::-1]
+                U = U[:, order]
+                C_weights[k] = np.sqrt(np.maximum(eigenvalues[order], 0.0))
                 C_weights[k] = C_weights[k] / np.sum(C_weights[k]) * p
-                C[k] = U[:, order] * np.sqrt(C_weights[k])[None]
+                C[k] = U * np.sqrt(C_weights[k])[None]
             if iter > 0:
-                pbar.set_description("Observations shifted between clusters: " + str(np.sum(X_part != X_part_previous)) + (", convergence towards tol: {crit:.2e}").format(crit=obj[-1] - obj[-2]))
+                pbar.set_description("Observations shifted between clusters: " + str(np.count_nonzero(moved)) + (", convergence towards tol: {crit:.2e}").format(crit=obj[-1] - obj[-2]))
             pbar.update(1)
             iter += 1
             X_part_previous = X_part.copy()
@@ -369,7 +386,6 @@ def weighted_grassmann_clustering(X, K, max_iter=10000, num_repl=1, tol=1e-10, i
 def least_squares_sign_flip(X, K, max_iter=10000, num_repl=1, tol=1e-10, init=None, disable=None):
     if init == "uniform":
         init = "random"
-    X = np.array(X, copy=True)
     n, p = X.shape
 
     # perform the sign flip
@@ -437,10 +453,7 @@ def _torus_plusplus_initialization(Z, K):
         if not np.isfinite(total) or total <= np.finfo(float).eps:
             idx = np.random.randint(n)
         else:
-            idx = np.random.choice(
-                n,
-                p=closest_dis / total,
-            )
+            idx = np.random.choice( n, p=closest_dis / total, )
 
         C[k] = Z[idx]
 
@@ -511,16 +524,7 @@ def _quotient_torus_mean(Z, initial, max_iter, tol):
     return C
 
 
-def quotient_torus_clustering(
-    X,
-    K,
-    max_iter=10000,
-    num_repl=1,
-    init=None,
-    tol=1e-10,
-    suppress_output=False,
-    centroid_max_iter=1000,
-):
+def quotient_torus_clustering( X, K, max_iter=10000, num_repl=1, init=None, tol=1e-10, suppress_output=False, centroid_max_iter=1000, ):
     """
     Intrinsic chordal K-means on the global-phase quotient T^p / S^1.
 
@@ -590,7 +594,7 @@ def quotient_torus_clustering(
                 if not np.any(idx_k):
                     empty_clusters.append(k)
                     continue
-                C_new[k] = _quotient_torus_mean(Z[idx_k], C[k], centroid_max_iter, tol)
+                C_new[k] = _quotient_torus_mean(Z[idx_k], C[k], centroid_max_iter, 1e-10)
 
             if empty_clusters:
                 worst_fitted = np.argsort(min_dis)[::-1]
@@ -706,6 +710,7 @@ def torus_clustering(X, K, max_iter=10000,num_repl=1, init=None, tol=1e-10,suppr
 
         obj = []
         X_part_previous = None
+        cluster_resultants = np.zeros((K, p), dtype=np.complex128)
 
         pbar = tqdm(total=max_iter, disable=suppress_output)
 
@@ -739,14 +744,22 @@ def torus_clustering(X, K, max_iter=10000,num_repl=1, init=None, tol=1e-10,suppr
             C_new = C.copy()
             empty_clusters = []
 
-            for k in range(K):
-                idx_k = X_part == k
+            if X_part_previous is None:
+                for k in range(K):
+                    cluster_resultants[k] = Z[X_part == k].sum(axis=0)
+            else:
+                changed = X_part != X_part_previous
+                for k in range(K):
+                    cluster_resultants[k] -= Z[changed & (X_part_previous == k)].sum(axis=0)
+                    cluster_resultants[k] += Z[changed & (X_part == k)].sum(axis=0)
 
-                if not np.any(idx_k):
+            cluster_sizes = np.bincount(X_part, minlength=K)
+            for k in range(K):
+                if cluster_sizes[k] == 0:
                     empty_clusters.append(k)
                     continue
 
-                resultant = Z[idx_k].sum(axis=0)
+                resultant = cluster_resultants[k]
                 resultant_length = np.abs(resultant)
 
                 defined = resultant_length > 100.0 * np.finfo(float).eps
