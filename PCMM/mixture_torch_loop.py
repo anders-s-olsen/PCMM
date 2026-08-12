@@ -45,7 +45,13 @@ def mixture_torch_loop(model,data,tol=1e-8,max_iter=100000,num_repl=1,init=None,
                 model2 = deepcopy(model)
                 model2.r = model2.M.shape[-1]
                 beta = model2.posterior(X=data)
-                if model.distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
+                if model.distribution in [
+                    'Bingham_lowrank',
+                    'Complex_Bingham_lowrank',
+                    'ACG_lowrank',
+                    'Complex_ACG_lowrank',
+                    'MACG_lowrank',
+                ]:
                     gamma = None
                 elif model.distribution in [
                     'SingularWishart_lowrank',

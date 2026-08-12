@@ -102,140 +102,144 @@ class Watson(PCMMtorchBaseModel):
 class Bingham(PCMMtorchBaseModel):
     """Low-rank Bingham distribution on a real or complex unit sphere.
 
-    The concentration is parameterized as ``A = M @ M.H + I``.  Since an
-    isotropic term does not change a Bingham density on the unit sphere, it is
-    omitted in computations.  Thus ``M`` follows the same low-rank-plus-
-    isotropic convention as ACG without introducing an unidentifiable scalar.
-
-    The normalizer is evaluated with the one-dimensional Fourier integral and
-    continuous Euler transform of Chen and Tanaka (2020).  Its cost is linear
-    in ``p`` and it remains differentiable through PyTorch autograd.
+    Uses A = M @ M.H and shifts its largest eigenvalue to zero. The adaptive Chen--Tanaka quadrature costs O(Np), while dense eigendecomposition costs O(p^3).
     """
-    def __init__(self, p:int, rank:int, K:int=1, HMM:bool=False,
-                 complex:bool=False, samples_per_sequence=0, params:dict=None,
-                 integration_points:int=400, contour_shift:float=None,
-                 omega_d:float=0.5, omega_u:float=2.0,
-                 quadrature_order:int=None):
+
+    _DEFAULT_CONTOUR_FLOOR = 15 * math.pi / (2.5**2 * 3.5 * 0.5)
+
+    def __init__(self, p: int, rank: int, K: int = 1, HMM: bool = False, complex: bool = False, samples_per_sequence=0, params: dict = None,
+                 integration_points: int = 400, contour_shift: float = None, omega_d: float = 0.5, omega_u: float = 2.0,
+                 quadrature_order: int = None):
         super().__init__()
+        if not isinstance(p, int) or p < 2:
+            raise ValueError('p should be an integer >= 2.')
         if not isinstance(rank, int) or rank < 1 or rank > p:
             raise ValueError('rank should satisfy 1 <= rank <= p.')
+        if not isinstance(K, int) or K < 1:
+            raise ValueError('K should be a positive integer.')
         if quadrature_order is not None:
             integration_points = quadrature_order
-        if not isinstance(integration_points, int) or integration_points < 1:
-            raise ValueError('integration_points should be a positive integer.')
-        effective_dimension = 2 * p if complex else p
+        if not isinstance(integration_points, int) or integration_points < 15:
+            raise ValueError('integration_points should be an integer >= 15.')
         if contour_shift is None:
-            # The inversion contour is exact anywhere to the right of the
-            # poles.  Placing it near the zero-concentration saddle point
-            # avoids catastrophic cancellation as dimension grows.
-            contour_shift = max(effective_dimension / 2, 2.0)
-        if contour_shift <= 0:
-            raise ValueError('contour_shift should be positive.')
+            contour_shift = self._DEFAULT_CONTOUR_FLOOR
+        if not math.isfinite(contour_shift) or contour_shift <= 0:
+            raise ValueError('contour_shift should be finite and positive.')
         if not (0 < omega_d <= 1 <= omega_u and omega_d / omega_u <= 0.5):
-            raise ValueError(
-                'omega_d and omega_u should satisfy '
-                '0 < omega_d <= 1 <= omega_u and omega_d / omega_u <= 1/2.'
-            )
+            raise ValueError('Require 0 < omega_d <= 1 <= omega_u and omega_d / omega_u <= 1/2.')
 
-        self.p, self.r, self.K, self.HMM = p, rank, K, HMM
+        self.p = p
+        self.r = rank
+        self.K = K
+        self.HMM = HMM
         self.complex = complex
         self.integration_points = integration_points
         self.contour_shift = float(contour_shift)
         self.omega_d = float(omega_d)
         self.omega_u = float(omega_u)
-        if samples_per_sequence is None:
-            samples_per_sequence = 0
-        self.samples_per_sequence = torch.as_tensor(samples_per_sequence)
+        self.samples_per_sequence = torch.as_tensor(0 if samples_per_sequence is None else samples_per_sequence)
         self.distribution = ('Complex_' if complex else '') + 'Bingham_lowrank'
         self.flag_normalized_input_data = False
-
-        # Chen--Tanaka equations (8)--(9), with d equal to the distance from
-        # the integration contour to the closest pole.  Our non-positive
-        # concentration eigenvalues imply theta=-lambda >= 0, so a fixed
-        # positive contour shift has d=contour_shift.
-        h = math.sqrt(
-            2 * math.pi * self.contour_shift * (omega_d + omega_u)
-            / (omega_d**2 * integration_points)
-        )
-        window_p = math.sqrt(integration_points * h / omega_d)
-        window_q = math.sqrt(omega_d * integration_points * h / 4)
-        indices = torch.arange(-integration_points - 1, integration_points + 1)
-        nodes = indices * h
-        weights = 0.5 * torch.erfc(nodes.abs() / window_p - window_q)
-        self.register_buffer('integration_nodes', nodes)
-        self.register_buffer('integration_weights', weights)
-        self.integration_step = h
+        indices = torch.arange(-integration_points - 1, integration_points + 1, dtype=torch.float64)
+        self.register_buffer('_integration_indices', indices)
 
         if params is not None:
             self.unpack_params(params)
 
+    @staticmethod
+    def _work_dtype(A):
+        return torch.complex128 if torch.is_complex(A) else torch.float64
+
+    def _concentration_and_eigenvalues(self):
+        raw = self.M @ self.M.mH
+        raw = 0.5 * (raw + raw.mH)
+        eigenvalues = torch.linalg.eigvalsh(raw.to(self._work_dtype(raw)))
+        largest = eigenvalues[..., -1].detach()
+        eye = torch.eye(self.p, dtype=raw.dtype, device=raw.device)
+        A = raw - largest.to(raw.real.dtype)[..., None, None] * eye
+        return A, eigenvalues - largest[..., None]
+
     def concentration_matrix(self):
         """Return Hermitian concentration matrices with largest eigenvalue zero."""
-        A = self.M @ self.M.mH
-        largest_eigenvalue = torch.linalg.eigvalsh(A)[:, -1]
-        return A - largest_eigenvalue[:, None, None] * torch.eye(
-            self.p, dtype=A.dtype, device=A.device
-        )
+        A, _ = self._concentration_and_eigenvalues()
+        return A
+
+    def _adaptive_contour(self, theta):
+        with torch.no_grad():
+            theta = theta.detach()
+            dimension = theta.shape[-1]
+            eps = torch.finfo(theta.dtype).eps
+            lower = torch.full(theta.shape[:-1], eps, dtype=theta.dtype, device=theta.device)
+            upper = torch.full_like(lower, dimension / 2)
+
+            for _ in range(64):
+                middle = 0.5 * (lower + upper)
+                value = 0.5 * (theta + middle[..., None]).reciprocal().sum(dim=-1) - 1
+                lower = torch.where(value > 0, middle, lower)
+                upper = torch.where(value > 0, upper, middle)
+
+            saddle = 0.5 * (lower + upper)
+            floor = torch.as_tensor(self.contour_shift, dtype=theta.dtype, device=theta.device)
+            contour = torch.maximum(saddle, floor)
+            d_limit = self.integration_points * math.pi * self.omega_d**2 / (2 * (self.omega_d + self.omega_u) * self.omega_u**2)
+            d_limit = torch.as_tensor(0.9 * d_limit, dtype=theta.dtype, device=theta.device)
+            strip = torch.minimum(contour / 2, d_limit)
+            step = torch.sqrt(2 * math.pi * strip * (self.omega_d + self.omega_u) / (self.omega_d**2 * self.integration_points))
+            window_p = torch.sqrt(self.integration_points * step / self.omega_d)
+            window_q = torch.sqrt(self.omega_d * self.integration_points * step / 4)
+            nodes = step[..., None] * self._integration_indices.to(device=theta.device)
+            weights = 0.5 * torch.special.erfc(nodes.abs() / window_p[..., None] - window_q[..., None])
+
+        return contour, step, nodes, weights
+
+    def _log_norm_from_eigenvalues(self, eigenvalues):
+        eigenvalues = eigenvalues.to(torch.float64)
+        largest = eigenvalues.amax(dim=-1).detach()
+        theta = largest[..., None] - eigenvalues
+
+        if self.complex:
+            theta = torch.repeat_interleave(theta, 2, dim=-1)
+
+        contour, step, nodes, weights = self._adaptive_contour(theta)
+        denominator = theta[..., None, :].to(torch.complex128) + contour[..., None, None] + 1j * nodes[..., :, None]
+        log_integrand = -0.5 * torch.log(denominator).sum(dim=-1) + 1j * nodes
+        log_scale = log_integrand.real.amax(dim=-1, keepdim=True).detach()
+        scaled_sum = (weights * torch.exp(log_integrand - log_scale)).sum(dim=-1)
+        integral = scaled_sum.real
+
+        if torch.any(~torch.isfinite(integral)):
+            raise RuntimeError('Chen--Tanaka quadrature returned a non-finite normalizer.')
+        if torch.any(integral <= 0):
+            raise RuntimeError('Chen--Tanaka quadrature returned a non-positive normalizer; increase integration_points.')
+
+        dimension = theta.shape[-1]
+        log_shifted = (dimension / 2 - 1) * math.log(math.pi) + contour + torch.log(step) + log_scale.squeeze(-1) + torch.log(integral)
+        return largest + log_shifted
 
     def log_norm_constant(self, A):
-        """Compute log Z(A) using Chen--Tanaka continuous-Euler quadrature."""
-        eigenvalues = torch.linalg.eigvalsh(A)
-        theta = -eigenvalues
-        if self.complex:
-            # z.H A z = sum_i lambda_i(Re(z_i)^2 + Im(z_i)^2):
-            # use the real S^(2p-1) formula with each eigenvalue duplicated.
-            theta = torch.repeat_interleave(theta, 2, dim=1)
-
-        real_dtype = theta.dtype
-        complex_dtype = (
-            torch.complex128 if real_dtype == torch.float64 else torch.complex64
-        )
-        nodes = self.integration_nodes.to(dtype=real_dtype, device=A.device)
-        weights = self.integration_weights.to(dtype=real_dtype, device=A.device)
-        denominator = (
-            theta[:, None, :].to(complex_dtype)
-            + self.contour_shift
-            + 1j * nodes[None, :, None]
-        )
-        log_integrand = (
-            -0.5 * torch.log(denominator).sum(dim=-1)
-            + 1j * nodes[None, :]
-        )
-        # Scaling before exponentiation prevents avoidable underflow while
-        # preserving gradients (the scale cancels algebraically).
-        log_scale = log_integrand.real.amax(dim=1, keepdim=True)
-        integral = (
-            weights[None, :]
-            * torch.exp(log_integrand - log_scale)
-        ).sum(dim=1).real
-        if torch.any(integral <= 0):
-            raise RuntimeError(
-                'Chen--Tanaka quadrature returned a non-positive normalizer. '
-                'Increase integration_points or contour_shift.'
-            )
-
-        effective_dimension = theta.shape[1]
-        return (
-            (effective_dimension / 2 - 1) * math.log(math.pi)
-            + self.contour_shift
-            + math.log(self.integration_step)
-            + log_scale.squeeze(1)
-            + torch.log(integral)
-        )
+        """Compute log Z(A) with adaptive Chen--Tanaka quadrature."""
+        if A.ndim < 2 or A.shape[-2:] != (self.p, self.p):
+            raise ValueError(f'A should have shape (..., {self.p}, {self.p}).')
+        work = A.to(self._work_dtype(A))
+        eigenvalues = torch.linalg.eigvalsh(0.5 * (work + work.mH))
+        return self._log_norm_from_eigenvalues(eigenvalues)
 
     def log_pdf(self, X, recompute_statics=False):
-        ones = torch.ones(X.shape[0], dtype=X.real.dtype, device=X.device)
-        if not torch.allclose(torch.linalg.norm(X, dim=1), ones):
-            raise ValueError(
-                'For the Bingham distribution, input vectors must have unit norm.'
-            )
+        if X.ndim != 2 or X.shape[-1] != self.p:
+            raise ValueError(f'X should have shape (n, {self.p}).')
         if torch.is_complex(X) != self.complex:
             kind = 'complex' if self.complex else 'real'
             raise ValueError(f'The {kind} Bingham model received data of the wrong dtype.')
 
-        A = self.concentration_matrix()
+        norms = torch.linalg.vector_norm(X, dim=-1)
+        if not torch.allclose(norms, torch.ones_like(norms), rtol=1e-5, atol=1e-7):
+            raise ValueError('For the Bingham distribution, input vectors must have unit norm.')
+
+        A, eigenvalues = self._concentration_and_eigenvalues()
         quadratic = torch.einsum('np,kpq,nq->kn', X.conj(), A, X).real
-        return quadratic - self.log_norm_constant(A).unsqueeze(-1)
+        log_normalizer = self._log_norm_from_eigenvalues(eigenvalues)
+        return quadratic - log_normalizer.unsqueeze(-1)
+
 
 class ACG(PCMMtorchBaseModel):
     """ ACG distribution on the (complex) projective hyperplane.

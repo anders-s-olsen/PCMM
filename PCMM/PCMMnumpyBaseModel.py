@@ -53,7 +53,12 @@ def init_M_svd_given_M_init(X,K,r,M_init,beta=None,gamma=None,distribution=None)
             V = np.reshape(np.swapaxes(weights[:,None,None]*X,0,1),(p,q*n))
             
         # projection matrix of M
-        if distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
+        if distribution in ['Bingham_lowrank','Complex_Bingham_lowrank']:
+            # Bingham uses A = M M^H and has no residual-variance parameter.
+            # Remove the subspace already represented by the warm-start
+            # loadings before choosing additional SVD directions.
+            M_proj = M_init[k] @ np.linalg.pinv(M_init[k].T.conj() @ M_init[k]) @ M_init[k].T.conj()
+        elif distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
             gamma = 1/(1+np.linalg.norm(M_init[k],'fro')**2/p)
             M_init[k] = np.sqrt(gamma)*M_init[k]
             M_proj = M_init[k]@np.linalg.inv(M_init[k].T.conj()@M_init[k]+np.eye(M_init[k].shape[1]))@M_init[k].T.conj()
@@ -159,10 +164,10 @@ class PCMMnumpyBaseModel():
                 X2 = X.copy()   
             
             if init_method in ['tc','torus_clustering','tc++','torus_clustering_plusplus']:
-                if self.distribution != 'Normal_lowrank':
+                if self.distribution != 'WrappedNormal_lowrank':
                     raise ValueError(
                         'Torus clustering initialization is only available '
-                        'for real low-rank Normal models.'
+                        'for WrappedNormal_lowrank models.'
                     )
                 print('Running torus clustering initialization')
                 mu,X_part,_ = torus_clustering(

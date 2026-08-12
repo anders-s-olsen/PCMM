@@ -35,7 +35,9 @@ class PCMMtorchBaseModel(nn.Module):
         
         if self.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
             if 'gamma' in params:
-                self.gamma = nn.Parameter(params['gamma'])
+                gamma = params['gamma']
+                gamma += torch.log(-torch.expm1(-gamma))
+                self.gamma = nn.Parameter(gamma)
             else:
                 self.gamma = nn.Parameter(torch.ones(self.K))
 
