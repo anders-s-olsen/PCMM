@@ -1,3 +1,5 @@
+import warnings
+
 import torch
 import torch.nn as nn
 from PCMM.PCMMnumpy import Watson, ACG, MACG, SingularWishart, Normal
@@ -9,13 +11,78 @@ class PCMMtorchBaseModel(nn.Module):
         self.LogSoftmax_pi = nn.LogSoftmax(dim=0)
         self.LogSoftmax_T = nn.LogSoftmax(dim=1)
 
+    @staticmethod
+    def _inverse_softplus(value):
+        if torch.any(~torch.isfinite(value)) or torch.any(value <= 0):
+            raise ValueError('gamma must contain finite positive values.')
+        return value + torch.log(-torch.expm1(-value))
+
+    @staticmethod
+    def _probabilities_to_logits(probabilities, dim):
+        if not torch.is_floating_point(probabilities):
+            probabilities = probabilities.to(torch.get_default_dtype())
+        totals = probabilities.sum(dim=dim, keepdim=True)
+        if torch.any(~torch.isfinite(probabilities)):
+            raise ValueError('Probabilities must be finite.')
+        if torch.any(probabilities < 0) or torch.any(totals <= 0):
+            raise ValueError('Probabilities must be non-negative with positive sums.')
+        probabilities = probabilities / totals
+        tiny = torch.finfo(probabilities.dtype).tiny
+        return torch.log(torch.clamp(probabilities, min=tiny))
+
     def unpack_params(self,params):
         if not torch.is_tensor(params[list(params.keys())[0]]):
             for key in params.keys():
                 params[key] = torch.as_tensor(params[key])
         
         # distribution-specific settings
-        if 'Watson' in self.distribution:
+        if self.distribution == 'VonMisesFisher':
+            self.mu = nn.Parameter(params['mu'])
+            self.kappa = nn.Parameter(params['kappa'])
+        elif self.distribution == 'FisherBingham_lowrank':
+            self.mu = nn.Parameter(params['mu'])
+            self.kappa = nn.Parameter(params['kappa'])
+            self.M = nn.Parameter(params['M'])
+        elif self.distribution == 'MatrixFisher':
+            if getattr(self, 'direct_linear_parameterization', False):
+                F = params.get('F')
+                if F is None:
+                    F = params['F_left'] @ params['F_right'].mT
+                if F.shape != (self.K, self.p, self.q):
+                    raise ValueError(f'F should have shape {(self.K, self.p, self.q)}.')
+                self.F = nn.Parameter(F)
+            else:
+                F_left = params.get('F_left')
+                F_right = params.get('F_right')
+                if F_left is None or F_right is None:
+                    F = params['F']
+                    left, singular_values, right_h = torch.linalg.svd(F, full_matrices=False)
+                    roots = torch.sqrt(singular_values[:, :self.s])
+                    F_left = left[:, :, :self.s] * roots[:, None, :]
+                    F_right = right_h.mT[:, :, :self.s] * roots[:, None, :]
+                self.F_left = nn.Parameter(F_left)
+                self.F_right = nn.Parameter(F_right)
+        elif self.distribution == 'MatrixFisherBingham_lowrank':
+            if getattr(self, 'direct_linear_parameterization', False):
+                F = params.get('F')
+                if F is None:
+                    F = params['F_left'] @ params['F_right'].mT
+                if F.shape != (self.K, self.p, self.q):
+                    raise ValueError(f'F should have shape {(self.K, self.p, self.q)}.')
+                self.F = nn.Parameter(F)
+            else:
+                F_left = params.get('F_left')
+                F_right = params.get('F_right')
+                if F_left is None or F_right is None:
+                    F = params['F']
+                    left, singular_values, right_h = torch.linalg.svd(F, full_matrices=False)
+                    roots = torch.sqrt(singular_values[:, :self.s])
+                    F_left = left[:, :, :self.s] * roots[:, None, :]
+                    F_right = right_h.mT[:, :, :self.s] * roots[:, None, :]
+                self.F_left = nn.Parameter(F_left)
+                self.F_right = nn.Parameter(F_right)
+            self.M = nn.Parameter(params['M'])
+        elif 'Watson' in self.distribution:
             self.mu = nn.Parameter(params['mu'])
             self.kappa = nn.Parameter(params['kappa'])
         elif 'lowrank' in self.distribution:
@@ -35,21 +102,19 @@ class PCMMtorchBaseModel(nn.Module):
         
         if self.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
             if 'gamma' in params:
-                gamma = params['gamma']
-                gamma += torch.log(-torch.expm1(-gamma))
-                self.gamma = nn.Parameter(gamma)
+                self.gamma = nn.Parameter(self._inverse_softplus(params['gamma']))
             else:
                 self.gamma = nn.Parameter(torch.ones(self.K))
 
         # mixture or HMM settings
         if 'pi' in params:
-            self.pi = nn.Parameter(params['pi'])
+            self.pi = nn.Parameter(self._probabilities_to_logits(params['pi'],dim=0))
         else:
             self.pi = nn.Parameter(torch.ones(self.K)/self.K)
 
         if self.HMM:
             if 'T' in params:
-                self.T = nn.Parameter(params['T'])
+                self.T = nn.Parameter(self._probabilities_to_logits(params['T'],dim=1))
 
     def _format_samples_per_sequence(self,N):
         if torch.all(self.samples_per_sequence == 0):
@@ -89,9 +154,21 @@ class PCMMtorchBaseModel(nn.Module):
             return T, delta
 
     def initialize(self,X,init_method=None,tol=1e-10):
+        if init_method is None:
+            uses_distribution_initializer = hasattr(self, '_initialize_distribution') and not ('Watson' in self.distribution and self.K != 1)
+            if uses_distribution_initializer:
+                warnings.warn(f"No initialization method was specified for {self.distribution}; " "using data-estimated initialization.",
+                              UserWarning, stacklevel=2)
+            else:
+                warnings.warn(f"No initialization method was specified for {self.distribution}; " "using uniform initialization.", UserWarning, stacklevel=2)
+                init_method = 'uniform'
         X_numpy = X.detach().cpu().numpy()
         # initialize using analytical optimization only
-        if self.distribution == 'Watson':
+        if self.distribution == 'Watson' and self.K == 1:
+            self._initialize_distribution(X, init_method)
+        elif self.distribution == 'Complex_Watson' and self.K == 1:
+            self._initialize_distribution(X, init_method)
+        elif self.distribution == 'Watson':
             WatsonEM = Watson(p=self.p,K=self.K)
             WatsonEM.initialize(X_numpy,init_method=init_method,tol=tol)
             self.unpack_params(WatsonEM.get_params())
@@ -100,6 +177,15 @@ class PCMMtorchBaseModel(nn.Module):
             WatsonEM.initialize(X_numpy,init_method=init_method,tol=tol)
             self.unpack_params(WatsonEM.get_params())
         elif self.distribution in ['Bingham_lowrank','Complex_Bingham_lowrank']:
+            if init_method == 'isotropic':
+                M = torch.randn((self.K, self.p, self.r), dtype=X.dtype, device=X.device)
+                if X.is_complex():
+                    M = M + 1j * torch.randn((self.K, self.p, self.r), dtype=X.dtype, device=X.device)
+                norms = torch.linalg.vector_norm(M.reshape(self.K, -1), dim=1)
+                M = M / norms[:, None, None]
+                self.unpack_params({'M': M, 'pi': torch.full((self.K,), 1 / self.K, dtype=X.real.dtype, device=X.device),})
+                self.to(device=X.device)
+                return
             # A Watson fit supplies stable axial mixture assignments and is a
             # natural rotationally-symmetric starting point for Bingham.
             WatsonEM = Watson(p=self.p,K=self.K,complex=self.complex)
@@ -113,9 +199,7 @@ class PCMMtorchBaseModel(nn.Module):
                 eigenvalues, eigenvectors = torch.linalg.eigh(A)
                 eigenvalues = eigenvalues - eigenvalues[0]
                 order = torch.argsort(eigenvalues,descending=True)[:self.r]
-                M[k] = eigenvectors[:,order] * torch.sqrt(
-                    torch.clamp(eigenvalues[order],min=0)
-                )[None,:]
+                M[k] = eigenvectors[:,order] * torch.sqrt(torch.clamp(eigenvalues[order],min=0))[None,:]
             pi = torch.as_tensor(watson_params['pi'],dtype=X.real.dtype,device=X.device)
             self.unpack_params({'M':M,'pi':pi})
         elif self.distribution == 'ACG_lowrank':
@@ -131,13 +215,7 @@ class PCMMtorchBaseModel(nn.Module):
             MACGEM.initialize(X_numpy,init_method=init_method,tol=tol)
             self.unpack_params(MACGEM.get_params())
         elif self.distribution == 'SingularWishart_lowrank':
-            SingularWishartEM = SingularWishart(
-                p=self.p,
-                K=self.K,
-                q=self.q,
-                rank=self.r,
-                force_gamma_same=self.force_gamma_same,
-            )
+            SingularWishartEM = SingularWishart(p=self.p, K=self.K, q=self.q, rank=self.r, force_gamma_same=self.force_gamma_same)
             SingularWishartEM.initialize(X_numpy,init_method=init_method,tol=tol)
             self.unpack_params(SingularWishartEM.get_params())
         elif self.distribution == 'Normal_lowrank':
@@ -148,11 +226,13 @@ class PCMMtorchBaseModel(nn.Module):
             NormalEM = Normal(p=self.p,K=self.K,rank=self.r,complex=True,force_gamma_same=self.force_gamma_same)
             NormalEM.initialize(X_numpy,init_method=init_method,tol=tol)
             self.unpack_params(NormalEM.get_params())
+        elif hasattr(self, '_initialize_distribution'):
+            self._initialize_distribution(X, init_method)
         else:
             raise ValueError('Invalid distribution')
         self.to(device=X.device)
         for name, parameter in self.named_parameters():
-            dtype = X.dtype if name in {'M', 'mu'} else X.real.dtype
+            dtype = X.dtype if name in {'M', 'mu', 'F', 'F_left', 'F_right'} else X.real.dtype
             parameter.data = parameter.data.to(dtype=dtype)
 
     def MM_log_likelihood(self,log_pdf,return_samplewise_likelihood=False):
@@ -300,22 +380,58 @@ class PCMMtorchBaseModel(nn.Module):
                 return self.posterior_MM(log_pdf).detach().cpu().numpy()
     
     def get_params(self):
+        pi = torch.softmax(self.pi.detach(), dim=0)
+        T = torch.softmax(self.T.detach(), dim=1) if self.HMM else None
         if self.HMM:
-            if 'Watson' in self.distribution:
-                return {'mu':self.mu.detach(),'kappa':self.kappa.detach(),'pi':self.pi.detach(),'T':self.T.detach()}
-            elif self.distribution in ['Bingham_lowrank','Complex_Bingham_lowrank',
-                                       'ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
-                return {'M':self.M.detach(),'pi':self.pi.detach(),'T':self.T.detach()}
+            if self.distribution == 'VonMisesFisher':
+                return {'mu': self.mu.detach(), 'kappa': self.kappa.detach(), 'pi': pi, 'T': T}
+            elif self.distribution == 'FisherBingham_lowrank':
+                return {'mu': self.mu.detach(), 'kappa': self.kappa.detach(), 'M': self.M.detach(), 'pi': pi, 'T': T}
+            elif self.distribution == 'MatrixFisher':
+                linear = (
+                    {'F': self.F.detach()}
+                    if getattr(self, 'direct_linear_parameterization', False)
+                    else {'F_left': self.F_left.detach(), 'F_right': self.F_right.detach()}
+                )
+                return {**linear, 'pi': pi, 'T': T}
+            elif self.distribution == 'MatrixFisherBingham_lowrank':
+                linear = (
+                    {'F': self.F.detach()}
+                    if getattr(self, 'direct_linear_parameterization', False)
+                    else {'F_left': self.F_left.detach(), 'F_right': self.F_right.detach()}
+                )
+                return {**linear, 'M': self.M.detach(), 'pi': pi, 'T': T}
+            elif 'Watson' in self.distribution:
+                return {'mu':self.mu.detach(),'kappa':self.kappa.detach(),'pi':pi,'T':T}
+            elif self.distribution in ['Bingham_lowrank','Complex_Bingham_lowrank','MatrixBingham_lowrank', 'ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
+                return {'M':self.M.detach(),'pi':pi,'T':T}
             elif self.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
-                return {'M':self.M.detach(),'gamma':self.gamma.detach(),'pi':self.pi.detach(),'T':self.T.detach()}
+                return {'M': self.M.detach(), 'gamma': torch.nn.functional.softplus(self.gamma.detach()), 'pi': pi, 'T': T}
         else:
-            if 'Watson' in self.distribution:
-                return {'mu':self.mu.detach(),'kappa':self.kappa.detach(),'pi':self.pi.detach()}
-            elif self.distribution in ['Bingham_lowrank','Complex_Bingham_lowrank',
-                                       'ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
-                return {'M':self.M.detach(),'pi':self.pi.detach()}
+            if self.distribution == 'VonMisesFisher':
+                return {'mu': self.mu.detach(), 'kappa': self.kappa.detach(), 'pi': pi}
+            elif self.distribution == 'FisherBingham_lowrank':
+                return {'mu': self.mu.detach(), 'kappa': self.kappa.detach(), 'M': self.M.detach(), 'pi': pi}
+            elif self.distribution == 'MatrixFisher':
+                linear = (
+                    {'F': self.F.detach()}
+                    if getattr(self, 'direct_linear_parameterization', False)
+                    else {'F_left': self.F_left.detach(), 'F_right': self.F_right.detach()}
+                )
+                return {**linear, 'pi': pi}
+            elif self.distribution == 'MatrixFisherBingham_lowrank':
+                linear = (
+                    {'F': self.F.detach()}
+                    if getattr(self, 'direct_linear_parameterization', False)
+                    else {'F_left': self.F_left.detach(), 'F_right': self.F_right.detach()}
+                )
+                return {**linear, 'M': self.M.detach(), 'pi': pi}
+            elif 'Watson' in self.distribution:
+                return {'mu':self.mu.detach(),'kappa':self.kappa.detach(),'pi':pi}
+            elif self.distribution in ['Bingham_lowrank','Complex_Bingham_lowrank','MatrixBingham_lowrank', 'ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank']:
+                return {'M':self.M.detach(),'pi':pi}
             elif self.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
-                return {'M':self.M.detach(),'gamma':self.gamma.detach(),'pi':self.pi.detach()}
+                return {'M': self.M.detach(), 'gamma': torch.nn.functional.softplus(self.gamma.detach()), 'pi': pi}
         
     def set_params(self,params):
         self.unpack_params(params)

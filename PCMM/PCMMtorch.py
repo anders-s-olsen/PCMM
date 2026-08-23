@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import warnings
 import torch.nn as nn
@@ -35,7 +36,7 @@ class Watson(PCMMtorchBaseModel):
             self.distribution = 'Watson'
             self.a = torch.as_tensor(0.5)
             self.c = torch.as_tensor(p/2)
-        
+
         # precompute log-surface area of the unit hypersphere
         self.logSA_sphere = torch.lgamma(self.c) - torch.log(torch.as_tensor(2)) - self.c* torch.log(torch.as_tensor(math.pi))
 
@@ -44,6 +45,56 @@ class Watson(PCMMtorchBaseModel):
         # initialize parameters
         if params is not None:
             self.unpack_params(params)
+
+    def _initialize_distribution(self, X, init_method=None):
+        """Initialize a one-component Watson fit without choosing a mode at random.
+
+        The Watson likelihood has positive- and negative-concentration
+        branches.  For K=1, their directions are the largest and smallest
+        eigenvectors of the sample scatter matrix.  Both moment candidates are
+        evaluated with the correctly normalized torch likelihood and the
+        better training-likelihood candidate is retained.
+        """
+        if X.ndim != 2 or X.shape[1] != self.p:
+            raise ValueError(f'Watson expects data with shape (n, {self.p}).')
+        if self.K != 1:
+            raise ValueError('The deterministic spectral Watson initializer currently ' 'supports K=1; use an explicit mixture initializer for K>1.')
+        if init_method in {'isotropic', 'uniform', 'unif'}:
+            if torch.is_complex(X):
+                mu = torch.randn((1, self.p), dtype=X.dtype, device=X.device)
+            elif init_method == 'isotropic':
+                mu = torch.randn((1, self.p), dtype=X.dtype, device=X.device)
+            else:
+                mu = torch.rand((1, self.p), dtype=X.dtype, device=X.device)
+            mu = nn.functional.normalize(mu, dim=1)
+            self.unpack_params({'mu': mu, 'kappa': torch.full((1,), 1e-3, dtype=X.real.dtype, device=X.device),
+                                'pi': torch.ones(1, dtype=X.real.dtype, device=X.device)})
+            return
+        if init_method is not None:
+            raise ValueError(f'Unsupported one-component Watson initialization: {init_method}')
+
+        scatter = X.mH @ X / X.shape[0]
+        _, eigenvectors = torch.linalg.eigh(scatter)
+        candidate_mu = torch.stack((eigenvectors[:, -1], eigenvectors[:, 0]))
+
+        from PCMM.PCMMnumpy import Watson as NumpyWatson
+
+        estimator = NumpyWatson(p=self.p, K=1, complex=torch.is_complex(X))
+        X_numpy = X.detach().cpu().numpy()
+        beta = np.ones(X.shape[0])
+        candidate_kappa = []
+        candidate_scores = []
+        for direction in candidate_mu:
+            direction_numpy = direction.detach().cpu().numpy()
+            kappa = estimator.optimize_kappa(X_numpy, direction_numpy, beta, tol=1e-10)
+            kappa_tensor = torch.as_tensor([kappa], dtype=X.real.dtype, device=X.device)
+            projection = torch.abs(X @ direction.conj()).square().sum()
+            log_constant = self.logSA_sphere.to(dtype=X.real.dtype, device=X.device) - self.kummer_log(kappa_tensor)[0]
+            candidate_kappa.append(kappa_tensor[0])
+            candidate_scores.append(X.shape[0] * log_constant + kappa_tensor[0] * projection)
+        selected = int(torch.argmax(torch.stack(candidate_scores)).item())
+        self.unpack_params({'mu': candidate_mu[selected:selected + 1], 'kappa': torch.stack(candidate_kappa[selected:selected + 1]),
+                            'pi': torch.ones(1, dtype=X.real.dtype, device=X.device)})
 
     def kummer_log(self,kappa, n=1e7,tol=1e-10):
         """ 
@@ -56,6 +107,7 @@ class Watson(PCMMtorchBaseModel):
             torch.Tensor: A tensor of shape (K,) containing the logarithm of the Kummer function for each kappa value.
         """
         results = []
+        term_counts = []
         for k in kappa:
             if k<0:
                 a = (self.c-self.a).to(dtype=k.dtype, device=k.device)
@@ -65,6 +117,7 @@ class Watson(PCMMtorchBaseModel):
             if k == 0:
                 # log M(a,c,0) is zero and its derivative is a/c.
                 results.append(k * a / c)
+                term_counts.append(0)
                 continue
             logkum = k.new_zeros(())
             logkum_old = k.new_ones(())
@@ -79,12 +132,12 @@ class Watson(PCMMtorchBaseModel):
             # Kummer's transformation for negative concentration:
             # M(a,c,k) = exp(k) M(c-a,c,-k).
             results.append(logkum + torch.where(k < 0, k, k.new_zeros(())))
+            term_counts.append(j - 1)
+        self._last_kummer_terms = term_counts
         return torch.stack(results)
 
     def log_norm_constant(self):
-        return self.logSA_sphere.to(
-            dtype=self.kappa.dtype, device=self.kappa.device
-        ) - self.kummer_log(self.kappa)
+        return self.logSA_sphere.to(dtype=self.kappa.dtype, device=self.kappa.device) - self.kummer_log(self.kappa)
     
     def log_pdf(self, X, recompute_statics=False):
         # check for normalized input data
@@ -108,8 +161,7 @@ class Bingham(PCMMtorchBaseModel):
     _DEFAULT_CONTOUR_FLOOR = 15 * math.pi / (2.5**2 * 3.5 * 0.5)
 
     def __init__(self, p: int, rank: int, K: int = 1, HMM: bool = False, complex: bool = False, samples_per_sequence=0, params: dict = None,
-                 integration_points: int = 400, contour_shift: float = None, omega_d: float = 0.5, omega_u: float = 2.0,
-                 quadrature_order: int = None):
+        integration_points: int = 400, contour_shift: float = None, omega_d: float = 0.5, omega_u: float = 2.0, quadrature_order: int = None):
         super().__init__()
         if not isinstance(p, int) or p < 2:
             raise ValueError('p should be an integer >= 2.')
@@ -266,7 +318,7 @@ class ACG(PCMMtorchBaseModel):
             samples_per_sequence = 0
         self.samples_per_sequence = torch.as_tensor(samples_per_sequence)
         self.distribution = 'ACG_lowrank'
-        
+
         self.complex = complex
         if complex:
             self.a = torch.as_tensor(1)
@@ -292,13 +344,16 @@ class ACG(PCMMtorchBaseModel):
             raise ValueError("For the ACG distribution, the input data vectors should be normalized to unit length.")
 
         # see supplementary material for the derivation of the logpdf for low-rank ACG
-        D = torch.eye(self.r, dtype=self.M.dtype, device=self.M.device) + self.M.mH @ self.M
-        v = torch.zeros(self.K, X.shape[0], dtype=X.dtype, device=X.device)
+        D = self.M.mH @ self.M + torch.eye(self.r, dtype=self.M.dtype, device=self.M.device)
+        v = torch.empty(self.K, X.shape[0], dtype=X.dtype, device=X.device)
 
         # loop over components (is faster than batch matrix multiplication)
         for k in range(self.K):
             XM = torch.conj(X) @ self.M[k]
-            v[k] = 1 - torch.sum(XM @ torch.linalg.inv(D[k]) * torch.conj(XM), dim=-1)
+            # v[k] = 1 - torch.sum(XM @ torch.linalg.inv(D[k]) * torch.conj(XM), dim=-1)
+            solved = torch.linalg.solve(D[k], XM.mH).mH
+            correction = torch.sum(torch.conj(XM) * solved, dim=-1).real
+            v[k] = torch.clamp(1 - correction, torch.finfo(X.real.dtype).tiny)
 
         real_dtype = X.real.dtype
         log_pdf = (
@@ -331,20 +386,27 @@ class MACG(PCMMtorchBaseModel):
     def log_pdf(self,X, recompute_statics=False):
         ones = torch.ones(X.shape[0], dtype=X.real.dtype, device=X.device)
         if not torch.allclose(torch.linalg.norm(X[:,:,0], dim=1), ones):
-            raise ValueError("For the MACG distribution, the input data vectors should be normalized to unit length (and orthonormal, but this is not checked).")
-        D = torch.swapaxes(self.M,-2,-1)@self.M + torch.eye(
-            self.r, dtype=self.M.dtype, device=self.M.device
-        )
+            raise ValueError("For the MACG distribution, the input data vectors should be normalized to unit length "
+                             "(and orthonormal, but this is not checked).")
+        D = self.M.mT @ self.M + torch.eye(self.r, dtype=self.M.dtype, device=self.M.device)
         log_det_D = torch.logdet(D)
         
-        v = torch.zeros(self.K, X.shape[0], dtype=X.real.dtype, device=X.device)
+        v = torch.empty(self.K, X.shape[0], dtype=X.real.dtype, device=X.device)
         for k in range(self.K):
-            # Original: L, Q = torch.linalg.eigh(torch.linalg.inv(D[k]))
-            L, Q = torch.linalg.eigh(D[k])
-            D_sqrtinv = (Q * L.rsqrt().unsqueeze(-2)) @ Q.mH
-            XtM = X.mH@self.M[k].unsqueeze(0)
-            S2 = torch.linalg.svdvals(XtM@D_sqrtinv.unsqueeze(0))
-            v[k] = torch.sum(torch.log(1/(S2**2)-1),dim=-1)+2*torch.sum(torch.log(S2),dim=-1)
+            # # Original: L, Q = torch.linalg.eigh(torch.linalg.inv(D[k]))
+            # L, Q = torch.linalg.eigh(D[k])
+            # D_sqrtinv = (Q * L.rsqrt().unsqueeze(-2)) @ Q.mH
+            # XtM = X.mH@self.M[k].unsqueeze(0)
+            # S2 = torch.linalg.svdvals(XtM@D_sqrtinv.unsqueeze(0))
+            # v[k] = torch.sum(torch.log(1/(S2**2)-1),dim=-1)+2*torch.sum(torch.log(S2),dim=-1)
+            XtM = X.mT @ self.M[k].unsqueeze(0)
+            solved = torch.linalg.solve(D[k], XtM.mT)
+            inner = torch.eye(self.q, dtype=X.dtype, device=X.device) - XtM @ solved
+            inner = 0.5 * (inner + inner.mT)
+            sign, logdet_inner = torch.linalg.slogdet(inner)
+            if torch.any(sign <= 0):
+                raise ValueError("The matrix (I - X^T M D^{-1} M^T X) must be positive definite.")
+            v[k] = logdet_inner
 
         log_pdf = - (self.q/2)*log_det_D.unsqueeze(-1) - self.p/2*v
         return log_pdf
@@ -376,40 +438,69 @@ class SingularWishart(PCMMtorchBaseModel):
         if params is not None:
             self.unpack_params(params)
 
-    def log_pdf(self,X, recompute_statics=False):
-        X_weights = torch.linalg.norm(X, dim=1)**2
-        expected = torch.full((X.shape[0],), self.p, dtype=X.real.dtype, device=X.device)
-        if not torch.allclose(torch.sum(X_weights, dim=1), expected):
-            warnings.warn(
-                "The input scales are expected to be square roots of eigenvalues whose sum equals the dimensionality.",
-                RuntimeWarning,
-            )
+    # def log_pdf(self,X, recompute_statics=False):
+    #     X_weights = torch.linalg.norm(X, dim=1)**2
+    #     expected = torch.full((X.shape[0],), self.p, dtype=X.real.dtype, device=X.device)
+    #     if not torch.allclose(torch.sum(X_weights, dim=1), expected):
+    #         warnings.warn(
+    #             "The input scales are expected to be square roots of eigenvalues whose sum equals the dimensionality.",
+    #             RuntimeWarning,
+    #         )
 
-        # while Q_q^T Q_q != U_q^T L U_q, their determinants are the same
-        # log_det_S11 = torch.logdet(torch.swapaxes(X[:,:self.q,:],-2,-1) @ X[:,:self.q,:]).unsqueeze(0)
-        gram = X.mH @ X  # (N, q, q)
+    #     # while Q_q^T Q_q != U_q^T L U_q, their determinants are the same
+    #     # log_det_S11 = torch.logdet(torch.swapaxes(X[:,:self.q,:],-2,-1) @ X[:,:self.q,:]).unsqueeze(0)
+    #     gram = X.mH @ X  # (N, q, q)
+    #     sign, log_pdet_S = torch.linalg.slogdet(gram)
+    #     if torch.any(sign <= 0):
+    #         raise ValueError("X must have full column rank.")
+    #     log_det_term = log_pdet_S.unsqueeze(0)
+
+    #     gamma = torch.nn.functional.softplus(self.gamma)
+
+    #     M_tilde = self.M*torch.sqrt(1/gamma.unsqueeze(-1).unsqueeze(-1))
+
+    #     D = torch.swapaxes(M_tilde,-2,-1)@M_tilde + torch.eye(self.r, dtype=M_tilde.dtype, device=M_tilde.device)
+    #     log_det_D = self.p*torch.log(gamma)+torch.logdet(D)
+
+    #     v = torch.zeros(self.K, X.shape[0], dtype=X.real.dtype, device=X.device)
+    #     for k in range(self.K):
+    #         # Original: L, Q = torch.linalg.eigh(torch.linalg.inv(D[k]))
+    #         L, Q = torch.linalg.eigh(D[k])
+    #         D_sqrtinv = (Q * L.rsqrt().unsqueeze(-2)) @ Q.mT
+    #         QtM_tilde = X.mT@M_tilde[k].unsqueeze(0)
+    #         v[k] = 1/gamma[k]*(self.p - torch.linalg.norm(QtM_tilde@D_sqrtinv.unsqueeze(0),dim=(-2,-1))**2)
+
+    #     log_pdf = (self.log_norm_constant.to(dtype=X.real.dtype, device=X.device) - (self.q/2)*log_det_D.unsqueeze(-1)
+    #                + (self.q-self.p-1)/2*log_det_term - 1/2*v)
+    #     return log_pdf
+
+    def log_pdf(self, X, recompute_statics=False):
+        norm_squared = X.abs().square().sum(dim=(-2, -1))
+        gram = X.mH @ X
         sign, log_pdet_S = torch.linalg.slogdet(gram)
         if torch.any(sign <= 0):
-            raise ValueError("X must have full column rank.")
+            raise ValueError('X must have full column rank.')
         log_det_term = log_pdet_S.unsqueeze(0)
 
-        gamma = torch.nn.functional.softplus(self.gamma)
+        gamma = nn.functional.softplus(self.gamma)
+        if self.force_gamma_same:
+            gamma = gamma.mean().expand_as(gamma)
 
-        M_tilde = self.M*torch.sqrt(1/gamma.unsqueeze(-1).unsqueeze(-1))
+        M_tilde = self.M / torch.sqrt(gamma[:, None, None])
+        D = M_tilde.mH @ M_tilde + torch.eye(self.r, dtype=M_tilde.dtype, device=M_tilde.device)
+        log_det_D = self.p * torch.log(gamma) + torch.linalg.slogdet(D).logabsdet
 
-        D = torch.swapaxes(M_tilde,-2,-1)@M_tilde + torch.eye(self.r, dtype=M_tilde.dtype, device=M_tilde.device)
-        log_det_D = self.p*torch.log(gamma)+torch.logdet(D)
-        
-        v = torch.zeros(self.K, X.shape[0], dtype=X.real.dtype, device=X.device)
+        v = torch.empty((self.K, X.shape[0]), dtype=X.real.dtype, device=X.device)
         for k in range(self.K):
-            # Original: L, Q = torch.linalg.eigh(torch.linalg.inv(D[k]))
-            L, Q = torch.linalg.eigh(D[k])
-            D_sqrtinv = (Q * L.rsqrt().unsqueeze(-2)) @ Q.mT
-            QtM_tilde = X.mT@M_tilde[k].unsqueeze(0)
-            v[k] = 1/gamma[k]*(self.p - torch.linalg.norm(QtM_tilde@D_sqrtinv.unsqueeze(0),dim=(-2,-1))**2)
-        
-        log_pdf = self.log_norm_constant.to(dtype=X.real.dtype, device=X.device) - (self.q/2)*log_det_D.unsqueeze(-1) + (self.q-self.p-1)/2*log_det_term - 1/2*v
-        return log_pdf
+            eigenvalues, eigenvectors = torch.linalg.eigh(D[k])
+            D_sqrtinv = (eigenvectors * eigenvalues.rsqrt().unsqueeze(-2)) @ eigenvectors.mH
+            projected = X.mH @ M_tilde[k].unsqueeze(0)
+            correction = torch.linalg.vector_norm(projected @ D_sqrtinv.unsqueeze(0), dim=(-2, -1)).square()
+            residual = torch.clamp(norm_squared - correction, min=0)
+            v[k] = residual / gamma[k]
+
+        return (self.log_norm_constant.to(dtype=X.real.dtype, device=X.device) - self.q / 2 * log_det_D.unsqueeze(-1)
+                + (self.q - self.p - 1) / 2 * log_det_term - 0.5 * v)
 
 class Normal(PCMMtorchBaseModel):
     def __init__(self, p:int, rank:int, K:int=1, complex:bool=False, HMM:bool=False, samples_per_sequence=0, params:dict=None, force_gamma_same:bool=False):
@@ -443,18 +534,16 @@ class Normal(PCMMtorchBaseModel):
 
     def log_pdf(self,X, recompute_statics=False):
         norm_x = (torch.linalg.norm(X,dim=1)**2).unsqueeze(0)
-
-
         gamma = torch.nn.functional.softplus(self.gamma)
+        if self.force_gamma_same:
+            gamma = gamma.mean().expand_as(gamma)
 
         M_tilde = self.M*torch.sqrt(1/gamma.unsqueeze(-1).unsqueeze(-1))
 
-        D = M_tilde.mH @ M_tilde + torch.eye(
-            self.r, dtype=M_tilde.dtype, device=M_tilde.device
-        )
+        D = M_tilde.mH @ M_tilde + torch.eye(self.r, dtype=M_tilde.dtype, device=M_tilde.device)
         log_det_D = self.p*torch.log(gamma)+torch.logdet(D)
         
-        v = torch.zeros(self.K, X.shape[0], dtype=X.real.dtype, device=X.device)
+        v = torch.empty(self.K, X.shape[0], dtype=X.real.dtype, device=X.device)
         for k in range(self.K):
             # Original: L, Q = torch.linalg.eigh(torch.linalg.inv(D[k]))
             L, Q = torch.linalg.eigh(D[k])
@@ -463,17 +552,10 @@ class Normal(PCMMtorchBaseModel):
             v[k] = 1/gamma[k]*(norm_x - torch.linalg.norm(XtM_tilde@D_sqrtinv.unsqueeze(0),dim=(-2,-1))**2)
         
         a = self.a.to(dtype=X.real.dtype, device=X.device)
-        log_pdf = self.log_norm_constant.to(
-            dtype=X.real.dtype, device=X.device
-        ) - a*log_det_D.real.unsqueeze(-1) - a*v
+        log_pdf = self.log_norm_constant.to(dtype=X.real.dtype, device=X.device) - a*log_det_D.real.unsqueeze(-1) - a*v
         return log_pdf
 
-def _winding_vectors(
-    dimension: int,
-    radius: int,
-    device: torch.device,
-    dtype: torch.dtype,
-) -> torch.Tensor:
+def _winding_vectors(dimension: int, radius: int, device: torch.device, dtype: torch.dtype) -> torch.Tensor:
     """
     Integer vectors in {-radius, ..., radius}**dimension.
 
@@ -486,12 +568,7 @@ def _winding_vectors(
     if radius < 0:
         raise ValueError("radius must be non-negative")
 
-    axis = torch.arange(
-        -radius,
-        radius + 1,
-        device=device,
-        dtype=dtype,
-    )
+    axis = torch.arange(-radius, radius + 1, device=device, dtype=dtype)
 
     if dimension == 1:
         return axis[:, None]
@@ -524,14 +601,7 @@ class WrappedNormal_old(Normal):
         Safety limit against accidentally constructing an enormous lattice.
     """
 
-    def __init__(
-        self,
-        *args,
-        winding_radius: int = 1,
-        winding_chunk_size: int = 32,
-        max_winding_vectors: int = 200_000,
-        **kwargs,
-    ):
+    def __init__(self, *args, winding_radius: int = 1, winding_chunk_size: int = 32, max_winding_vectors: int = 200_000, **kwargs):
         super().__init__(*args, **kwargs)
 
         if winding_radius < 0:
@@ -543,9 +613,7 @@ class WrappedNormal_old(Normal):
         self.winding_chunk_size = winding_chunk_size
         self.max_winding_vectors = max_winding_vectors
 
-    def log_pdf(
-        self, data: torch.Tensor, recompute_statics: bool = False
-    ) -> torch.Tensor:
+    def log_pdf(self, data: torch.Tensor, recompute_statics: bool = False) -> torch.Tensor:
         """
         Wrapped component log-densities.
 
@@ -560,19 +628,13 @@ class WrappedNormal_old(Normal):
             normally either [K, n] or [n, K].
         """
         if data.ndim != 2:
-            raise ValueError(
-                f"Expected data with shape [n, p], got {tuple(data.shape)}"
-            )
+            raise ValueError(f"Expected data with shape [n, p], got {tuple(data.shape)}")
         if torch.is_complex(data):
-            raise TypeError(
-                "WrappedNormal expects real-valued phase angles in radians."
-            )
+            raise TypeError("WrappedNormal expects real-valued phase angles in radians.")
 
         n, p = data.shape
         if p != self.p:
-            raise ValueError(
-                f"Expected data dimension p={self.p}, got p={p}."
-            )
+            raise ValueError(f"Expected data dimension p={self.p}, got p={p}.")
 
         # Put observations in the standard principal interval.
         # The density is periodic, so (-pi, pi] versus [0, 2*pi) does not
@@ -588,12 +650,7 @@ class WrappedNormal_old(Normal):
                 "deliberately, or use a latent-factor approximation."
             )
 
-        windings = _winding_vectors(
-            dimension=p,
-            radius=self.winding_radius,
-            device=data.device,
-            dtype=data.dtype,
-        )
+        windings = _winding_vectors(dimension=p, radius=self.winding_radius, device=data.device, dtype=data.dtype)
 
         accumulated_log_prob = None
         output_orientation = None
@@ -602,33 +659,20 @@ class WrappedNormal_old(Normal):
             number_in_chunk = winding_chunk.shape[0]
 
             # Shape: [number_in_chunk, n, p]
-            shifted_data = (
-                data[None, :, :]
-                + 2.0
-                * math.pi
-                * winding_chunk[:, None, :]
-            )
+            shifted_data = (data[None, :, :] + 2.0 * math.pi * winding_chunk[:, None, :])
 
             # Let the existing Normal model evaluate all shifted copies.
-            flat_shifted_data = shifted_data.reshape(
-                number_in_chunk * n,
-                p,
-            )
+            flat_shifted_data = shifted_data.reshape(number_in_chunk * n, p)
 
             # Calling Normal.log_pdf directly avoids recursion into this
             # overridden WrappedNormal.log_pdf method.
-            base_log_prob = Normal.log_pdf(
-                self,
-                flat_shifted_data,
-            )
+            base_log_prob = Normal.log_pdf(self, flat_shifted_data)
 
             # Support either convention used by the base class:
             # [K, observations] or [observations, K].
             if base_log_prob.ndim == 1:
                 if base_log_prob.numel() != flat_shifted_data.shape[0]:
-                    raise RuntimeError(
-                        "Unexpected output shape from Normal.log_pdf."
-                    )
+                    raise RuntimeError("Unexpected output shape from Normal.log_pdf.")
 
                 # One-component case.
                 base_log_prob = base_log_prob[None, :]
@@ -638,11 +682,7 @@ class WrappedNormal_old(Normal):
                 # [K, number_in_chunk * n]
                 output_orientation = "K_by_n"
 
-                base_log_prob = base_log_prob.reshape(
-                    base_log_prob.shape[0],
-                    number_in_chunk,
-                    n,
-                )
+                base_log_prob = base_log_prob.reshape(base_log_prob.shape[0], number_in_chunk, n)
 
                 # Sum the Gaussian densities over winding vectors.
                 chunk_log_prob = torch.logsumexp(
@@ -654,11 +694,7 @@ class WrappedNormal_old(Normal):
                 # [number_in_chunk * n, K]
                 output_orientation = "n_by_K"
 
-                base_log_prob = base_log_prob.reshape(
-                    number_in_chunk,
-                    n,
-                    base_log_prob.shape[1],
-                )
+                base_log_prob = base_log_prob.reshape(number_in_chunk, n, base_log_prob.shape[1])
 
                 chunk_log_prob = torch.logsumexp(
                     base_log_prob,
@@ -677,10 +713,7 @@ class WrappedNormal_old(Normal):
             if accumulated_log_prob is None:
                 accumulated_log_prob = chunk_log_prob
             else:
-                accumulated_log_prob = torch.logaddexp(
-                    accumulated_log_prob,
-                    chunk_log_prob,
-                )
+                accumulated_log_prob = torch.logaddexp(accumulated_log_prob, chunk_log_prob)
 
         if accumulated_log_prob is None:
             raise RuntimeError("No winding vectors were generated.")
@@ -700,7 +733,8 @@ class WrappedNormal(PCMMtorchBaseModel):
     initializes both means and covariances using the geometry of the torus.
     """
 
-    def __init__(self, p:int, rank:int, K:int=1, HMM:bool=False, samples_per_sequence=0, params:dict=None, force_gamma_same:bool=False, winding_radius:int=1, winding_chunk_size:int=64, max_winding_vectors:int=200_000):
+    def __init__(self, p:int, rank:int, K:int=1, HMM:bool=False, samples_per_sequence=0, params:dict=None, force_gamma_same:bool=False,
+        winding_radius:int=1, winding_chunk_size:int=64, max_winding_vectors:int=200_000):
         super().__init__()
         if p < 1 or rank < 1 or rank > p:
             raise ValueError("WrappedNormal requires p >= 1 and 1 <= rank <= p.")
@@ -731,58 +765,68 @@ class WrappedNormal(PCMMtorchBaseModel):
         M = torch.as_tensor(params['M'], dtype=dtype, device=device)
         gamma = torch.as_tensor(params.get('gamma', torch.ones(self.K)), dtype=dtype, device=device)
         if mu.shape != (self.K, self.p) or M.shape != (self.K, self.p, self.r) or gamma.shape != (self.K,):
-            raise ValueError(f"Expected mu {(self.K,self.p)}, M {(self.K,self.p,self.r)}, and gamma {(self.K,)}, got {tuple(mu.shape)}, {tuple(M.shape)}, and {tuple(gamma.shape)}.")
-        self.mu, self.M, self.gamma = nn.Parameter(mu), nn.Parameter(M), nn.Parameter(gamma)
-        self.pi = nn.Parameter(torch.as_tensor(params.get('pi', torch.ones(self.K)/self.K), dtype=dtype, device=device))
+            raise ValueError(f"Expected mu {(self.K,self.p)}, M {(self.K,self.p,self.r)}, and gamma {(self.K,)}, got {tuple(mu.shape)}, "
+                             f"{tuple(M.shape)}, and {tuple(gamma.shape)}.")
+        self.mu, self.M = nn.Parameter(mu), nn.Parameter(M)
+        self.gamma = nn.Parameter(self._inverse_softplus(gamma))
+        pi = torch.as_tensor(params.get('pi', torch.ones(self.K)/self.K), dtype=dtype, device=device)
+        self.pi = nn.Parameter(self._probabilities_to_logits(pi, dim=0))
         if self.HMM and 'T' in params:
-            self.T = nn.Parameter(torch.as_tensor(params['T'], dtype=dtype, device=device))
+            T = torch.as_tensor(params['T'], dtype=dtype, device=device)
+            self.T = nn.Parameter(self._probabilities_to_logits(T, dim=1))
 
     def get_params(self):
-        params = {'mu':self.mu.detach(), 'M':self.M.detach(), 'gamma':self.gamma.detach(), 'pi':self.pi.detach()}
+        params = {
+            'mu': self.mu.detach(),
+            'M': self.M.detach(),
+            'gamma': torch.nn.functional.softplus(self.gamma.detach()),
+            'pi': torch.softmax(self.pi.detach(), dim=0),
+        }
         if self.HMM:
-            params['T'] = self.T.detach()
+            params['T'] = torch.softmax(self.T.detach(), dim=1)
         return params
 
     def initialize(self, X, init_method=None, posterior=None, initialization_data=None, tol=1e-10):
         if X.ndim != 2 or X.shape[1] != self.p or torch.is_complex(X):
             raise ValueError(f"WrappedNormal expects real angles with shape (n, {self.p}).")
+        if init_method == 'isotropic' and posterior is None:
+            M = torch.randn((self.K, self.p, self.r), dtype=X.dtype, device=X.device)
+            M = M / torch.linalg.vector_norm(M.reshape(self.K, -1), dim=1)[:, None, None]
+            self.unpack_params({
+                'mu': (2 * math.pi) * torch.rand((self.K, self.p), dtype=X.dtype, device=X.device) - math.pi,
+                'M': M,
+                'gamma': torch.ones(self.K, dtype=X.dtype, device=X.device),
+                'pi': torch.full((self.K,), 1.0 / self.K, dtype=X.dtype, device=X.device),
+            })
+            return
+        if init_method in {'uniform', 'unif'} and posterior is None:
+            self.unpack_params({
+                'mu': (2 * math.pi) * torch.rand((self.K, self.p), dtype=X.dtype, device=X.device) - math.pi,
+                'M': torch.rand((self.K, self.p, self.r), dtype=X.dtype, device=X.device),
+                'gamma': torch.ones(self.K, dtype=X.dtype, device=X.device),
+                'pi': torch.full((self.K,), 1.0 / self.K, dtype=X.dtype, device=X.device),
+            })
+            return
+        if init_method is None and posterior is None:
+            warnings.warn(f"No initialization method was specified for {self.distribution}; " "using data-estimated initialization.", UserWarning, stacklevel=2)
         if posterior is None:
             if init_method in {'qtc', 'quotient_torus_clustering'}:
                 from PCMM.phase_coherence_kmeans import quotient_torus_clustering
                 phase_data = X if initialization_data is None else initialization_data
                 if phase_data.shape[1] == self.p:
                     phase_data = torch.column_stack((phase_data, phase_data.new_zeros(phase_data.shape[0])))
-                _, labels, _ = quotient_torus_clustering(
-                    phase_data.detach().cpu().numpy(),
-                    K=self.K,
-                    init='++',
-                    num_repl=1,
-                    tol=tol,
-                    suppress_output=True,
-                )
+                _, labels, _ = quotient_torus_clustering(phase_data.detach().cpu().numpy(), K=self.K, init='++', num_repl=1, tol=tol, suppress_output=True)
             else:
                 from PCMM.phase_coherence_kmeans import torus_clustering
                 init = {'tc':'++', 'torus_clustering':'++'}.get(init_method, init_method)
-                _, labels, _ = torus_clustering(
-                    X.detach().cpu().numpy(),
-                    K=self.K,
-                    init=init,
-                    num_repl=1,
-                    tol=tol,
-                    suppress_output=True,
-                )
+                _, labels, _ = torus_clustering(X.detach().cpu().numpy(), K=self.K, init=init, num_repl=1, tol=tol, suppress_output=True)
         else:
             posterior = torch.as_tensor(posterior, device=X.device)
             if posterior.ndim == 2:
                 posterior = posterior.argmax(dim=0 if posterior.shape[0] == self.K else 1)
             labels = posterior.detach().cpu().numpy()
         labels_tensor = torch.as_tensor(labels, device=X.device)
-        mu = torch.stack(
-            [
-                torch.angle(torch.exp(1j * X[labels_tensor == k]).mean(dim=0))
-                for k in range(self.K)
-            ]
-        )
+        mu = torch.stack([torch.angle(torch.exp(1j * X[labels_tensor == k]).mean(dim=0)) for k in range(self.K)])
         M = torch.zeros((self.K, self.p, self.r), dtype=X.dtype, device=X.device)
         component_gamma = torch.zeros(self.K, dtype=X.dtype, device=X.device)
         minimum_variance = torch.as_tensor(1e-4, dtype=X.dtype, device=X.device)
@@ -801,7 +845,7 @@ class WrappedNormal(PCMMtorchBaseModel):
         if self.force_gamma_same:
             component_gamma[:] = component_gamma.mean()
         proportions = torch.bincount(torch.as_tensor(labels, device=X.device), minlength=self.K).to(X.dtype)
-        self.unpack_params({'mu':mu, 'M':M, 'gamma':self._inverse_softplus(component_gamma), 'pi':torch.clamp(proportions/proportions.sum(), min=torch.finfo(X.dtype).eps)})
+        self.unpack_params({'mu':mu, 'M':M, 'gamma':component_gamma, 'pi':torch.clamp(proportions/proportions.sum(), min=torch.finfo(X.dtype).eps)})
 
     def log_pdf(self, X, recompute_statics=False):
         if X.ndim != 2 or X.shape[1] != self.p or torch.is_complex(X):

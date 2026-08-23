@@ -31,12 +31,14 @@ class Watson(PCMMnumpyBaseModel):
             self.unpack_params(params)
 
     def kummer_log(self,k,a,c):
+        if k == 0:
+            return 0.0
         n = 1e7
         tol = 1e-10
         logkum = 0
         logkum_old = 1
         foo = 0
-        if k<0:
+        if k < 0:
             a = c-a
         j = 1
         while np.abs(logkum - logkum_old) > tol and (j < n):
@@ -44,7 +46,8 @@ class Watson(PCMMnumpyBaseModel):
             foo += np.log((a + j - 1) / (j * (c + j - 1)) * np.abs(k))
             logkum = np.logaddexp(logkum,foo)
             j += 1
-        return logkum
+        # Kummer transformation: M(a,c,k)=exp(k)M(c-a,c,-k).
+        return logkum + (k if k < 0 else 0.0)
     
     def log_norm_constant(self):
         logkum = np.zeros(self.K)
@@ -70,7 +73,7 @@ class Watson(PCMMnumpyBaseModel):
         UB = (rk*self.c-self.a)/(rk*(1-rk))*(1+rk/self.a)
 
         def f(kappa):
-            return ((self.a/self.c)*(np.exp(self.kummer_log(k=kappa,a=self.a+1,c=self.c+1)-self.kummer_log(k=kappa,a=self.a,c=self.c)))-rk)**2
+            return ((self.a/self.c) * np.exp(self.kummer_log(k=kappa,a=self.a+1,c=self.c+1) - self.kummer_log(k=kappa,a=self.a,c=self.c)) - rk)**2
         options={}
         options['xatol'] = tol
         if rk>self.a/self.c:
@@ -178,10 +181,7 @@ class ACG(PCMMnumpyBaseModel):
     def M_step_single_component(self,X,beta,M=None,Psi=None,max_iter=int(1e5),tol=1e-10):
         n,p = X.shape
         if n<p*(p-1):
-            warnings.warn(
-                "Too high dimensionality compared to number of observations. Psi cannot be calculated",
-                RuntimeWarning,
-            )
+            warnings.warn("Too high dimensionality compared to number of observations. Psi cannot be calculated", RuntimeWarning)
         if self.distribution in ['ACG_lowrank','Complex_ACG_lowrank']:
             Q = (beta[:,None]*X).T
 
@@ -219,7 +219,7 @@ class ACG(PCMMnumpyBaseModel):
                 M_tilde = M
                 S1 = np.linalg.svd(M_tilde,full_matrices=False,compute_uv=False)
                 trZtZ = np.sum(S1**4)+2*gamma*np.sum(S1**2)+gamma**2*self.p
-                trZtZt_old = np.linalg.norm(M_tilde.conj().T@M_tilde_old)**2 + gamma_old*gamma*self.p + gamma_old*np.sum(S1**2) + gamma*np.sum(S1_old**2)
+                trZtZt_old = (np.linalg.norm(M_tilde.conj().T@M_tilde_old)**2 + gamma_old*gamma*self.p + gamma_old*np.sum(S1**2) + gamma*np.sum(S1_old**2))
                 loss.append(trZtZ+trZt_oldZ_old-2*trZtZt_old)
                 
                 if j>0:
@@ -307,7 +307,8 @@ class MACG(PCMMnumpyBaseModel):
     def log_pdf(self, X, recompute_statics=False):
         if not self.flag_normalized_input_data:
             if np.allclose(np.linalg.norm(X[:,:,0],axis=1),1)!=1:
-                raise ValueError("For the MACG distribution, the input data vectors should be normalized to unit length (and orthonormal, but this is not checked).")
+                raise ValueError("For the MACG distribution, the input data vectors should be normalized to unit length "
+                                 "(and orthonormal, but this is not checked).")
             else:
                 self.flag_normalized_input_data = True
         if self.distribution == 'MACG_lowrank':
@@ -349,7 +350,7 @@ class MACG(PCMMnumpyBaseModel):
                 M_tilde = M
                 S1 = np.linalg.svd(M_tilde,full_matrices=False,compute_uv=False)
                 trZtZ = np.sum(S1**4)+2*gamma*np.sum(S1**2)+gamma**2*self.p
-                trZtZt_old = np.linalg.norm(M_tilde.T@M_tilde_old)**2 + gamma_old*gamma*self.p + gamma_old*np.sum(S1**2) + gamma*np.sum(S1_old**2)
+                trZtZt_old = (np.linalg.norm(M_tilde.T@M_tilde_old)**2 + gamma_old*gamma*self.p + gamma_old*np.sum(S1**2) + gamma*np.sum(S1_old**2))
                 loss.append(trZtZ+trZt_oldZ_old-2*trZtZt_old)
                 
                 if j>0:
@@ -445,20 +446,23 @@ class SingularWishart(PCMMnumpyBaseModel):
         D_sqrtinv = (np.swapaxes(V1t,-2,-1)*np.sqrt(1/(1+S1**2))[:,None])@V1t
 
         
-        v = 1/np.atleast_1d(self.gamma)[:,None]*(self.p - np.linalg.norm(np.swapaxes(X,-2,-1)[None,:,:,:]@M_tilde[:,None,:,:]@D_sqrtinv[:,None],axis=(-2,-1))**2)
+        v = 1/np.atleast_1d(self.gamma)[:,None] * (self.p - np.linalg.norm(
+            np.swapaxes(X,-2,-1)[None,:,:,:] @ M_tilde[:,None,:,:] @ D_sqrtinv[:,None], axis=(-2,-1))**2)
         log_pdf = self.log_norm_constant - (self.q/2)*np.atleast_1d(log_det_D)[:,None] + (self.q-self.p-1)/2*log_det_S11[None] - 1/2*v
 
         return log_pdf
 
     def log_pdf_fullrank(self, X, recompute_statics=False):
-        log_pdf = self.log_norm_constant - (self.q/2)*np.atleast_1d(self.logdet(self.Psi))[:,None] - 1/2*np.trace(np.swapaxes(X,-2,-1)[None,:]@np.linalg.inv(self.Psi)[:,None]@X[None,:],axis1=-2,axis2=-1)
+        log_pdf = (self.log_norm_constant - (self.q/2)*np.atleast_1d(self.logdet(self.Psi))[:,None]
+                   - 1/2*np.trace(np.swapaxes(X,-2,-1)[None,:] @ np.linalg.inv(self.Psi)[:,None] @ X[None,:], axis1=-2, axis2=-1))
         return log_pdf
 
     def log_pdf(self, X, recompute_statics=False):
         if not self.flag_normalized_input_data:
             X_weights = np.linalg.norm(X,axis=1)**2
             if not np.allclose(np.sum(X_weights,axis=1),self.p):
-                raise ValueError("In weighted grassmann clustering, the scale of the input data vectors should be equal to the square root of the eigenvalues. If the scale does not sum to the dimensionality, this error is thrown")
+                raise ValueError("In weighted grassmann clustering, the scale of the input data vectors should be equal to the square root of the "
+                                 "eigenvalues. If the scale does not sum to the dimensionality, this error is thrown")
             else:
                 self.flag_normalized_input_data = True
         if self.distribution == 'SingularWishart_lowrank':
@@ -580,7 +584,8 @@ class Normal(PCMMnumpyBaseModel):
         log_det_D = self.p*np.log(self.gamma)+np.sum(np.log(1/S1**2+1),axis=-1)+2*np.sum(np.log(S1),axis=-1)
         D_sqrtinv = (np.swapaxes(V1t.conj(),-2,-1)*np.sqrt(1/(1+S1**2))[:,None])@V1t
         
-        v = 1/np.atleast_1d(self.gamma)[:,None]*(norm_x[None,:] - np.linalg.norm(X.conj()[None,:,None,:]@M_tilde[:,None,:,:]@D_sqrtinv[:,None,:,:],axis=(-2,-1))**2)
+        v = 1/np.atleast_1d(self.gamma)[:,None] * (norm_x[None,:] - np.linalg.norm(
+            X.conj()[None,:,None,:] @ M_tilde[:,None,:,:] @ D_sqrtinv[:,None,:,:], axis=(-2,-1))**2)
         log_pdf = self.log_norm_constant - self.a*np.atleast_1d(log_det_D)[:,None] - self.a*np.real(v)
 
         return log_pdf

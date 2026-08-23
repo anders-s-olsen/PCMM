@@ -1,6 +1,19 @@
 import numpy as np
-from PCMM.phase_coherence_kmeans import diametrical_clustering, plusplus_initialization, grassmann_clustering, torus_clustering, weighted_grassmann_clustering
+from PCMM.phase_coherence_kmeans import (diametrical_clustering, plusplus_initialization, grassmann_clustering, torus_clustering,
+                                         weighted_grassmann_clustering)
 from scipy.cluster.vq import kmeans2
+
+
+def _isotropic_gaussian(shape, complex_valued=False, frobenius_norm=1.0):
+    """Draw zero-mean Gaussian arrays and fix each leading slice's norm."""
+    values = np.random.normal(size=shape)
+    if complex_valued:
+        values = values + 1j * np.random.normal(size=shape)
+    flattened = values.reshape(shape[0], -1)
+    norms = np.linalg.norm(flattened, axis=1)
+    if np.any(norms == 0):
+        raise RuntimeError('Degenerate Gaussian initialization draw.')
+    return values * (frobenius_norm / norms).reshape((-1,) + (1,) * (values.ndim - 1))
 
 def init_M_svd(V,r,normalize_noise=False):
     if V.ndim!=2:
@@ -65,7 +78,7 @@ def init_M_svd_given_M_init(X,K,r,M_init,beta=None,gamma=None,distribution=None)
         elif distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank','WrappedNormal_lowrank']:
             M_proj = M_init[k]@np.linalg.inv(M_init[k].T.conj()@M_init[k]+gamma[k]*np.eye(M_init[k].shape[1]))@M_init[k].T.conj()
         V_residual = V - M_proj@V
-        M_extra,_ = init_M_svd(V_residual,r=num_missing,normalize_noise=distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank'])
+        M_extra,_ = init_M_svd(V_residual, r=num_missing, normalize_noise=distribution in ['ACG_lowrank','Complex_ACG_lowrank','MACG_lowrank'])
         M[k] = np.concatenate([M_init[k],M_extra],axis=-1)
     return M
     
@@ -109,24 +122,29 @@ class PCMMnumpyBaseModel():
         self.pi = params['pi']  
 
     def initialize(self,X,init_method,tol=1e-10):
-        assert init_method in ['uniform','unif',
-                               'diametrical_clustering_plusplus','dc++','diametrical_clustering_plusplus_seg','dc++_seg',
-                               'grassmann_clustering_plusplus','gc++','grassmann_clustering_plusplus_seg','gc++_seg',
-                               'weighted_grassmann_clustering_plusplus','wgc++','weighted_grassmann_clustering_plusplus_seg','wgc++_seg',
-                               'dc','diametrical_clustering','dc_seg','diametrical_clustering_seg',
-                               'gc','grassmann_clustering','gc_seg','grassmann_clustering_seg',
-                               'wgc','weighted_grassmann_clustering','wgc_seg','weighted_grassmann_clustering_seg',
-                               'tc','torus_clustering','tc++','torus_clustering_plusplus',
-                               'ls','ls_seg']
-        assert self.distribution in ['Watson','Complex_Watson',
-                                     'ACG_lowrank','ACG_fullrank',
-                                     'Complex_ACG_lowrank','Complex_ACG_fullrank',
-                                     'MACG_lowrank','MACG_fullrank',
-                                     'SingularWishart_lowrank','SingularWishart_fullrank',
-                                     'Normal_lowrank','Normal_fullrank',
-                                     'Complex_Normal_lowrank','Complex_Normal_fullrank']
+        assert init_method in ['uniform','unif','isotropic','diametrical_clustering_plusplus','dc++','diametrical_clustering_plusplus_seg','dc++_seg','grassmann_clustering_plusplus','gc++','grassmann_clustering_plusplus_seg','gc++_seg','weighted_grassmann_clustering_plusplus','wgc++','weighted_grassmann_clustering_plusplus_seg','wgc++_seg','dc','diametrical_clustering','dc_seg','diametrical_clustering_seg','gc','grassmann_clustering','gc_seg','grassmann_clustering_seg','wgc','weighted_grassmann_clustering','wgc_seg','weighted_grassmann_clustering_seg','tc','torus_clustering','tc++','torus_clustering_plusplus','ls','ls_seg']
+        assert self.distribution in ['Watson','Complex_Watson','ACG_lowrank','ACG_fullrank','Complex_ACG_lowrank','Complex_ACG_fullrank','MACG_lowrank','MACG_fullrank','SingularWishart_lowrank','SingularWishart_fullrank','Normal_lowrank','Normal_fullrank','Complex_Normal_lowrank','Complex_Normal_fullrank']
 
 
+        if init_method == 'isotropic':
+            print('Initializing parameters using fixed-norm isotropic Gaussian draws')
+            self.pi = np.full(self.K, 1 / self.K)
+            complex_valued = np.iscomplexobj(X)
+            if 'Watson' in self.distribution:
+                self.mu = _isotropic_gaussian((self.K, self.p), complex_valued=complex_valued)
+                self.kappa = np.full(self.K, 1e-3)
+            else:
+                M = _isotropic_gaussian((self.K, self.p, self.r), complex_valued=complex_valued)
+                if 'fullrank' in self.distribution:
+                    self.Psi = np.zeros((self.K, self.p, self.p), dtype=M.dtype)
+                    for k in range(self.K):
+                        self.Psi[k] = M[k] @ M[k].T.conj() + np.eye(self.p)
+                        self.Psi[k] = self.p * self.Psi[k] / np.trace(self.Psi[k])
+                else:
+                    self.M = M
+                if self.distribution in ['SingularWishart_lowrank', 'Normal_lowrank', 'Complex_Normal_lowrank']:
+                    self.gamma = np.ones(self.K)
+            return
         if init_method in ['uniform','unif']:
             print('Initializing parameters using the uniform distribution')
             self.pi = np.array([1/self.K]*self.K)
@@ -154,8 +172,8 @@ class PCMMnumpyBaseModel():
                 if 'SingularWishart_lowrank' in self.distribution or 'Normal_lowrank' in self.distribution:
                     self.gamma = np.ones(self.K)
             return           
-        elif init_method in ['ls','ls_seg','diametrical_clustering_plusplus','dc++','dc++_seg','diametrical_clustering_plusplus_seg','dc','diametrical_clustering',
-                            'dc_seg','diametrical_clustering_seg','tc','torus_clustering','tc++','torus_clustering_plusplus']:
+        elif init_method in ['ls','ls_seg','diametrical_clustering_plusplus','dc++','dc++_seg','diametrical_clustering_plusplus_seg',
+                            'dc','diametrical_clustering','dc_seg','diametrical_clustering_seg','tc','torus_clustering','tc++','torus_clustering_plusplus']:
             # clustering initializers for vector-valued observations
 
             if X.ndim==3:
@@ -165,15 +183,9 @@ class PCMMnumpyBaseModel():
             
             if init_method in ['tc','torus_clustering','tc++','torus_clustering_plusplus']:
                 if self.distribution != 'WrappedNormal_lowrank':
-                    raise ValueError(
-                        'Torus clustering initialization is only available '
-                        'for WrappedNormal_lowrank models.'
-                    )
+                    raise ValueError('Torus clustering initialization is only available for WrappedNormal_lowrank models.')
                 print('Running torus clustering initialization')
-                mu,X_part,_ = torus_clustering(
-                    X=X2,K=self.K,max_iter=10000,num_repl=1,
-                    init='++',tol=tol,suppress_output=False
-                )
+                mu,X_part,_ = torus_clustering(X=X2,K=self.K,max_iter=10000,num_repl=1, init='++',tol=tol,suppress_output=False)
             elif init_method in ['diametrical_clustering_plusplus','dc++','diametrical_clustering_plusplus_seg','dc++_seg']:
                 print('Running diametrical clustering ++ initialization')
                 mu,X_part,_ = plusplus_initialization(X=X2,K=self.K)
@@ -200,13 +212,7 @@ class PCMMnumpyBaseModel():
                 self.kappa = np.zeros(self.K)
                 for k in range(self.K):
                     self.kappa[k] = self.optimize_kappa(X[X_part==k],mu=self.mu[k],beta=np.ones(np.sum(X_part==k)),tol=tol)
-            elif self.distribution in [
-                'ACG_lowrank',
-                'Complex_ACG_lowrank',
-                'Normal_lowrank',
-                'Complex_Normal_lowrank',
-                'SingularWishart_lowrank',
-            ]:
+            elif self.distribution in ['ACG_lowrank', 'Complex_ACG_lowrank', 'Normal_lowrank', 'Complex_Normal_lowrank', 'SingularWishart_lowrank']:
                 print('Initializing M based on a lowrank-svd of the input data partitioned acc to the clustering')
                 self.M = np.zeros((self.K,self.p,self.r),dtype=X.dtype)
                 gamma = np.zeros(self.K)
@@ -232,7 +238,8 @@ class PCMMnumpyBaseModel():
                     if self.distribution in ['ACG_fullrank','MACG_fullrank','Complex_ACG_fullrank']:
                         self.Psi[k] = self.p*self.Psi[k]/np.trace(self.Psi[k])
             
-        elif init_method in ['grassmann_clustering','grassmann_clustering_seg','gc','gc_seg','grassmann_clustering_plusplus','gc++','grassmann_clustering_plusplus_seg','gc++_seg']:
+        elif init_method in ['grassmann_clustering','grassmann_clustering_seg','gc','gc_seg','grassmann_clustering_plusplus','gc++',
+                            'grassmann_clustering_plusplus_seg','gc++_seg']:
             # for clustering methods on the Grassmann manifold
             if X.ndim!=3:
                 raise ValueError('Grassmann methods are only implemented for 3D data')
@@ -265,8 +272,8 @@ class PCMMnumpyBaseModel():
                     if self.distribution in ['MACG_fullrank']:
                         self.Psi[k] = self.p*self.Psi[k]/np.trace(self.Psi[k])
 
-        elif init_method in ['weighted_grassmann_clustering','weighted_grassmann_clustering_seg','wgc','wgc_seg','weighted_grassmann_clustering_plusplus','wgc++',
-                            'weighted_grassmann_clustering_plusplus_seg','wgc++_seg']:
+        elif init_method in ['weighted_grassmann_clustering','weighted_grassmann_clustering_seg','wgc','wgc_seg',
+                            'weighted_grassmann_clustering_plusplus','wgc++','weighted_grassmann_clustering_plusplus_seg','wgc++_seg']:
             # For clustering methods on the symmetric positive definite matrix manifold
 
             if X.ndim!=3:
@@ -307,7 +314,8 @@ class PCMMnumpyBaseModel():
             # run a single-component model on each segment
             if 'Watson' in self.distribution:
                 for k in range(self.K):
-                    self.mu[k],self.kappa[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),mu=self.mu[k],kappa=self.kappa[k],tol=tol)
+                    self.mu[k],self.kappa[k] = self.M_step_single_component(
+                        X[X_part==k], beta=np.ones(np.sum(X_part==k)), mu=self.mu[k], kappa=self.kappa[k], tol=tol)
             elif self.distribution in ['ACG_lowrank','MACG_lowrank','Complex_ACG_lowrank']:
                 for k in range(self.K):
                     self.M[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=self.M[k],Psi=None,tol=tol)
@@ -316,7 +324,8 @@ class PCMMnumpyBaseModel():
                     self.Psi[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=None, Psi=self.Psi[k],tol=tol)
             elif self.distribution in ['SingularWishart_lowrank','Normal_lowrank','Complex_Normal_lowrank']:
                 for k in range(self.K):
-                    self.M[k],self.gamma[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=self.M[k],gamma=self.gamma[k],tol=tol)
+                    self.M[k],self.gamma[k] = self.M_step_single_component(
+                        X[X_part==k], beta=np.ones(np.sum(X_part==k)), M=self.M[k], gamma=self.gamma[k], tol=tol)
             elif self.distribution in ['SingularWishart_fullrank','Normal_fullrank','Complex_Normal_fullrank']:
                 for k in range(self.K):
                     self.Psi[k] = self.M_step_single_component(X[X_part==k],beta=np.ones(np.sum(X_part==k)),M=None,tol=tol)
