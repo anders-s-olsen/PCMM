@@ -79,7 +79,8 @@ for inner in range(num_repeats):
                 np.savetxt('paper/synthetic_analysis/fits/centroids/ACG_centroids_K='+str(K)+str(k)+'_rank='+str(rank)+'.txt',Lambda_k)
             pi = torch.nn.functional.softmax(params['pi'],dim=0).detach().numpy()
             np.savetxt('paper/synthetic_analysis/fits/centroids/ACG_centroids_pi_K='+str(K)+'_rank='+str(rank)+'.txt',pi)
-            df = pd.concat([df,pd.DataFrame([{'modelname':options['modelname'],'K':K,'train_loglik':loglik_curve[-1],'test_loglik':test_loglik,'inner':inner,'rank':rank}])],ignore_index=True)
+            df = pd.concat([df,pd.DataFrame([{'modelname':options['modelname'],'K':K,'train_loglik':loglik_curve[-1],
+                                              'test_loglik':test_loglik,'inner':inner,'rank':rank}])],ignore_index=True)
             if K==2:
                 stophere=8
     df.to_pickle('paper/synthetic_analysis/fits/cluster_results_rank.pkl')

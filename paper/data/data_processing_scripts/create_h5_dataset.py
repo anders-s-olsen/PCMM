@@ -66,7 +66,8 @@ for j,task in enumerate(tasks):
             raise ValueError(f"Number of points for subject {sub} in task {task} does not match expected {num_points[j]}. Found {evecs_real.shape[0]}.")
         evecs_imag = np.loadtxt('paper/data/processed/'+task+'fMRI_'+atlas+add_GSR+'/'+str(sub)+'_tfMRI_'+task+'_RL_'+dataset+'_imag.csv',delimiter=',')
         evecs_complex = evecs_real + 1j*evecs_imag
-        hilbert_amplitude = np.loadtxt('paper/data/processed/'+task+'fMRI_'+atlas+add_GSR+'/'+str(sub)+'_tfMRI_'+task+'_RL_'+dataset+'_amplitude.csv',delimiter=',')
+        hilbert_amplitude = np.loadtxt('paper/data/processed/'+task+'fMRI_'+atlas+add_GSR+'/'+str(sub)+'_tfMRI_'+task+'_RL_'
+                                       +dataset+'_amplitude.csv',delimiter=',')
         tmp_evecs = np.loadtxt('paper/data/processed/'+task+'fMRI_'+atlas+add_GSR+'/'+str(sub)+'_tfMRI_'+task+'_RL_'+dataset+'.csv',delimiter=',')
         evecs_cos = np.zeros((num_points[j],p,2))
         evecs_cos[:,:,0] = tmp_evecs[::2,:]
@@ -146,18 +147,28 @@ with h5.File(final_filename,'w') as f:
             for i,sub in enumerate(subjects):
                 print(task,i)
                 if sub in train_subjects:  # subject_split
-                    U_complex_train[train_count*sum_points+cumsum_points[j]:train_count*sum_points+cumsum_points[j+1]] = f_task['U_complex_train'][:][train_count*num_points_after_removal[j]:(train_count+1)*num_points_after_removal[j]]
-                    A_train[train_count*sum_points+cumsum_points[j]:train_count*sum_points+cumsum_points[j+1]] = f_task['A_train'][:][train_count*num_points_after_removal[j]:(train_count+1)*num_points_after_removal[j]]
-                    U_cos_train[train_count*sum_points+cumsum_points[j]:train_count*sum_points+cumsum_points[j+1]] = f_task['U_cos_train'][:][train_count*num_points_after_removal[j]:(train_count+1)*num_points_after_removal[j]]
-                    L_cos_train[train_count*sum_points+cumsum_points[j]:train_count*sum_points+cumsum_points[j+1]] = f_task['L_cos_train'][:][train_count*num_points_after_removal[j]:(train_count+1)*num_points_after_removal[j]]
-                    timeseries_train[train_count*sum_points+cumsum_points[j]:train_count*sum_points+cumsum_points[j+1]] = f_task['timeseries_train'][:][train_count*num_points_after_removal[j]:(train_count+1)*num_points_after_removal[j]]
+                    U_complex_train[train_count*sum_points+cumsum_points[j]:train_count*sum_points+cumsum_points[j+1]] = (
+                        f_task['U_complex_train'][:][train_count*num_points_after_removal[j]:(train_count+1)*num_points_after_removal[j]])
+                    A_train[train_count*sum_points+cumsum_points[j]:train_count*sum_points+cumsum_points[j+1]] = (
+                        f_task['A_train'][:][train_count*num_points_after_removal[j]:(train_count+1)*num_points_after_removal[j]])
+                    U_cos_train[train_count*sum_points+cumsum_points[j]:train_count*sum_points+cumsum_points[j+1]] = (
+                        f_task['U_cos_train'][:][train_count*num_points_after_removal[j]:(train_count+1)*num_points_after_removal[j]])
+                    L_cos_train[train_count*sum_points+cumsum_points[j]:train_count*sum_points+cumsum_points[j+1]] = (
+                        f_task['L_cos_train'][:][train_count*num_points_after_removal[j]:(train_count+1)*num_points_after_removal[j]])
+                    timeseries_train[train_count*sum_points+cumsum_points[j]:train_count*sum_points+cumsum_points[j+1]] = (
+                        f_task['timeseries_train'][:][train_count*num_points_after_removal[j]:(train_count+1)*num_points_after_removal[j]])
                     train_count += 1
                 elif sub in test_subjects: # subject_split
-                    U_complex_test[test_count*sum_points+cumsum_points[j]:test_count*sum_points+cumsum_points[j+1]] = f_task['U_complex_test'][:][test_count*num_points_after_removal[j]:(test_count+1)*num_points_after_removal[j]]
-                    A_test[test_count*sum_points+cumsum_points[j]:test_count*sum_points+cumsum_points[j+1]] = f_task['A_test'][:][test_count*num_points_after_removal[j]:(test_count+1)*num_points_after_removal[j]]
-                    U_cos_test[test_count*sum_points+cumsum_points[j]:test_count*sum_points+cumsum_points[j+1]] = f_task['U_cos_test'][:][test_count*num_points_after_removal[j]:(test_count+1)*num_points_after_removal[j]]
-                    L_cos_test[test_count*sum_points+cumsum_points[j]:test_count*sum_points+cumsum_points[j+1]] = f_task['L_cos_test'][:][test_count*num_points_after_removal[j]:(test_count+1)*num_points_after_removal[j]]
-                    timeseries_test[test_count*sum_points+cumsum_points[j]:test_count*sum_points+cumsum_points[j+1]] = f_task['timeseries_test'][:][test_count*num_points_after_removal[j]:(test_count+1)*num_points_after_removal[j]]
+                    U_complex_test[test_count*sum_points+cumsum_points[j]:test_count*sum_points+cumsum_points[j+1]] = (
+                        f_task['U_complex_test'][:][test_count*num_points_after_removal[j]:(test_count+1)*num_points_after_removal[j]])
+                    A_test[test_count*sum_points+cumsum_points[j]:test_count*sum_points+cumsum_points[j+1]] = (
+                        f_task['A_test'][:][test_count*num_points_after_removal[j]:(test_count+1)*num_points_after_removal[j]])
+                    U_cos_test[test_count*sum_points+cumsum_points[j]:test_count*sum_points+cumsum_points[j+1]] = (
+                        f_task['U_cos_test'][:][test_count*num_points_after_removal[j]:(test_count+1)*num_points_after_removal[j]])
+                    L_cos_test[test_count*sum_points+cumsum_points[j]:test_count*sum_points+cumsum_points[j+1]] = (
+                        f_task['L_cos_test'][:][test_count*num_points_after_removal[j]:(test_count+1)*num_points_after_removal[j]])
+                    timeseries_test[test_count*sum_points+cumsum_points[j]:test_count*sum_points+cumsum_points[j+1]] = (
+                        f_task['timeseries_test'][:][test_count*num_points_after_removal[j]:(test_count+1)*num_points_after_removal[j]])
                     test_count += 1
                 else:
                     raise ValueError(f"Subject {sub} not found in either train or test subjects.")

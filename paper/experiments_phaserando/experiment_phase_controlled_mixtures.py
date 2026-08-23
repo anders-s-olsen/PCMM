@@ -28,7 +28,8 @@ def run_experiment(extraoptions={},dataset='narrowband_phase_controlled',suppres
     with h5.File(data_file,'r') as f:
         if options['modelname'] == 'Complex_Watson' or options['modelname'] == 'Complex_ACG' or options['modelname'] == 'complex_diametrical':
             data = f['data_complex_projective_hyperplane'][:]
-        elif options['modelname'] == 'Watson' or options['modelname'] == 'ACG' or options['modelname'] == 'diametrical' or options['modelname'] == 'least_squares':
+        elif (options['modelname'] == 'Watson' or options['modelname'] == 'ACG' or options['modelname'] == 'diametrical'
+              or options['modelname'] == 'least_squares'):
             data = f['data_real_projective_hyperplane'][:]
         elif options['modelname'] == 'MACG' or options['modelname'] == 'grassmann':
             data = f['data_grassmann'][:]
@@ -61,13 +62,15 @@ def run_experiment(extraoptions={},dataset='narrowband_phase_controlled',suppres
 
                     params = None
                     options['HMM'] = False
-                    params,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
+                    params,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,
+                                               options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
 
                     if options['LR'] != 0: #rank 1 HMM
                         if do_HMM:
                             options['HMM'] = True
                             options['init'] = 'no'
-                            _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
+                            _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,
+                                                  options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
                 elif options['experiment']=='Kmeans':
                     if options['modelname'] in ['Watson','Complex_Watson','ACG','Complex_ACG']:
                         options['init'] = 'dc' 
@@ -84,13 +87,15 @@ def run_experiment(extraoptions={},dataset='narrowband_phase_controlled',suppres
 
                     params = None
                     options['HMM'] = False
-                    params,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
+                    params,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,
+                                               options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
 
                     if options['LR'] != 0: #rank 1 HMM
                         if do_HMM:
                             options['HMM'] = True
                             options['init'] = 'no'
-                            _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
+                            _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,
+                                                  options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
                 elif options['experiment']=='Kmeansseg':
                     if options['modelname'] in ['Watson','Complex_Watson','ACG','Complex_ACG']:
                         options['init'] = 'dc_seg' #rank 1 model
@@ -107,13 +112,15 @@ def run_experiment(extraoptions={},dataset='narrowband_phase_controlled',suppres
 
                     params = None
                     options['HMM'] = False
-                    params,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
+                    params,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,
+                                               options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
 
                     if options['LR'] != 0: #rank 1 HMM
                         if do_HMM:
                             options['HMM'] = True
                             options['init'] = 'no'
-                            _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
+                            _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,
+                                                  options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
                 elif options['experiment']=='ALL':
                     if options['modelname'] in ['Watson','Complex_Watson']:
                         continue
@@ -135,16 +142,19 @@ def run_experiment(extraoptions={},dataset='narrowband_phase_controlled',suppres
                         print('Running model:',options['modelname'],'rank:',rank,'LR:',LR,'inner:',inner)
                         options['init'] = 'no'
 
-                        params = np.load(options['outfolder']+'/params/'+options['modelname']+'_rank'+str(ranks[i-1])+'_LR'+str(LR)+'_params.npy',allow_pickle=True).item()
+                        params = np.load(options['outfolder']+'/params/'+options['modelname']+'_rank'+str(ranks[i-1])+'_LR'+str(LR)
+                                         +'_params.npy',allow_pickle=True).item()
 
                     options['HMM'] = False
-                    params,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
+                    params,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,
+                                               options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
                     np.save(options['outfolder']+'/params/'+options['modelname']+'_rank'+str(rank)+'_LR'+str(LR)+'_params.npy',params)
                     if options['LR'] != 0: #rank X HMM
                         if do_HMM:
                             options['HMM'] = True
                             options['init'] = 'no'
-                            _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
+                            _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,
+                                                  options=options,params=params,suppress_output=suppress_output,inner=inner,p=p)
 
 
 if __name__=="__main__":

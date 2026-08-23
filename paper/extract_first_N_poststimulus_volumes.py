@@ -4,16 +4,8 @@ import numpy as np
 import warnings
 from typing import Tuple, List, Dict, Optional
 
-def extract_first_N_poststim_volumes(
-    data: np.ndarray,
-    subject: str,
-    task: str,
-    N: int,
-    tr: float = 0.72,
-    time0: str = "start",
-    first_poststimulus_volume: int = 0,
-    verbose: bool = True
-) -> Tuple[np.ndarray, Dict]:
+def extract_first_N_poststim_volumes(data: np.ndarray, subject: str, task: str, N: int, tr: float = 0.72, time0: str = "start",
+    first_poststimulus_volume: int = 0, verbose: bool = True) -> Tuple[np.ndarray, Dict]:
     """
     Extract first N volumes after each event from an HCP-style time x region array.
 

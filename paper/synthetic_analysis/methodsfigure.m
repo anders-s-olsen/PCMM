@@ -86,7 +86,8 @@ timeidx = [10,15,20];
 regidx = round(linspace(1,10000,116));
 for i = 1:numel(timeidx)
     % cohmat = V_phase(timeidx(i),1:2:10000)'*V_phase(timeidx(i),1:2:10000);
-    cohmat = cos(V_phase(timeidx(i),regidx))'*cos(V_phase(timeidx(i),regidx))+sin(V_phase(timeidx(i),regidx))'*sin(V_phase(timeidx(i),regidx));
+    cohmat = cos(V_phase(timeidx(i),regidx))'*cos(V_phase(timeidx(i),regidx)) ...
+             + sin(V_phase(timeidx(i),regidx))'*sin(V_phase(timeidx(i),regidx));
     
     figure('Position',[50,50,400,300]),
     imagesc(cohmat,[-1,1])
@@ -169,7 +170,8 @@ timeidx = [10,15,20];
 regidx = round(linspace(1,10000,116));
 for i = 1:numel(timeidx)
     % cohmat = V_phase(timeidx(i),1:2:10000)'*V_phase(timeidx(i),1:2:10000);
-    cohmat = cos(V_phase(timeidx(i),regidx))'*cos(V_phase(timeidx(i),regidx))+sin(V_phase(timeidx(i),regidx))'*sin(V_phase(timeidx(i),regidx));
+    cohmat = cos(V_phase(timeidx(i),regidx))'*cos(V_phase(timeidx(i),regidx)) ...
+             + sin(V_phase(timeidx(i),regidx))'*sin(V_phase(timeidx(i),regidx));
 
     [V2,~] = eigs(cohmat,2);
 
@@ -382,6 +384,5 @@ nexttile(3),hold on
 
 xlabel('Time [min]'),
 exportgraphics(gca,[ff,'methods_ts_fMRI.png'],'Resolution',300,'BackgroundColor','none')
-
 
 

@@ -63,15 +63,8 @@ def _complex_to_real(X, mode="split"):
         raise ValueError("Unknown complex conversion mode: %s" % mode)
 
 
-def logistic_l2_cv(train_X, train_y, test_X,
-                   samples_per_subject_train=None,
-                   cv=5,
-                   Cs=(0.001,0.01, 0.1, 1, 10, 100,1000),
-                   scoring="accuracy",
-                   complex_mode="split",
-                   random_state=0,
-                   max_iter=10000,
-                   return_proba=True):
+def logistic_l2_cv(train_X, train_y, test_X, samples_per_subject_train=None, cv=5, Cs=(0.001,0.01, 0.1, 1, 10, 100,1000), scoring="accuracy",
+    complex_mode="split", random_state=0, max_iter=10000, return_proba=True):
     """
     L2-regularized logistic regression with CV over C (inverse regularization).
     - train_X: (n_train, d) array (real or complex)
@@ -129,14 +122,8 @@ def logistic_l2_cv(train_X, train_y, test_X,
     return grid.best_params_, train_proba.T, test_proba.T
 
 
-def svm_linear_cv(train_X, train_y, test_X,
-                  samples_per_subject_train=None,
-                  cv=5,
-                  Cs=(0.001,0.01, 0.1, 1, 10,100),
-                  scoring="accuracy",
-                  complex_mode="split",
-                  random_state=0,
-                  return_proba=True):
+def svm_linear_cv(train_X, train_y, test_X, samples_per_subject_train=None, cv=5, Cs=(0.001,0.01, 0.1, 1, 10,100), scoring="accuracy",
+    complex_mode="split", random_state=0, return_proba=True):
     """
     Linear SVM (SVC with linear kernel) with CV over C.
     - For probabilities we set probability=True on SVC (Platt scaling).
@@ -183,15 +170,8 @@ def svm_linear_cv(train_X, train_y, test_X,
     return grid.best_params_, train_proba.T, test_proba.T
 
 
-def svm_rbf_cv(train_X, train_y, test_X,
-               samples_per_subject_train=None,
-               cv=5,
-               Cs=(0.01, 0.1, 1, 10, 100),
-               gammas=("scale", 0.001,0.01, 0.1, 1),
-               scoring="accuracy",
-               complex_mode="split",
-               random_state=0,
-               return_proba=True):
+def svm_rbf_cv(train_X, train_y, test_X, samples_per_subject_train=None, cv=5, Cs=(0.01, 0.1, 1, 10, 100),
+    gammas=("scale", 0.001,0.01, 0.1, 1), scoring="accuracy", complex_mode="split", random_state=0, return_proba=True):
     """
     RBF-kernel SVM with CV on C and gamma.
     - gammas: sequence of gamma values (or 'scale'/'auto')
@@ -211,10 +191,7 @@ def svm_rbf_cv(train_X, train_y, test_X,
 
     class_weights = 'balanced'
 
-    pipe = Pipeline([
-        ("scaler", StandardScaler()),
-        ("svc", SVC(kernel="rbf", probability=False, random_state=random_state, class_weight=class_weights))
-    ])
+    pipe = Pipeline([("scaler", StandardScaler()), ("svc", SVC(kernel="rbf", probability=False, random_state=random_state, class_weight=class_weights))])
     param_grid = {"svc__C": list(Cs), "svc__gamma": list(gammas)}
 
     grid = GridSearchCV(pipe, param_grid, cv=cv_splitter, scoring=scoring, n_jobs=1, refit=True, verbose=1000)

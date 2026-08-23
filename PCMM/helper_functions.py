@@ -29,17 +29,7 @@ if torch is not None:
 TORCH_MODEL_NAMES = ['Watson','Complex_Watson','Bingham','Complex_Bingham',
                      'ACG','Complex_ACG','MACG',
                      'SingularWishart','Normal','Complex_Normal','WrappedNormal','VMVM']
-RANKED_MODEL_NAMES = {
-    'Bingham',
-    'Complex_Bingham',
-    'ACG',
-    'Complex_ACG',
-    'MACG',
-    'SingularWishart',
-    'Normal',
-    'Complex_Normal',
-    'WrappedNormal',
-}
+RANKED_MODEL_NAMES = {'Bingham', 'Complex_Bingham', 'ACG', 'Complex_ACG', 'MACG', 'SingularWishart', 'Normal', 'Complex_Normal', 'WrappedNormal'}
 
 def train_model(data_train,K,options,params=None,suppress_output=False,samples_per_sequence=0):
     options = options.copy()
@@ -124,19 +114,23 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
         if options['LR']==0:
             model = SingularWishart_numpy(K=K,p=p,q=2,rank=rank,params=params, force_gamma_same=options['force_gamma_same'])
         else:
-            model = SingularWishart_torch(K=K,p=p,q=2,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence, force_gamma_same=options['force_gamma_same']) 
+            model = SingularWishart_torch(K=K,p=p,q=2,rank=rank,params=params,HMM=options['HMM'],
+                                          samples_per_sequence=samples_per_sequence, force_gamma_same=options['force_gamma_same'])
     elif options['modelname'] == 'Normal':
         if options['LR']==0:
             model = Normal_numpy(K=K,p=p,rank=rank,params=params, force_gamma_same=options['force_gamma_same'])
         else:
-            model = Normal_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence, force_gamma_same=options['force_gamma_same'])
+            model = Normal_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'], samples_per_sequence=samples_per_sequence,
+                                 force_gamma_same=options['force_gamma_same'])
     elif options['modelname'] == 'Complex_Normal':
         if options['LR']==0:
             model = Normal_numpy(K=K,p=p,rank=rank,params=params,complex=True, force_gamma_same=options['force_gamma_same'])
         else:
-            model = Normal_torch(K=K,p=p,rank=rank,params=params,complex=True,HMM=options['HMM'],samples_per_sequence=samples_per_sequence, force_gamma_same=options['force_gamma_same'])
+            model = Normal_torch(K=K,p=p,rank=rank,params=params,complex=True,HMM=options['HMM'],
+                                 samples_per_sequence=samples_per_sequence, force_gamma_same=options['force_gamma_same'])
     elif options['modelname'] == 'WrappedNormal':
-        model = WrappedNormal_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence, force_gamma_same=options['force_gamma_same'])
+        model = WrappedNormal_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'], samples_per_sequence=samples_per_sequence,
+                                    force_gamma_same=options['force_gamma_same'])
     elif options['modelname'] == 'VMVM':
         model = VMVM_torch(K=K,p=p,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
     elif options['modelname'] == 'least_squares':
@@ -161,7 +155,8 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
         params = {'C':C}
         return params,labels,obj
     elif options['modelname'] == 'weighted_grassmann':
-        C,labels,obj = weighted_grassmann_clustering(data_train,K=K,max_iter=options['max_iter'],num_repl=options['num_repl'],init=options['init'],tol=options['tol'])
+        C,labels,obj = weighted_grassmann_clustering(
+            data_train,K=K,max_iter=options['max_iter'],num_repl=options['num_repl'],init=options['init'],tol=options['tol'])
         labels = np.eye(K)[labels].T
         params = {'C':C}
         return params,labels,obj
@@ -175,7 +170,8 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
     else:
         params,posterior,loglik = mixture_torch_loop(model,data_train,tol=options['tol'],max_iter=options['max_iter'],
                                         num_repl=options['num_repl'],init=options['init'],LR=options['LR'],
-                                        suppress_output=suppress_output,threads=options['threads'],decrease_lr_on_plateau=options['decrease_lr_on_plateau'],num_comparison=options['num_comparison'])
+                                        suppress_output=suppress_output,threads=options['threads'],
+                                        decrease_lr_on_plateau=options['decrease_lr_on_plateau'],num_comparison=options['num_comparison'])
     return params,posterior,loglik
     
 def test_model(data_test,params,K,options,samples_per_sequence=0):

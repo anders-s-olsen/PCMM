@@ -69,14 +69,16 @@ for atlas_idx = atlases
             dses = dir([subfolder,num2str(subjects(sub)),'/fMRI/*fMRI_',task,'*_RL_*',dataset,'.dtseries.nii']);
             for ses = 1:numel(dses)
                 tic
-                disp(['Working on subject ',num2str(subjects(sub)),' session ',num2str(ses),' of ',num2str(numel(dses)),' for task ',task, ' using atlas ',atlas_idx{1}])
+                disp(['Working on subject ',num2str(subjects(sub)),' session ',num2str(ses),' of ',num2str(numel(dses)), ...
+                      ' for task ',task, ' using atlas ',atlas_idx{1}])
                 data = detrend(double(squeeze(niftiread([dses(ses).folder,'/',dses(ses).name]))));
                 
                 if perform_GSR
                     GS = mean(data,2);
                     data = data-GS.*(data'*GS)'/(GS'*GS);
                 elseif perform_9p
-                    motion_params = table2array(readtable([subfolder,num2str(subjects(sub)),'/regressors/',dses(ses).name(1:end-13),'_RL_Movement_Regressors_dt.txt']));
+                    motion_params = table2array(readtable([subfolder,num2str(subjects(sub)),'/regressors/', ...
+                                                          dses(ses).name(1:end-13),'_RL_Movement_Regressors_dt.txt']));
                     WM = table2array(readtable([subfolder,num2str(subjects(sub)),'/regressors/',dses(ses).name(1:end-13),'_RL_WM.txt']));
                     CSF = table2array(readtable([subfolder,num2str(subjects(sub)),'/regressors/',dses(ses).name(1:end-13),'_RL_CSF.txt']));
                     nineP = [motion_params(:,1:6), WM, CSF];
@@ -133,13 +135,20 @@ for atlas_idx = atlases
                 end
                 disp(['Atlas eig done in ',num2str(toc),' seconds'])
 
-                % disp(['paper/data/processed/',add_dataset,task,'fMRI_',atlas_idx{1},add_denoising,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'.csv'])
-                parSave(['paper/data/processed/',add_dataset,task,'fMRI_',atlas_idx{1},add_denoising,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'.csv'],eigenvectors_roi)
-                parSave(['paper/data/processed/',add_dataset,task,'fMRI_',atlas_idx{1},add_denoising,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_evs.csv'],eigenvalues_roi)
-                parSave(['paper/data/processed/',add_dataset,task,'fMRI_',atlas_idx{1},add_denoising,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_real.csv'],eigenvectors_real_roi)
-                parSave(['paper/data/processed/',add_dataset,task,'fMRI_',atlas_idx{1},add_denoising,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_imag.csv'],eigenvectors_imag_roi)
-                parSave(['paper/data/processed/',add_dataset,task,'fMRI_',atlas_idx{1},add_denoising,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_amplitude.csv'],amplitude_roi)
-                parSave(['paper/data/processed/',add_dataset,task,'fMRI_',atlas_idx{1},add_denoising,'/',num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_timeseries.csv'],data_roi)
+                % disp(['paper/data/processed/',add_dataset,task,'fMRI_',atlas_idx{1},add_denoising,'/', ...
+                %       num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'.csv'])
+                parSave(['paper/data/processed/',add_dataset,task,'fMRI_',atlas_idx{1},add_denoising,'/', ...
+                         num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'.csv'],eigenvectors_roi)
+                parSave(['paper/data/processed/',add_dataset,task,'fMRI_',atlas_idx{1},add_denoising,'/', ...
+                         num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_evs.csv'],eigenvalues_roi)
+                parSave(['paper/data/processed/',add_dataset,task,'fMRI_',atlas_idx{1},add_denoising,'/', ...
+                         num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_real.csv'],eigenvectors_real_roi)
+                parSave(['paper/data/processed/',add_dataset,task,'fMRI_',atlas_idx{1},add_denoising,'/', ...
+                         num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_imag.csv'],eigenvectors_imag_roi)
+                parSave(['paper/data/processed/',add_dataset,task,'fMRI_',atlas_idx{1},add_denoising,'/', ...
+                         num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_amplitude.csv'],amplitude_roi)
+                parSave(['paper/data/processed/',add_dataset,task,'fMRI_',atlas_idx{1},add_denoising,'/', ...
+                         num2str(subjects(sub)),'_',dses(ses).name(1:end-13),'_timeseries.csv'],data_roi)
                         
             end % session
         end % subject

@@ -44,12 +44,7 @@ def _wrap_pi(x: Tensor) -> Tensor:
     return torch.remainder(x + math.pi, _TWO_PI) - math.pi
 
 
-def _as_tensor(
-    value: Any,
-    *,
-    dtype: torch.dtype,
-    device: torch.device,
-) -> Tensor:
+def _as_tensor(value: Any, *, dtype: torch.dtype, device: torch.device) -> Tensor:
     return torch.as_tensor(value, dtype=dtype, device=device)
 
 
@@ -96,21 +91,10 @@ class VMVM(PCMMtorchBaseModel):
     log-densities are available from ``log_pdf(x)`` and have shape ``(K,n)``.
     """
 
-    def __init__(
-        self,
-        K: int,
-        p: int,
-        params: Optional[Mapping[str, Any]] = None,
-        HMM: bool = False,
-        samples_per_sequence: Optional[int | Sequence[int]] = None,
-        *,
-        qs: Optional[Any] = None,
-        cdf_grid_size: int = 2048,
-        min_concentration: float = 1e-5,
-        oscillatory_data: bool = False,
-        dtype: Optional[torch.dtype] = None,
-        device: Optional[torch.device | str] = None,
-    ) -> None:
+    def __init__(self, K: int, p: int, params: Optional[Mapping[str, Any]] = None, HMM: bool = False,
+        samples_per_sequence: Optional[int | Sequence[int]] = None, *, qs: Optional[Any] = None, cdf_grid_size: int = 2048,
+        min_concentration: float = 1e-5, oscillatory_data: bool = False, dtype: Optional[torch.dtype] = None,
+        device: Optional[torch.device | str] = None) -> None:
         super().__init__()
 
         if not isinstance(K, int) or K < 1:
@@ -138,24 +122,15 @@ class VMVM(PCMMtorchBaseModel):
 
         params = dict(params or {})
 
-        mu0 = self._read_parameter(
-            params, ("mu", "means", "mean"), default=None,
-            dtype=dtype, device=device,
-        )
+        mu0 = self._read_parameter(params, ("mu", "means", "mean"), default=None, dtype=dtype, device=device)
         if mu0 is None:
             mu0 = torch.empty(K, p, dtype=dtype, device=device).uniform_(-math.pi, math.pi)
         mu0 = self._expand_kp(mu0, "mu")
 
-        marginal0 = self._read_parameter(
-            params, ("kappa", "marginal_kappa", "marginal_kappas"), default=1.0,
-            dtype=dtype, device=device,
-        )
+        marginal0 = self._read_parameter(params, ("kappa", "marginal_kappa", "marginal_kappas"), default=1.0, dtype=dtype, device=device)
         marginal0 = self._expand_kp(marginal0, "kappa").clamp_min(self.min_concentration)
 
-        binding0 = self._read_parameter(
-            params, ("lambda", "binding_kappa", "binding_kappas", "circula_kappa"),
-            default=0.5, dtype=dtype, device=device,
-        )
+        binding0 = self._read_parameter(params, ("lambda", "binding_kappa", "binding_kappas", "circula_kappa"), default=0.5, dtype=dtype, device=device)
         binding0 = self._expand_kp(binding0, "binding_kappa").clamp_min(self.min_concentration)
 
         if self.oscillatory_data:
@@ -163,10 +138,7 @@ class VMVM(PCMMtorchBaseModel):
         else:
             q0 = qs
             if q0 is None:
-                q0 = self._read_parameter(
-                    params, ("q", "qs"), default=torch.ones(K, p),
-                    dtype=dtype, device=device,
-                )
+                q0 = self._read_parameter(params, ("q", "qs"), default=torch.ones(K, p), dtype=dtype, device=device)
             else:
                 q0 = _as_tensor(q0, dtype=dtype, device=device)
             q0 = self._expand_kp(q0, "q")
@@ -180,23 +152,15 @@ class VMVM(PCMMtorchBaseModel):
             _inverse_softplus(marginal0 - self.min_concentration + torch.finfo(dtype).eps),
             requires_grad=not self.oscillatory_data,
         )
-        self.raw_binding_kappa = nn.Parameter(
-            _inverse_softplus(binding0 - self.min_concentration + torch.finfo(dtype).eps)
-        )
+        self.raw_binding_kappa = nn.Parameter(_inverse_softplus(binding0 - self.min_concentration + torch.finfo(dtype).eps))
         self.register_buffer("q", q0)
 
-        weights0 = self._read_parameter(
-            params, ("weights", "alpha", "pi", "mixing_weights"), default=torch.ones(K) / K,
-            dtype=dtype, device=device,
-        )
+        weights0 = self._read_parameter(params, ("weights", "alpha", "pi", "mixing_weights"), default=torch.ones(K) / K, dtype=dtype, device=device)
         weights0 = self._expand_vector(weights0, K, "weights").clamp_min(torch.finfo(dtype).tiny)
         weights0 = weights0 / weights0.sum()
 
         if self.HMM:
-            initial0 = self._read_parameter(
-                params, ("initial", "pi0", "initial_probs"), default=weights0,
-                dtype=dtype, device=device,
-            )
+            initial0 = self._read_parameter(params, ("initial", "pi0", "initial_probs"), default=weights0, dtype=dtype, device=device)
             initial0 = self._expand_vector(initial0, K, "initial").clamp_min(torch.finfo(dtype).tiny)
             initial0 = initial0 / initial0.sum()
 
@@ -264,13 +228,9 @@ class VMVM(PCMMtorchBaseModel):
             # For q=+1, a+ib = sum_j lambda_j exp(i(x_j-mu_j)).
             # A matrix product evaluates all component resultants without ever
             # constructing the otherwise dominant (K,n,p) phase tensor.
-            complex_dtype = (
-                torch.complex128 if x.dtype == torch.float64 else torch.complex64
-            )
+            complex_dtype = (torch.complex128 if x.dtype == torch.float64 else torch.complex64)
             observations = torch.exp(1j * x.to(complex_dtype))
-            coefficients = binding_kappa.to(complex_dtype) * torch.exp(
-                -1j * mu.to(complex_dtype)
-            )
+            coefficients = binding_kappa.to(complex_dtype) * torch.exp(-1j * mu.to(complex_dtype))
             resultant = torch.abs(observations @ coefficients.T).T
             marginal_log_pdf = -self.p * math.log(_TWO_PI)
         else:
@@ -279,26 +239,14 @@ class VMVM(PCMMtorchBaseModel):
             centered = _wrap_pi(x.unsqueeze(0) - mu.unsqueeze(1))
             concentrations = binding_kappa.unsqueeze(1)
             marginal_kappa = self.marginal_kappa.to(dtype=x.dtype, device=x.device)
-            marginal_log_pdf = (
-                marginal_kappa.unsqueeze(1) * torch.cos(centered)
-                - math.log(_TWO_PI)
-                - _log_i0(marginal_kappa).unsqueeze(1)
-            ).sum(dim=-1)
+            marginal_log_pdf = (marginal_kappa.unsqueeze(1) * torch.cos(centered) - math.log(_TWO_PI) - _log_i0(marginal_kappa).unsqueeze(1)).sum(dim=-1)
             cdf = self._von_mises_cdf(centered, marginal_kappa)
             u = _TWO_PI * cdf
             a = torch.sum(concentrations * torch.cos(u), dim=-1)
-            b = torch.sum(
-                concentrations
-                * self.q.to(dtype=x.dtype, device=x.device).unsqueeze(1)
-                * torch.sin(u),
-                dim=-1,
-            )
+            b = torch.sum(concentrations * self.q.to(dtype=x.dtype, device=x.device).unsqueeze(1) * torch.sin(u), dim=-1)
             resultant = torch.hypot(a, b)
 
-        dependence_log_pdf = (
-            _log_i0(resultant)
-            - torch.sum(_log_i0(binding_kappa), dim=-1, keepdim=True)
-        )
+        dependence_log_pdf = (_log_i0(resultant) - torch.sum(_log_i0(binding_kappa), dim=-1, keepdim=True))
         return marginal_log_pdf + dependence_log_pdf
 
     def pdf(self, x: Tensor) -> Tensor:
@@ -341,10 +289,7 @@ class VMVM(PCMMtorchBaseModel):
         # (K,p,m+1); subtracting 1 inside the exponential prevents overflow.
         density = torch.exp(kappa.unsqueeze(-1) * (torch.cos(grid) - 1.0))
         increments = 0.5 * (density[..., :-1] + density[..., 1:]) * step
-        cumulative = torch.cat(
-            [torch.zeros_like(increments[..., :1]), torch.cumsum(increments, dim=-1)],
-            dim=-1,
-        )
+        cumulative = torch.cat([torch.zeros_like(increments[..., :1]), torch.cumsum(increments, dim=-1)], dim=-1)
         cumulative = cumulative / cumulative[..., -1:].clamp_min(torch.finfo(dtype).tiny)
 
         position = ((centered + math.pi) / step).clamp(0.0, float(m))
@@ -361,13 +306,7 @@ class VMVM(PCMMtorchBaseModel):
     # Initialization and parameter IO
     # ------------------------------------------------------------------
     @torch.no_grad()
-    def initialize(
-        self,
-        data: Optional[Tensor] = None,
-        posterior: Optional[Tensor] = None,
-        *args: Any,
-        **kwargs: Any,
-    ) -> "VMVM":
+    def initialize(self, data: Optional[Tensor] = None, posterior: Optional[Tensor] = None, *args: Any, **kwargs: Any) -> "VMVM":
         """Initialize component parameters from data and optional assignments.
 
         ``posterior`` may be shaped ``(K,n)``, ``(n,K)``, or be an integer
@@ -387,57 +326,25 @@ class VMVM(PCMMtorchBaseModel):
         data = self._validate_x(data)
         n = data.shape[0]
 
-        if posterior is None and init_method in {
-            "tc", "tc++", "torus", "torus_clustering",
-        }:
+        if posterior is None and init_method in {"tc", "tc++", "torus", "torus_clustering",}:
             from PCMM.phase_coherence_kmeans import torus_clustering
 
-            _, labels, _ = torus_clustering(
-                data.detach().cpu().numpy(),
-                K=self.K,
-                init="++",
-                num_repl=1,
-                tol=tol,
-                suppress_output=True,
-            )
+            _, labels, _ = torus_clustering(data.detach().cpu().numpy(), K=self.K, init="++", num_repl=1, tol=tol, suppress_output=True)
             posterior = torch.as_tensor(labels, device=data.device)
-        elif posterior is None and init_method in {
-            "qtc", "qtc++", "quotient_torus", "quotient_torus_clustering",
-        }:
+        elif posterior is None and init_method in {"qtc", "qtc++", "quotient_torus", "quotient_torus_clustering",}:
             from PCMM.phase_coherence_kmeans import quotient_torus_clustering
 
-            quotient_data = torch.cat(
-                [data, torch.zeros_like(data[:, :1])],
-                dim=1,
-            )
-            _, labels, _ = quotient_torus_clustering(
-                quotient_data.detach().cpu().numpy(),
-                K=self.K,
-                init="++",
-                num_repl=1,
-                tol=tol,
-                suppress_output=False,
-            )
+            quotient_data = torch.cat([data, torch.zeros_like(data[:, :1])], dim=1)
+            _, labels, _ = quotient_torus_clustering(quotient_data.detach().cpu().numpy(), K=self.K, init="++", num_repl=1, tol=tol, suppress_output=False)
             posterior = torch.as_tensor(labels, device=data.device)
-        elif posterior is None and init_method in {
-            "dc", "dc++", "diametrical", "diametrical_clustering",
-        }:
+        elif posterior is None and init_method in {"dc", "dc++", "diametrical", "diametrical_clustering",}:
             from PCMM.phase_coherence_kmeans import diametrical_clustering
 
             projective = torch.exp(1j * data) / math.sqrt(self.p)
-            _, labels, _ = diametrical_clustering(
-                projective.detach().cpu().numpy(),
-                K=self.K,
-                init="++",
-                num_repl=1,
-                tol=tol,
-                suppress_output=False,
-            )
+            _, labels, _ = diametrical_clustering(projective.detach().cpu().numpy(), K=self.K, init="++", num_repl=1, tol=tol, suppress_output=False)
             posterior = torch.as_tensor(labels, device=data.device)
         elif posterior is None and init_method not in {None, "unif", "uniform"}:
-            raise ValueError(
-                "VMVM init_method must be 'tc', 'qtc', 'dc', 'unif', or 'uniform'"
-            )
+            raise ValueError("VMVM init_method must be 'tc', 'qtc', 'dc', 'unif', or 'uniform'")
 
         if posterior is None:
             indices = torch.linspace(0, max(n - 1, 0), self.K, device=data.device).round().long()
@@ -484,14 +391,10 @@ class VMVM(PCMMtorchBaseModel):
 
         self.mu.copy_(means.to(self.mu))
         if not self.oscillatory_data:
-            self.raw_marginal_kappa.copy_(
-                _inverse_softplus(kappas.to(self.mu) - self.min_concentration + torch.finfo(self.mu.dtype).eps)
-            )
+            self.raw_marginal_kappa.copy_(_inverse_softplus(kappas.to(self.mu) - self.min_concentration + torch.finfo(self.mu.dtype).eps))
         # Mild dependence is a safer optimizer starting point than near independence.
         bind = torch.full_like(self.mu, 0.5)
-        self.raw_binding_kappa.copy_(
-            _inverse_softplus(bind - self.min_concentration + torch.finfo(self.mu.dtype).eps)
-        )
+        self.raw_binding_kappa.copy_(_inverse_softplus(bind - self.min_concentration + torch.finfo(self.mu.dtype).eps))
 
         weights = (totals / totals.sum()).to(self.pi)
         self.pi.copy_(torch.log(weights.clamp_min(torch.finfo(weights.dtype).tiny)))
@@ -501,9 +404,7 @@ class VMVM(PCMMtorchBaseModel):
         else:
             # Pick signs from the stronger sum/difference circular resultant
             # after the current marginal CDF transformation.
-            transformed = _TWO_PI * self._von_mises_cdf(
-                _wrap_pi(data.unsqueeze(0) - self.mu.unsqueeze(1)), self.marginal_kappa
-            )
+            transformed = _TWO_PI * self._von_mises_cdf(_wrap_pi(data.unsqueeze(0) - self.mu.unsqueeze(1)), self.marginal_kappa)
             q_new = torch.ones_like(self.q)
             for k in range(self.K):
                 w = responsibilities[k]
@@ -521,11 +422,8 @@ class VMVM(PCMMtorchBaseModel):
             for length, offset in zip(lengths.tolist(), starts.tolist()):
                 seq_labels = labels[offset : offset + length]
                 if length > 1:
-                    transition_counts.index_put_(
-                        (seq_labels[:-1], seq_labels[1:]),
-                        torch.ones(length - 1, dtype=data.dtype, device=data.device),
-                        accumulate=True,
-                    )
+                    transition_counts.index_put_((seq_labels[:-1], seq_labels[1:]),
+                                                 torch.ones(length - 1, dtype=data.dtype, device=data.device), accumulate=True)
             transition = transition_counts / transition_counts.sum(dim=1, keepdim=True)
             self.T.copy_(torch.log(transition.to(self.T)))
         return self
@@ -553,23 +451,14 @@ class VMVM(PCMMtorchBaseModel):
             value = self._read_parameter(params, ("mu", "means", "mean"), None, dtype, device)
             self.mu.copy_(_wrap_pi(self._expand_kp(value, "mu")))
         if any(k in params for k in ("kappa", "marginal_kappa", "marginal_kappas")):
-            value = self._read_parameter(
-                params, ("kappa", "marginal_kappa", "marginal_kappas"), None, dtype, device
-            )
+            value = self._read_parameter(params, ("kappa", "marginal_kappa", "marginal_kappas"), None, dtype, device)
             value = self._expand_kp(value, "kappa").clamp_min(self.min_concentration)
             if not self.oscillatory_data:
-                self.raw_marginal_kappa.copy_(
-                    _inverse_softplus(value - self.min_concentration + torch.finfo(dtype).eps)
-                )
+                self.raw_marginal_kappa.copy_(_inverse_softplus(value - self.min_concentration + torch.finfo(dtype).eps))
         if any(k in params for k in ("lambda", "binding_kappa", "binding_kappas", "circula_kappa")):
-            value = self._read_parameter(
-                params, ("lambda", "binding_kappa", "binding_kappas", "circula_kappa"),
-                None, dtype, device,
-            )
+            value = self._read_parameter(params, ("lambda", "binding_kappa", "binding_kappas", "circula_kappa"), None, dtype, device)
             value = self._expand_kp(value, "binding_kappa").clamp_min(self.min_concentration)
-            self.raw_binding_kappa.copy_(
-                _inverse_softplus(value - self.min_concentration + torch.finfo(dtype).eps)
-            )
+            self.raw_binding_kappa.copy_(_inverse_softplus(value - self.min_concentration + torch.finfo(dtype).eps))
         if self.oscillatory_data:
             self.q.fill_(1)
         elif any(k in params for k in ("q", "qs")):
@@ -579,9 +468,7 @@ class VMVM(PCMMtorchBaseModel):
                 raise ValueError("Every q entry must equal -1 or +1")
             self.q.copy_(value * value[:, :1])
         if any(k in params for k in ("weights", "alpha", "pi", "mixing_weights")):
-            value = self._read_parameter(
-                params, ("weights", "alpha", "pi", "mixing_weights"), None, dtype, device
-            )
+            value = self._read_parameter(params, ("weights", "alpha", "pi", "mixing_weights"), None, dtype, device)
             value = self._expand_vector(value, self.K, "weights").clamp_min(torch.finfo(dtype).tiny)
             self.pi.copy_(torch.log(value / value.sum()))
         if self.HMM and any(k in params for k in ("initial", "pi0", "initial_probs")):
@@ -589,9 +476,7 @@ class VMVM(PCMMtorchBaseModel):
             value = self._expand_vector(value, self.K, "initial").clamp_min(torch.finfo(dtype).tiny)
             self.pi.copy_(torch.log(value / value.sum()))
         if self.HMM and any(k in params for k in ("transition", "T", "transition_matrix")):
-            value = self._read_parameter(
-                params, ("transition", "T", "transition_matrix"), None, dtype, device
-            )
+            value = self._read_parameter(params, ("transition", "T", "transition_matrix"), None, dtype, device)
             if value.shape != (self.K, self.K):
                 raise ValueError(f"transition must have shape {(self.K, self.K)}")
             value = value.clamp_min(torch.finfo(dtype).tiny)
@@ -607,13 +492,7 @@ class VMVM(PCMMtorchBaseModel):
     # Sampling
     # ------------------------------------------------------------------
     @torch.no_grad()
-    def sample(
-        self,
-        size: int = 1,
-        *,
-        component: Optional[int | Tensor] = None,
-        generator: Optional[torch.Generator] = None,
-    ) -> Tensor:
+    def sample(self, size: int = 1, *, component: Optional[int | Tensor] = None, generator: Optional[torch.Generator] = None) -> Tensor:
         """Draw mixture samples, returned in ``[-pi,pi)`` with shape ``(size,p)``."""
         if not isinstance(size, int) or size < 1:
             raise ValueError("size must be a positive integer")
@@ -634,9 +513,7 @@ class VMVM(PCMMtorchBaseModel):
             mask = components == k
             count = int(mask.sum())
             phi = torch.rand(count, 1, dtype=dtype, device=device, generator=generator) * _TWO_PI
-            shifts = torch.distributions.VonMises(
-                torch.zeros(self.p, dtype=dtype, device=device), self.binding_kappa[k]
-            ).sample((count,))
+            shifts = torch.distributions.VonMises(torch.zeros(self.p, dtype=dtype, device=device), self.binding_kappa[k]).sample((count,))
             uniforms = torch.remainder(shifts + self.q[k].unsqueeze(0) * phi, _TWO_PI) / _TWO_PI
             if self.oscillatory_data:
                 centered = _TWO_PI * uniforms - math.pi
@@ -652,9 +529,7 @@ class VMVM(PCMMtorchBaseModel):
         step = _TWO_PI / m
         density = torch.exp(kappa.unsqueeze(-1) * (torch.cos(grid) - 1.0))
         increments = 0.5 * (density[..., :-1] + density[..., 1:]) * step
-        cdf = torch.cat(
-            [torch.zeros_like(increments[..., :1]), torch.cumsum(increments, dim=-1)], dim=-1
-        )
+        cdf = torch.cat([torch.zeros_like(increments[..., :1]), torch.cumsum(increments, dim=-1)], dim=-1)
         cdf = cdf / cdf[..., -1:].clamp_min(torch.finfo(dtype).tiny)
 
         out = torch.empty_like(probabilities)
@@ -693,13 +568,7 @@ class VMVM(PCMMtorchBaseModel):
         return value
 
     @staticmethod
-    def _read_parameter(
-        params: Mapping[str, Any],
-        names: Sequence[str],
-        default: Any,
-        dtype: torch.dtype,
-        device: torch.device,
-    ) -> Optional[Tensor]:
+    def _read_parameter(params: Mapping[str, Any], names: Sequence[str], default: Any, dtype: torch.dtype, device: torch.device) -> Optional[Tensor]:
         for name in names:
             if name in params:
                 return _as_tensor(params[name], dtype=dtype, device=device)

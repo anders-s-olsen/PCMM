@@ -27,7 +27,8 @@ def run_experiment(extraoptions={},dataset='phase_controlled',suppress_output=Fa
     with h5.File(data_file,'r') as f:
         if options['modelname'] == 'Complex_Watson' or options['modelname'] == 'Complex_ACG' or options['modelname'] == 'complex_diametrical':
             data = f['data_complex_projective_hyperplane'][:]
-        elif options['modelname'] == 'Watson' or options['modelname'] == 'ACG' or options['modelname'] == 'diametrical' or options['modelname'] == 'least_squares':
+        elif (options['modelname'] == 'Watson' or options['modelname'] == 'ACG' or options['modelname'] == 'diametrical'
+              or options['modelname'] == 'least_squares'):
             data = f['data_real_projective_hyperplane'][:]
         elif options['modelname'] == 'MACG' or options['modelname'] == 'grassmann':
             data = f['data_grassmann'][:]
@@ -46,12 +47,14 @@ def run_experiment(extraoptions={},dataset='phase_controlled',suppress_output=Fa
     options['init'] = '++'
     for inner in range(options['num_repl_outer']):
         print('Running experiment: ',options['experiment_name'],' inner: ',inner)
-        _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,suppress_output=suppress_output,inner=inner,p=p)
+        _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,
+                              suppress_output=suppress_output,inner=inner,p=p)
 
     options['init'] = 'uniform'
     for inner in range(options['num_repl_outer']):
         print('Running experiment: ',options['experiment_name'],' inner: ',inner)
-        _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,suppress_output=suppress_output,inner=inner,p=p)
+        _,df = run_phaserando(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,P=P,df=df,options=options,
+                              suppress_output=suppress_output,inner=inner,p=p)
 
 if __name__=="__main__":
     import sys

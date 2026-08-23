@@ -5,7 +5,8 @@ from paper.helper_functions_paper import calc_NMI
 modelnames = ['Complex_ACG','Normal','Complex_Normal','least_squares','diametrical','complex_diametrical']
 datasets = ['fMRI_SchaeferTian116_noGSR', 'fMRI_SchaeferTian116_GSR', 'fMRI_SchaeferTian232_GSR', 
             'fMRI_Schaefer400_GSR', '2025fMRI_SchaeferTian116_GSR',
-            'fMRI_SchaeferTian116_GSR_8020split1', 'fMRI_SchaeferTian116_GSR_8020split2', 'fMRI_SchaeferTian116_GSR_8020split3', 'fMRI_SchaeferTian116_GSR_8020split4', 'fMRI_SchaeferTian116_GSR_8020split5']
+            'fMRI_SchaeferTian116_GSR_8020split1', 'fMRI_SchaeferTian116_GSR_8020split2', 'fMRI_SchaeferTian116_GSR_8020split3',
+            'fMRI_SchaeferTian116_GSR_8020split4', 'fMRI_SchaeferTian116_GSR_8020split5']
 # load posteriors
 
 for experiment in ['all_tasks']: #, REST1REST2, all_tasks
@@ -27,14 +28,19 @@ for experiment in ['all_tasks']: #, REST1REST2, all_tasks
                     posteriors_train = []
                     posteriors_test = []
                     for inner in range(10):
-                        if inner>4 and dataset in ['fMRI_SchaeferTian116_GSR_8020split1', 'fMRI_SchaeferTian116_GSR_8020split2', 'fMRI_SchaeferTian116_GSR_8020split3', 'fMRI_SchaeferTian116_GSR_8020split4', 'fMRI_SchaeferTian116_GSR_8020split5']:
+                        if inner>4 and dataset in ['fMRI_SchaeferTian116_GSR_8020split1', 'fMRI_SchaeferTian116_GSR_8020split2',
+                                                  'fMRI_SchaeferTian116_GSR_8020split3', 'fMRI_SchaeferTian116_GSR_8020split4',
+                                                  'fMRI_SchaeferTian116_GSR_8020split5']:
                             continue
                         try:
-                            df = pd.read_csv('paper/data/results/'+dataset+'/dfs/'+experiment+'modelorder_realdata_'+modelname+'_K='+str(K)+'_rank='+str(rank)+'_inner='+str(inner)+'.csv')
+                            df = pd.read_csv('paper/data/results/'+dataset+'/dfs/'+experiment+'modelorder_realdata_'+modelname
+                                             +'_K='+str(K)+'_rank='+str(rank)+'_inner='+str(inner)+'.csv')
                             df2 = df.loc[(df['modelname']==modelname) & (df['K']==K) & (df['rank']==rank) & (df['inner']==inner)].copy()
                             if K>1 and experiment == 'REST1REST2':
-                                posterior_train = np.loadtxt('paper/data/results/'+dataset+'/posteriors/'+experiment+'modelorder_realdata_'+modelname+'_K='+str(K)+'_rank='+str(rank)+'_inner='+str(inner)+'_train.txt',delimiter=',')
-                                posterior_test = np.loadtxt('paper/data/results/'+dataset+'/posteriors/'+experiment+'modelorder_realdata_'+modelname+'_K='+str(K)+'_rank='+str(rank)+'_inner='+str(inner)+'_test.txt',delimiter=',')
+                                posterior_train = np.loadtxt('paper/data/results/'+dataset+'/posteriors/'+experiment+'modelorder_realdata_'+modelname
+                                                             +'_K='+str(K)+'_rank='+str(rank)+'_inner='+str(inner)+'_train.txt',delimiter=',')
+                                posterior_test = np.loadtxt('paper/data/results/'+dataset+'/posteriors/'+experiment+'modelorder_realdata_'+modelname
+                                                            +'_K='+str(K)+'_rank='+str(rank)+'_inner='+str(inner)+'_test.txt',delimiter=',')
                                 print('Processing posterior for modelname',modelname,'K',K, 'rank',rank, 'inner',inner)
                                 posteriors_train.append(posterior_train)
                                 posteriors_test.append(posterior_test)
@@ -48,7 +54,8 @@ for experiment in ['all_tasks']: #, REST1REST2, all_tasks
                     
                     if experiment == 'REST1REST2':
                         if K==1:
-                            df_tmp = pd.DataFrame({'modelname':[modelname],'K':[K],'rank':[rank],'dataset':[dataset],'inner':[0],'inner2':[0],'NMI_train':[1.0], 'NMI_test':[1.0]})
+                            df_tmp = pd.DataFrame({'modelname':[modelname],'K':[K],'rank':[rank],'dataset':[dataset],
+                                                   'inner':[0],'inner2':[0],'NMI_train':[1.0], 'NMI_test':[1.0]})
                             computational_reproducibility_df = pd.concat([computational_reproducibility_df, df_tmp], ignore_index=True)
                             continue
                         for inner in range(10):
@@ -56,11 +63,13 @@ for experiment in ['all_tasks']: #, REST1REST2, all_tasks
                                 try:
                                     NMI_train = calc_NMI(posteriors_train[inner], posteriors_train[inner2])
                                     NMI_test = calc_NMI(posteriors_test[inner], posteriors_test[inner2])
-                                    df_tmp = pd.DataFrame({'modelname':[modelname],'K':[K],'rank':[rank],'dataset':[dataset],'inner':[inner],'inner2':[inner2],'NMI_train':[NMI_train],'NMI_test':[NMI_test]})
+                                    df_tmp = pd.DataFrame({'modelname':[modelname],'K':[K],'rank':[rank],'dataset':[dataset],
+                                                           'inner':[inner],'inner2':[inner2],'NMI_train':[NMI_train],'NMI_test':[NMI_test]})
                                     computational_reproducibility_df = pd.concat([computational_reproducibility_df, df_tmp], ignore_index=True)
                                 except:
                                     continue
                 if experiment == 'REST1REST2':
-                    computational_reproducibility_df.to_csv('paper/data/results/'+dataset+'/'+experiment+'_computational_reproducibility_modelorder_realdata_'+modelname+'.csv', index=False)
+                    computational_reproducibility_df.to_csv('paper/data/results/'+dataset+'/'+experiment
+                                                            +'_computational_reproducibility_modelorder_realdata_'+modelname+'.csv', index=False)
                 aggregated_df.to_csv('paper/data/results/'+dataset+'/'+experiment+'_aggregated_df_modelorder_realdata_'+modelname+'.csv', index=False)
                 

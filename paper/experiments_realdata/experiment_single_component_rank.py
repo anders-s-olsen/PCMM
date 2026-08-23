@@ -51,7 +51,8 @@ def run_experiment(extraoptions={},suppress_output=False):
                 else:
                     options['init'] = '++'
 
-                params,df,_ = run(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,df=df,options=options,params=params_MM,suppress_output=suppress_output,inner=inner,p=p)
+                params,df,_ = run(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,df=df,options=options,
+                                  params=params_MM,suppress_output=suppress_output,inner=inner,p=p)
                 np.save(options['outfolder']+'/params/'+options['modelname']+'_rank'+str(rank)+'_K'+str(K)+'_params.npy',params)
 
             else:
@@ -60,8 +61,10 @@ def run_experiment(extraoptions={},suppress_output=False):
                 print('Running model:',options['modelname'],'rank:',rank,'inner:',inner)
                 options['init'] = 'no'
 
-                params_MM = np.load(options['outfolder']+'/params/'+options['modelname']+'_rank'+str(ranks[i-1])+'_K'+str(K)+'_params.npy',allow_pickle=True).item()
-                params,df,_ = run(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,df=df,options=options,params=params_MM,suppress_output=suppress_output,inner=inner,p=p)
+                params_MM = np.load(options['outfolder']+'/params/'+options['modelname']+'_rank'+str(ranks[i-1])+'_K'+str(K)
+                                    +'_params.npy',allow_pickle=True).item()
+                params,df,_ = run(data_train=data_train,data_test1=data_test1,data_test2=data_test2,K=K,df=df,options=options,
+                                  params=params_MM,suppress_output=suppress_output,inner=inner,p=p)
                 np.save(options['outfolder']+'/params/'+options['modelname']+'_rank'+str(rank)+'_K'+str(K)+'_params.npy',params)
             
             df.to_csv(options['outfolder']+'/'+options['experiment_name']+'.csv')

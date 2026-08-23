@@ -40,7 +40,8 @@ def plusplus_initialization(X, K, dist="diametrical"):
             dis = 1 / np.sqrt(2) * (2 * q - 2 * np.linalg.norm(np.swapaxes(X[:, None], -2, -1) @ C[: k + 1][None], axis=(-2, -1)) ** 2)
         elif dist == "weighted_grassmann":
             B = np.swapaxes(X, -2, -1)[:, None] @ (C[: k + 1][None])
-            dis = 1 / np.sqrt(2) * (np.sum(X_weights**2, axis=1)[:, None] + np.sum(C_weights[: k + 1] ** 2, axis=1)[None] - 2 * np.linalg.norm(B, axis=(-2, -1)) ** 2)  #
+            dis = 1 / np.sqrt(2) * (np.sum(X_weights**2, axis=1)[:, None] + np.sum(C_weights[: k + 1] ** 2, axis=1)[None]
+                                     - 2 * np.linalg.norm(B, axis=(-2, -1)) ** 2)  #
         dis = np.clip(dis, 0, None)
 
         mindis = np.min(dis, axis=1)  # choose the distance to the closest centroid for each point
@@ -124,7 +125,8 @@ def projective_hyperplane_clustering(X, K, max_iter=10000, num_repl=1, init=None
 
             # C = C/np.linalg.norm(C,axis=1)[:,None]
             if iter > 0:
-                pbar.set_description("Observations shifted between clusters: " + str(np.sum(X_part != X_part_previous)) + (", convergence towards tol: {crit:.2e}").format(crit=obj[-1] - obj[-2]))
+                pbar.set_description("Observations shifted between clusters: " + str(np.sum(X_part != X_part_previous))
+                                     + (", convergence towards tol: {crit:.2e}").format(crit=obj[-1] - obj[-2]))
             pbar.update(1)
             X_part_previous = X_part.copy()
             iter += 1
@@ -202,7 +204,8 @@ def diametrical_clustering(X, K, max_iter=10000, num_repl=1, init=None, tol=1e-1
 
             C = C / np.linalg.norm(C, axis=1)[:, None]
             if iter > 0:
-                pbar.set_description("Observations shifted between clusters: " + str(np.count_nonzero(moved)) + (", convergence towards tol: {crit:.2e}").format(crit=obj[-1] - obj[-2]))
+                pbar.set_description("Observations shifted between clusters: " + str(np.count_nonzero(moved))
+                                     + (", convergence towards tol: {crit:.2e}").format(crit=obj[-1] - obj[-2]))
             pbar.update(1)
             X_part_previous = X_part
             iter += 1
@@ -282,7 +285,8 @@ def grassmann_clustering(X, K, max_iter=10000, num_repl=1, init=None, tol=1e-10,
                 order = np.argsort(eigenvalues)[::-1]
                 C[k] = U[:, order]
             if iter > 0:
-                pbar.set_description("Observations shifted between clusters: " + str(np.count_nonzero(moved)) + (", convergence towards tol: {crit:.2e}").format(crit=obj[-1] - obj[-2]))
+                pbar.set_description("Observations shifted between clusters: " + str(np.count_nonzero(moved))
+                                     + (", convergence towards tol: {crit:.2e}").format(crit=obj[-1] - obj[-2]))
             pbar.update(1)
             iter += 1
             X_part_previous = X_part.copy()
@@ -306,7 +310,8 @@ def weighted_grassmann_clustering(X, K, max_iter=10000, num_repl=1, tol=1e-10, i
     # Q = X*np.sqrt(X_weights[:,None,:])
     X_weights = np.linalg.norm(X, axis=1) ** 2
     if not np.allclose(np.sum(X_weights, axis=1), p):
-        raise ValueError( "In weighted grassmann clustering, the scale of the input data vectors should be equal to the square root of the eigenvalues. " "If the scale does not sum to the dimensionality, this error is thrown" )
+        raise ValueError("In weighted grassmann clustering, the scale of the input data vectors should be equal to the square root of the "
+                         "eigenvalues. If the scale does not sum to the dimensionality, this error is thrown")
 
     obj_collector = []  # objective function collector
     obj_final_collector = []  # final objective function collector
@@ -375,7 +380,8 @@ def weighted_grassmann_clustering(X, K, max_iter=10000, num_repl=1, tol=1e-10, i
                 C_weights[k] = C_weights[k] / np.sum(C_weights[k]) * p
                 C[k] = U * np.sqrt(C_weights[k])[None]
             if iter > 0:
-                pbar.set_description("Observations shifted between clusters: " + str(np.count_nonzero(moved)) + (", convergence towards tol: {crit:.2e}").format(crit=obj[-1] - obj[-2]))
+                pbar.set_description("Observations shifted between clusters: " + str(np.count_nonzero(moved))
+                                     + (", convergence towards tol: {crit:.2e}").format(crit=obj[-1] - obj[-2]))
             pbar.update(1)
             iter += 1
             X_part_previous = X_part.copy()

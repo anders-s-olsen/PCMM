@@ -9,15 +9,7 @@ TR = 0.72
 
 # Number of volumes per scan (HCP standard)
 # adjust if needed
-SCAN_VOLUMES = {
-    "EMOTION": 176,
-    "GAMBLING": 253,
-    "LANGUAGE": 316,
-    "MOTOR": 284,
-    "RELATIONAL": 232,
-    "SOCIAL": 274,
-    "WM": 405,
-}
+SCAN_VOLUMES = {"EMOTION": 176, "GAMBLING": 253, "LANGUAGE": 316, "MOTOR": 284, "RELATIONAL": 232, "SOCIAL": 274, "WM": 405}
 # BLOCK FILE DEFINITIONS
 BLOCK_FILES = {
     "EMOTION": ["fear.txt", "neut.txt"],
@@ -26,21 +18,13 @@ BLOCK_FILES = {
     "MOTOR": ["lf.txt", "rf.txt", "lh.txt", "rh.txt", "t.txt", "cue.txt"],
     "RELATIONAL": ["relation.txt", "match.txt"],
     "SOCIAL": ["mental.txt", "rnd.txt"],
-    "WM": [
-        "0bk_body.txt", "0bk_faces.txt", "0bk_places.txt", "0bk_tools.txt",
-        "2bk_body.txt", "2bk_faces.txt", "2bk_places.txt", "2bk_tools.txt",
-    ],
+    "WM": ["0bk_body.txt", "0bk_faces.txt", "0bk_places.txt", "0bk_tools.txt", "2bk_body.txt", "2bk_faces.txt", "2bk_places.txt", "2bk_tools.txt"],
 }
 
 
 # ===== LOAD FUNCTION =====
 def load_ev(path):
-    return pd.read_csv(
-        path,
-        sep=r"\s+",
-        header=None,
-        names=["onset", "duration", "amplitude"]
-    )
+    return pd.read_csv(path, sep=r"\s+", header=None, names=["onset", "duration", "amplitude"])
 
 
 # ===== CORE FUNCTION =====

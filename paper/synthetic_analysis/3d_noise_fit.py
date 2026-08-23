@@ -17,7 +17,8 @@ def fill_df(df,method,repeat,train_labels,noise,true_labels,train_obj,test_label
     else:
         nmi = calc_NMI(true_labels,np.double(np.array(train_labels)))
         nmi_test = calc_NMI(true_labels,np.double(np.array(test_labels)))
-    df = pd.concat([df,pd.DataFrame({'method':method,'repeat':repeat,'HMM':HMM,'train_nmi':[nmi],'noise':[noise],'train_obj':[train_obj],'test_nmi':[nmi_test],'test_obj':[test_obj]})],ignore_index=True)
+    df = pd.concat([df,pd.DataFrame({'method':method,'repeat':repeat,'HMM':HMM,'train_nmi':[nmi],'noise':[noise],
+                                     'train_obj':[train_obj],'test_nmi':[nmi_test],'test_obj':[test_obj]})],ignore_index=True)
     return df
 
 def run_experiment(modelname):
@@ -156,7 +157,8 @@ if __name__=="__main__":
         print(sys.argv)
         run_experiment(modelname=sys.argv[1])
     else:
-        modelnames = ['least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann','Watson','Complex_Watson','ACG','Complex_ACG','MACG','SingularWishart','Normal', 'Complex_Normal']
+        modelnames = ['least_squares','diametrical','complex_diametrical','grassmann','weighted_grassmann','Watson','Complex_Watson',
+                      'ACG','Complex_ACG','MACG','SingularWishart','Normal', 'Complex_Normal']
         modelnames = ['Normal']
         for modelname in modelnames:
             run_experiment(modelname=modelname)
