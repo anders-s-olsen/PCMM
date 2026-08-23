@@ -1,7 +1,7 @@
 import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-import pandas as pd
+# import seaborn as sns
+# import matplotlib.pyplot as plt
+# import pandas as pd
 from PCMM.mixture_EM_loop import mixture_EM_loop
 from PCMM.PCMMnumpy import Watson as Watson_numpy
 from PCMM.PCMMnumpy import ACG as ACG_numpy
