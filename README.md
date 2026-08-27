@@ -2,7 +2,7 @@
 
 PCMM is a Python toolbox for clustering phases and representations derived from phases. The repository includes K-means-type algorithms, mixture models based on distributions from directional statistics, and hidden Markov models (HMMs). The repository provides a NumPy/SciPy route for K-means and expectation maximization (EM) fitting of mixture models, and a PyTorch route based on gradient optimization for fitting mixture models and HMMs.
 
-This repo was introduced alongside our PNAS-paper [Uncovering dynamic human brain phase coherence networks](https://doi.org/10.1101/2024.11.15.623830) but also contains work-in-progress extensions. 
+This repo was introduced alongside our PNAS-paper [Uncovering dynamic human brain phase coherence networks](https://www.pnas.org/doi/10.1073/pnas.2518287123) but also contains work-in-progress extensions. 
 
 ## Phase representations and models
 
@@ -265,4 +265,4 @@ If you use PCMM, please cite:
 
 **Uncovering dynamic human brain phase coherence networks**  
 Anders S. Olsen, Anders Brammer, Patrick M. Fisher, Morten Mørup.  
-[https://doi.org/10.1101/2024.11.15.623830](https://doi.org/10.1101/2024.11.15.623830)
+[https://www.pnas.org/doi/10.1073/pnas.2518287123](https://www.pnas.org/doi/10.1073/pnas.2518287123)
