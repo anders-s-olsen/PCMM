@@ -16,11 +16,11 @@ The progressively more detailed worked example is in [`tutorial.ipynb`](tutorial
 2. [Data specifications](#data-specifications)
 3. [Models used in the paper](#models-used-in-the-paper)
 4. [Direct model use](#direct-model-use)
-5. [High-level functions](#high-level-functions)
-6. [Initialization](#initialization)
-7. [Hidden Markov models](#hidden-markov-models)
-8. [Complete options reference](#complete-options-reference)
-9. [Returned values and parameters](#returned-values-and-parameters)
+5. [Initialization](#initialization)
+6. [High-level functions](#high-level-functions)
+7. [Complete options reference](#complete-options-reference)
+8. [Returned values and parameters](#returned-values-and-parameters)
+9. [Hidden Markov models](#hidden-markov-models)
 10. [Additional models: work in progress](#additional-models-work-in-progress)
 11. [Repository structure](#repository-structure)
 12. [Citing the work](#citing-the-work)
@@ -45,7 +45,7 @@ For an editable installation, replace `pip install .` by `pip install -e .`. Num
 conda install pytorch
 ```
 
-Please note, GPU should be supported but has not been tested. Extra packages needed by the paper are listed only in [`paper/README.md`](paper/README.md).
+Please note, GPU should be supported but has not been tested. 
 
 ## Data specifications
 
@@ -113,7 +113,7 @@ from PCMM.mixture_EM_loop import mixture_EM_loop
 params, posterior, loglik = mixture_EM_loop(model, X, tol=1e-8, max_iter=10000, num_repl=1, init='dc', suppress_output=False, num_comparison=10)
 ```
 
-Here, `init` indicates the ([initializer to use](#initialization)), `suppress_output` suppresses `tqdm`, and `num_comparison` indicates the number of iterations compared in the early stopping criterion. 
+Here, `init` indicates the [initializer to use](#initialization), `suppress_output` suppresses `tqdm`, and `num_comparison` indicates the number of iterations compared in the early stopping criterion. 
 
 The corresponding PyTorch constructors use a positive integer rank and can optionally enable an HMM:
 
@@ -133,6 +133,20 @@ from PCMM.mixture_torch_loop import mixture_torch_loop
 
 params, posterior, loglik = mixture_torch_loop(model, X, tol=1e-8, max_iter=100000, num_repl=1, init='dc', LR=0.1, suppress_output=False, threads=8, decrease_lr_on_plateau=False, num_comparison=50)
 ```
+## Initialization
+
+The initializers most relevant to the paper are:
+
+- `init='++'` for diametrical K-means++ initialization.
+- `init='dc'` for diametrical clustering.
+- `init='dc_seg'` to additionally fit a one-component model within every diametrical segment before fitting the mixture.
+- `init='ls'` for a least-squares partition.
+- `init='ls_seg'` to additionally fit a one-component Normal within every least-squares segment.
+- `init='uniform'` for uniform random parameters and equal mixture weights.
+- `init='isotropic'` for fixed-norm isotropic random parameter factors (Gaussian-like).
+- `init='no'` to retain supplied `params`, for example when increasing rank or converting a mixture to an HMM.
+
+The clustering functions themselves use `init='++'` by default. 
 
 ## High-level functions
 
@@ -159,47 +173,6 @@ test_loglik, test_posterior, test_loglik_per_sample = test_model(data_test=X_tes
 Set `LR=0` for the NumPy/EM implementation or set `LR` to a positive Adam learning rate for PyTorch. 
 
 `params` can restart a fit or initialize a higher-rank fit. Set `init='no'` when the supplied parameters should be used without reinitialization. 
-
-## Initialization
-
-The initializers most relevant to the paper are:
-
-- `init='++'` for diametrical K-means++ initialization.
-- `init='dc'` for diametrical clustering.
-- `init='dc_seg'` to additionally fit a one-component model within every diametrical segment before fitting the mixture.
-- `init='ls'` for a least-squares partition.
-- `init='ls_seg'` to additionally fit a one-component Normal within every least-squares segment.
-- `init='uniform'` for uniform random parameters and equal mixture weights.
-- `init='isotropic'` for fixed-norm isotropic random parameter factors (Gaussian-like).
-- `init='no'` to retain supplied `params`, for example when increasing rank or converting a mixture to an HMM.
-
-The clustering functions themselves use `init='++'` by default. 
-
-## Hidden Markov models
-
-HMM estimation is available through the PyTorch models with `HMM=True`. `samples_per_sequence` tells the HMM where independent time series begin and end:
-
-- `0` or `None` treats all `n` observations as one sequence.
-- A positive integer gives a common sequence length; `n` must be divisible by it. E.g., `1200` for HCP resting-state data.
-- A list gives explicit sequence lengths. A listed pattern may repeat when its sum divides `n`.
-
-For example, 12 subjects with 1,200 samples each can be specified as `samples_per_sequence=1200`. For unequal lengths, use a list such as `[900, 1200, 1050]`. Transitions are never counted across sequence boundaries.
-
-With the high-level interface:
-
-```python
-hmm_options = {
-    'modelname': 'Complex_ACG',
-    'rank': 5,
-    'LR': 0.05,
-    'HMM': True,
-    'init': 'dc',
-}
-
-hmm_params, states, loglik = train_model(data_train=X, K=3, options=hmm_options, params=mixture_params, samples_per_sequence=1200)
-```
-
-The HMM return is a one-hot encoding of the Viterbi state path (as opposed to the posterior for mixtures). To significantly ease fitting of the HMM, start by fitting a mixture model without HMM and use the parameters as input to the HMM with `init='no'`. The transition matrix and delta-parameter of the HMM will automatically be initialized. 
 
 ## Complete options reference for the high-level implementation
 
@@ -233,23 +206,49 @@ Restartable mixture dictionaries contain:
 
 Here `M` has shape `(K, p, rank)`, `Psi` has shape `(K, p, p)`, `pi` has shape `(K,)`, and `T` has shape `(K, K)`.
 
+## Hidden Markov models
+
+HMM estimation is available through the PyTorch models with `HMM=True`. `samples_per_sequence` tells the HMM where independent time series begin and end:
+
+- `0` or `None` treats all `n` observations as one sequence.
+- A positive integer gives a common sequence length; `n` must be divisible by it. E.g., `1200` for HCP resting-state data.
+- A list gives explicit sequence lengths. A listed pattern may repeat when its sum divides `n`.
+
+For example, 12 subjects with 1,200 samples each can be specified as `samples_per_sequence=1200`. For unequal lengths, use a list such as `[900, 1200, 1050]`. Transitions are never counted across sequence boundaries.
+
+With the high-level interface:
+
+```python
+hmm_options = {
+    'modelname': 'Complex_ACG',
+    'rank': 5,
+    'LR': 0.05,
+    'HMM': True,
+    'init': 'dc',
+}
+
+hmm_params, states, loglik = train_model(data_train=X, K=3, options=hmm_options, params=mixture_params, samples_per_sequence=1200)
+```
+
+The HMM return is a one-hot encoding of the Viterbi state path (as opposed to the posterior for mixtures). To significantly ease fitting of the HMM, start by fitting a mixture model without HMM and use the parameters as input to the HMM with `init='no'`. The transition matrix and delta-parameter of the HMM will automatically be initialized. 
+
 ## Additional models: work in progress
 
 The following models are not described in the PNAS-paper and are part of ongoing distribution extensions to the repo.
 
-### Frame representations
+### Clustering of frame representations
 
 `PCMM.phase_coherence_kmeans` provides `grassmann_clustering` for orthonormal arrays of shape `(n, p, q)` and `weighted_grassmann_clustering` for scaled frames of the same shape. `PCMM.PCMMnumpy` and `PCMM.PCMMtorch` provide MACG models for orthonormal frames and Singular Wishart models for scaled frames. For scaled observations, the sum of squared column norms must equal `p`; the high-level helper currently fixes `q=2`, while direct constructors accept another `q`.
 
 Use `init='gc'` or `'gc_seg'` for MACG and `init='wgc'` or `'wgc_seg'` for Singular Wishart. Their K-means++ versions use `init='gc++'` and `init='wgc++'`.
 
-### Torus representations
+### Clustering of torus representations
 
 `PCMM.phase_coherence_kmeans` provides `torus_clustering` and `quotient_torus_clustering` for arrays of angles `(n, p)` or componentwise nonzero complex phasors. The quotient version removes a common global phase. `PCMM.PCMMtorch.WrappedNormal` provides a PyTorch wrapped Normal mixture; use `init='tc'` or `'qtc'` for torus or quotient-torus initialization.
 
-### Other distributions
+### Other directional statistics distributions
 
-`PCMM.PCMMtorch` also contains real and complex Bingham models. [`PCMM/PCMMtorchAdditional.py`](PCMM/PCMMtorchAdditional.py) contains experimental von Mises-Fisher, Fisher-Bingham, matrix Fisher, matrix Bingham, and matrix Fisher-Bingham models. [`PCMM/VMVM_PCMMtorch.py`](PCMM/VMVM_PCMMtorch.py) contains an experimental multivariate von Mises model. These interfaces and normalizing-constant approximations may change.
+`PCMM.PCMMtorch` also contains real and complex Bingham models. [`PCMM/PCMMtorchAdditional.py`](PCMM/PCMMtorchAdditional.py) contains experimental von Mises-Fisher, Fisher-Bingham, matrix Fisher, matrix Bingham, and matrix Fisher-Bingham models. [`PCMM/VMVM_PCMMtorch.py`](PCMM/VMVM_PCMMtorch.py) contains an experimental rank-1 multivariate von Mises model based on [this preprint](https://arxiv.org/abs/2605.12577). These interfaces and normalizing-constant approximations may change.
 
 The high-level names currently include `'Bingham'`, `'Complex_Bingham'`, `'MACG'`, `'SingularWishart'`, `'WrappedNormal'`, `'VMVM'`, `'grassmann'`, and `'weighted_grassmann'`. Bingham, Wrapped Normal, and VMVM require `LR>0`.
 
