@@ -132,7 +132,11 @@ def train_model(data_train,K,options,params=None,suppress_output=False,samples_p
         model = WrappedNormal_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'], samples_per_sequence=samples_per_sequence,
                                     force_gamma_same=options['force_gamma_same'])
     elif options['modelname'] == 'VMVM':
-        model = VMVM_torch(K=K,p=p,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
+        model = VMVM_torch(
+            K=K, p=p, params=params, HMM=options['HMM'],
+            samples_per_sequence=samples_per_sequence,
+            oscillatory_data=options.get('oscillatory_data', False),
+        )
     elif options['modelname'] == 'least_squares':
         C,labels,obj = least_squares_sign_flip(data_train,K=K,max_iter=options['max_iter'],num_repl=options['num_repl'],init=options['init'],tol=options['tol'])
         # X = data_train
@@ -249,7 +253,11 @@ def test_model(data_test,params,K,options,samples_per_sequence=0):
         elif options['modelname'] == 'WrappedNormal':
             model = WrappedNormal_torch(K=K,p=p,rank=rank,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
         elif options['modelname'] == 'VMVM':
-            model = VMVM_torch(K=K,p=p,params=params,HMM=options['HMM'],samples_per_sequence=samples_per_sequence)
+            model = VMVM_torch(
+                K=K, p=p, params=params, HMM=options['HMM'],
+                samples_per_sequence=samples_per_sequence,
+                oscillatory_data=options.get('oscillatory_data', False),
+            )
         if torch is not None and isinstance(data_test, torch.Tensor):
             model.to(device=data_test.device)
         test_loglik, test_loglik_per_sample = model.test_log_likelihood(X=data_test)

@@ -38,7 +38,15 @@ paper/synthetic_analysis/*.sh
 *.h5
 *.png
 *.pdf
-overview_paper/
+overview_paper/computational_results_schema_v4/parameters/
+overview_paper/directional_audio_experiment/In-Car_McVAMPIRE_V1.0/
+overview_paper/directional_audio_experiment/MiniLibriMix/
+overview_paper/directional_samples_protocol_v2/
+*.pt
+*.err
+*.out
+*.npz
+*.wav
 test_bingham.py
 paper/synthetic_analysis/test.ipynb
 

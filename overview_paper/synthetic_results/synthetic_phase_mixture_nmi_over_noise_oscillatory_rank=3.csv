@@ -1,0 +1,163 @@
+rank,noise,dataset,model,NMI
+3,0.1,oscillatory,VMVM (ordinary torus),1.0
+3,0.1,oscillatory,Singular Wishart,1.0
+3,0.1,oscillatory,Wrapped normal (quotient torus),1.0
+3,0.1,oscillatory,Complex Bingham,1.0
+3,0.1,oscillatory,Complex ACG,1.0
+3,0.1,oscillatory,Real ACG,1.0
+3,0.1,oscillatory,"VMVM (ordinary torus, uniform marginals)",1.0
+3,0.1,oscillatory,MACG,1.0
+3,0.1,oscillatory,Torus K-means (quotient torus),1.0
+3,0.1,oscillatory,Complex diametrical K-means,1.0
+3,0.1,oscillatory,Complex projective hyperplane K-means,1.0
+3,0.1,oscillatory,Grassmann K-means,1.0
+3,0.1,oscillatory,Weighted Grassmann K-means,1.0
+3,0.1,oscillatory,Diametrical K-means,0.9595659056988849
+3,0.1,oscillatory,Least-squares K-means,0.7287008798015752
+3,0.1,oscillatory,Wrapped normal (ordinary torus),2.8889291102264186e-06
+3,0.1,oscillatory,Torus K-means (ordinary torus),2.885407708148147e-06
+3,0.1,oscillatory,Complex Watson,
+3,0.8728981633974483,oscillatory,VMVM (ordinary torus),1.0
+3,0.8728981633974483,oscillatory,Singular Wishart,1.0
+3,0.8728981633974483,oscillatory,Wrapped normal (quotient torus),1.0
+3,0.8728981633974483,oscillatory,Complex Bingham,1.0
+3,0.8728981633974483,oscillatory,Complex Watson,1.0
+3,0.8728981633974483,oscillatory,Complex ACG,1.0
+3,0.8728981633974483,oscillatory,MACG,1.0
+3,0.8728981633974483,oscillatory,Real ACG,1.0
+3,0.8728981633974483,oscillatory,"VMVM (ordinary torus, uniform marginals)",1.0
+3,0.8728981633974483,oscillatory,Torus K-means (quotient torus),1.0
+3,0.8728981633974483,oscillatory,Complex diametrical K-means,1.0
+3,0.8728981633974483,oscillatory,Complex projective hyperplane K-means,1.0
+3,0.8728981633974483,oscillatory,Grassmann K-means,1.0
+3,0.8728981633974483,oscillatory,Weighted Grassmann K-means,1.0
+3,0.8728981633974483,oscillatory,Diametrical K-means,0.9735291317877254
+3,0.8728981633974483,oscillatory,Least-squares K-means,0.5928768143466189
+3,0.8728981633974483,oscillatory,Wrapped normal (ordinary torus),0.001442138683422624
+3,0.8728981633974483,oscillatory,Torus K-means (ordinary torus),0.00018473720150029857
+3,1.6457963267948967,oscillatory,VMVM (ordinary torus),1.0
+3,1.6457963267948967,oscillatory,Singular Wishart,1.0
+3,1.6457963267948967,oscillatory,Wrapped normal (ordinary torus),1.0
+3,1.6457963267948967,oscillatory,Wrapped normal (quotient torus),1.0
+3,1.6457963267948967,oscillatory,Complex Bingham,1.0
+3,1.6457963267948967,oscillatory,Complex Watson,1.0
+3,1.6457963267948967,oscillatory,Complex ACG,1.0
+3,1.6457963267948967,oscillatory,MACG,1.0
+3,1.6457963267948967,oscillatory,Real ACG,1.0
+3,1.6457963267948967,oscillatory,"VMVM (ordinary torus, uniform marginals)",1.0
+3,1.6457963267948967,oscillatory,Torus K-means (quotient torus),1.0
+3,1.6457963267948967,oscillatory,Complex diametrical K-means,1.0
+3,1.6457963267948967,oscillatory,Complex projective hyperplane K-means,1.0
+3,1.6457963267948967,oscillatory,Grassmann K-means,1.0
+3,1.6457963267948967,oscillatory,Weighted Grassmann K-means,1.0
+3,1.6457963267948967,oscillatory,Diametrical K-means,0.8876591103373316
+3,1.6457963267948967,oscillatory,Least-squares K-means,0.5615896365639182
+3,1.6457963267948967,oscillatory,Torus K-means (ordinary torus),7.218348976746638e-05
+3,2.4186944901923453,oscillatory,Wrapped normal (ordinary torus),1.0
+3,2.4186944901923453,oscillatory,Wrapped normal (quotient torus),1.0
+3,2.4186944901923453,oscillatory,Complex Bingham,1.0
+3,2.4186944901923453,oscillatory,Complex ACG,0.9895915066199538
+3,2.4186944901923453,oscillatory,Singular Wishart,0.9407271848336158
+3,2.4186944901923453,oscillatory,MACG,0.9407271848336156
+3,2.4186944901923453,oscillatory,VMVM (ordinary torus),0.9364008762935543
+3,2.4186944901923453,oscillatory,Grassmann K-means,0.9342752643999095
+3,2.4186944901923453,oscillatory,"VMVM (ordinary torus, uniform marginals)",0.9303423398575008
+3,2.4186944901923453,oscillatory,Torus K-means (quotient torus),0.9235484086283544
+3,2.4186944901923453,oscillatory,Complex diametrical K-means,0.9187463327737716
+3,2.4186944901923453,oscillatory,Complex projective hyperplane K-means,0.9187463327737715
+3,2.4186944901923453,oscillatory,Complex Watson,0.9127763297235457
+3,2.4186944901923453,oscillatory,Weighted Grassmann K-means,0.9024477451551766
+3,2.4186944901923453,oscillatory,Real ACG,0.864192219865958
+3,2.4186944901923453,oscillatory,Diametrical K-means,0.6343771384953572
+3,2.4186944901923453,oscillatory,Least-squares K-means,0.45764550663593473
+3,2.4186944901923453,oscillatory,Torus K-means (ordinary torus),0.0008396344781381855
+3,3.1915926535897934,oscillatory,Wrapped normal (ordinary torus),0.859845377340172
+3,3.1915926535897934,oscillatory,Wrapped normal (quotient torus),0.8495609971200054
+3,3.1915926535897934,oscillatory,Complex Bingham,0.8316345307187284
+3,3.1915926535897934,oscillatory,Complex ACG,0.8267922275699815
+3,3.1915926535897934,oscillatory,Singular Wishart,0.7051671806368004
+3,3.1915926535897934,oscillatory,Complex projective hyperplane K-means,0.6103727974806701
+3,3.1915926535897934,oscillatory,Complex diametrical K-means,0.6103727974806701
+3,3.1915926535897934,oscillatory,Torus K-means (quotient torus),0.6103629125864737
+3,3.1915926535897934,oscillatory,Weighted Grassmann K-means,0.6013206653636458
+3,3.1915926535897934,oscillatory,MACG,0.5979968175511308
+3,3.1915926535897934,oscillatory,Complex Watson,0.5572800739227832
+3,3.1915926535897934,oscillatory,Real ACG,0.5239949203793298
+3,3.1915926535897934,oscillatory,"VMVM (ordinary torus, uniform marginals)",0.46184586339355466
+3,3.1915926535897934,oscillatory,VMVM (ordinary torus),0.45653970646963055
+3,3.1915926535897934,oscillatory,Grassmann K-means,0.3403390751697315
+3,3.1915926535897934,oscillatory,Diametrical K-means,0.23458798950171228
+3,3.1915926535897934,oscillatory,Least-squares K-means,0.21777929911989338
+3,3.1915926535897934,oscillatory,Torus K-means (ordinary torus),0.0001417968505665175
+3,3.9644908169872415,oscillatory,Wrapped normal (quotient torus),0.40195398597700427
+3,3.9644908169872415,oscillatory,Complex ACG,0.3304958563536891
+3,3.9644908169872415,oscillatory,Complex Bingham,0.3158089301364442
+3,3.9644908169872415,oscillatory,Wrapped normal (ordinary torus),0.2763191922633611
+3,3.9644908169872415,oscillatory,Complex Watson,0.15523834369737494
+3,3.9644908169872415,oscillatory,MACG,0.12464894084058044
+3,3.9644908169872415,oscillatory,Grassmann K-means,0.07285710777193465
+3,3.9644908169872415,oscillatory,Singular Wishart,0.059102052673561264
+3,3.9644908169872415,oscillatory,Torus K-means (quotient torus),0.04907785366791837
+3,3.9644908169872415,oscillatory,Complex projective hyperplane K-means,0.04282599412627364
+3,3.9644908169872415,oscillatory,Complex diametrical K-means,0.042079002702151744
+3,3.9644908169872415,oscillatory,"VMVM (ordinary torus, uniform marginals)",0.03450897913561434
+3,3.9644908169872415,oscillatory,Diametrical K-means,0.032811511333393974
+3,3.9644908169872415,oscillatory,VMVM (ordinary torus),0.027636106849506816
+3,3.9644908169872415,oscillatory,Real ACG,0.02533271152202202
+3,3.9644908169872415,oscillatory,Least-squares K-means,0.020164832315287873
+3,3.9644908169872415,oscillatory,Weighted Grassmann K-means,0.0061142613176312505
+3,3.9644908169872415,oscillatory,Torus K-means (ordinary torus),0.00014172882277180903
+3,4.73738898038469,oscillatory,"VMVM (ordinary torus, uniform marginals)",0.006032027195839225
+3,4.73738898038469,oscillatory,Torus K-means (ordinary torus),0.004863470726290077
+3,4.73738898038469,oscillatory,Wrapped normal (quotient torus),0.0021397597519314704
+3,4.73738898038469,oscillatory,MACG,0.002020068148474674
+3,4.73738898038469,oscillatory,Complex Watson,0.000759403870773024
+3,4.73738898038469,oscillatory,VMVM (ordinary torus),0.0007415142870667572
+3,4.73738898038469,oscillatory,Torus K-means (quotient torus),0.0007395752914357868
+3,4.73738898038469,oscillatory,Complex projective hyperplane K-means,0.00028858338373530376
+3,4.73738898038469,oscillatory,Complex Bingham,0.00023905564655762513
+3,4.73738898038469,oscillatory,Wrapped normal (ordinary torus),0.0002385453569167144
+3,4.73738898038469,oscillatory,Complex diametrical K-means,0.00023465986983335147
+3,4.73738898038469,oscillatory,Real ACG,0.00023418930171606187
+3,4.73738898038469,oscillatory,Complex ACG,0.00016043037594442192
+3,4.73738898038469,oscillatory,Grassmann K-means,7.214577140815808e-05
+3,4.73738898038469,oscillatory,Singular Wishart,6.967375531540649e-05
+3,4.73738898038469,oscillatory,Weighted Grassmann K-means,2.8889291102264186e-06
+3,4.73738898038469,oscillatory,Diametrical K-means,2.885407708148147e-06
+3,4.73738898038469,oscillatory,Least-squares K-means,0.0
+3,5.510287143782138,oscillatory,Wrapped normal (ordinary torus),0.008121420169638153
+3,5.510287143782138,oscillatory,Grassmann K-means,0.0024290484170347492
+3,5.510287143782138,oscillatory,Torus K-means (ordinary torus),0.0021070572658376118
+3,5.510287143782138,oscillatory,Complex diametrical K-means,0.0021045761151562994
+3,5.510287143782138,oscillatory,Diametrical K-means,0.0011550932483772411
+3,5.510287143782138,oscillatory,Complex ACG,0.0009836934158720873
+3,5.510287143782138,oscillatory,Wrapped normal (quotient torus),0.0006474531928901252
+3,5.510287143782138,oscillatory,Least-squares K-means,0.000376908581353203
+3,5.510287143782138,oscillatory,Complex projective hyperplane K-means,0.0002896234725597983
+3,5.510287143782138,oscillatory,Weighted Grassmann K-means,0.00028886642288688597
+3,5.510287143782138,oscillatory,Complex Watson,0.00023302813364750632
+3,5.510287143782138,oscillatory,Torus K-means (quotient torus),0.000141426453124205
+3,5.510287143782138,oscillatory,"VMVM (ordinary torus, uniform marginals)",7.683455781805504e-05
+3,5.510287143782138,oscillatory,Complex Bingham,1.4588282446825988e-05
+3,5.510287143782138,oscillatory,Real ACG,2.9146760830806913e-06
+3,5.510287143782138,oscillatory,VMVM (ordinary torus),0.0
+3,5.510287143782138,oscillatory,MACG,0.0
+3,5.510287143782138,oscillatory,Singular Wishart,0.0
+3,6.283185307179586,oscillatory,Wrapped normal (quotient torus),0.003922635786581562
+3,6.283185307179586,oscillatory,Singular Wishart,0.0038120317900583096
+3,6.283185307179586,oscillatory,VMVM (ordinary torus),0.002792540177976601
+3,6.283185307179586,oscillatory,"VMVM (ordinary torus, uniform marginals)",0.002621404350239079
+3,6.283185307179586,oscillatory,MACG,0.0017325691967707726
+3,6.283185307179586,oscillatory,Least-squares K-means,0.0015766411110009972
+3,6.283185307179586,oscillatory,Complex ACG,0.0012430146859060893
+3,6.283185307179586,oscillatory,Complex Bingham,0.0008620186506510725
+3,6.283185307179586,oscillatory,Diametrical K-means,0.0008342611072975205
+3,6.283185307179586,oscillatory,Torus K-means (quotient torus),0.0004881349915583688
+3,6.283185307179586,oscillatory,Weighted Grassmann K-means,0.00041707020451224814
+3,6.283185307179586,oscillatory,Real ACG,0.00023394441523792028
+3,6.283185307179586,oscillatory,Wrapped normal (ordinary torus),0.00014325705294405036
+3,6.283185307179586,oscillatory,Grassmann K-means,7.21551979019878e-05
+3,6.283185307179586,oscillatory,Complex Watson,5.546118442399366e-05
+3,6.283185307179586,oscillatory,Torus K-means (ordinary torus),4.6175781372989367e-05
+3,6.283185307179586,oscillatory,Complex projective hyperplane K-means,4.617075455442075e-05
+3,6.283185307179586,oscillatory,Complex diametrical K-means,4.616673376179932e-05

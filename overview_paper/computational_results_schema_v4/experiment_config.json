@@ -1,0 +1,753 @@
+{
+  "environment": {
+    "cpu_model": "Intel(R) Xeon(R) CPU E5-2650 v4 @ 2.20GHz",
+    "git_dirty": true,
+    "git_revision": "6d1ec8a7731cca0d0d1e187ec505d7324e7e5449",
+    "hostname": "n-62-21-99",
+    "native_threadpools": [
+      {
+        "filepath": "/zhome/61/4/109113/miniconda3/envs/hcp/lib/libmkl_rt.so.2",
+        "internal_api": "mkl",
+        "num_threads": 1,
+        "prefix": "libmkl_rt",
+        "threading_layer": "intel",
+        "user_api": "blas",
+        "version": "2023.1-Product"
+      },
+      {
+        "filepath": "/zhome/61/4/109113/miniconda3/envs/hcp/lib/libomp.so",
+        "internal_api": "openmp",
+        "num_threads": 1,
+        "prefix": "libomp",
+        "user_api": "openmp",
+        "version": null
+      },
+      {
+        "filepath": "/zhome/61/4/109113/miniconda3/envs/hcp/lib/libgomp.so.1.0.0",
+        "internal_api": "openmp",
+        "num_threads": 1,
+        "prefix": "libgomp",
+        "user_api": "openmp",
+        "version": null
+      }
+    ],
+    "numpy_version": "1.26.4",
+    "python_version": "3.12.4",
+    "scipy_version": "1.13.1",
+    "thread_environment": {
+      "MKL_NUM_THREADS": "",
+      "NUMEXPR_NUM_THREADS": "",
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1"
+    },
+    "torch_num_interop_threads": 1,
+    "torch_version": "2.4.0"
+  },
+  "fit_repeats": 5,
+  "manifest": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_samples_protocol_v2/manifest.csv",
+  "manifest_sha256": "403b1ed61463d7762b27a7093f45e6624750043781ca01cea04909371341cd63",
+  "output_dir": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/computational_results_schema_v4",
+  "result_schema_version": 4,
+  "run_id": "3dd392e33da66f38",
+  "sample_dataset_sha256": "f84d54ae6574be963fc7879c951f8420db5bacef2fc130f738be927c7a89c36a",
+  "selected_cells": 100,
+  "settings": {
+    "benchmark_max_seconds": 10.0,
+    "benchmark_repetitions": 20,
+    "benchmark_warmup_evaluations": 3,
+    "cold_saddle_benchmark_repetitions": 5,
+    "components": 1,
+    "concentrations": [],
+    "convergence_normalization": "observations",
+    "convergence_window": 25,
+    "decrease_lr_on_plateau": false,
+    "device": "cpu",
+    "dimensions": [],
+    "direct_matrix_linear_parameterization": true,
+    "distributions": [
+      "acg",
+      "bingham",
+      "fisher_bingham",
+      "macg",
+      "matrix_bingham",
+      "matrix_fisher",
+      "matrix_fisher_bingham",
+      "vmf",
+      "watson",
+      "wrapped_normal"
+    ],
+    "dtype": "float64",
+    "execution_order": "dimension_balanced",
+    "fit_repeats": 5,
+    "initialization": "isotropic",
+    "initialization_tolerance": 1e-08,
+    "integration_points": 400,
+    "isotropic_natural_scale": 0.01,
+    "isotropic_wrapped_variance": 5.0,
+    "learning_rate": 0.05,
+    "learning_rate_reduction_factor": 0.1,
+    "manifest": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_samples_protocol_v2/manifest.csv",
+    "manifest_sha256": "403b1ed61463d7762b27a7093f45e6624750043781ca01cea04909371341cd63",
+    "max_attempt_seconds": 1200.0,
+    "max_fit_seconds": 1000.0,
+    "max_iterations": 20000,
+    "max_learning_rate_reductions": 2,
+    "max_winding_vectors": 200000,
+    "optimizer_restarts": 1,
+    "ranks": [],
+    "repeat_initialization": "independent",
+    "resolved_device": "cpu",
+    "result_schema_version": 4,
+    "runtime_identity": {
+      "cpu_model": "Intel(R) Xeon(R) CPU E5-2650 v4 @ 2.20GHz",
+      "numpy_version": "1.26.4",
+      "python_version": "3.12.4",
+      "scipy_version": "1.13.1",
+      "thread_environment": {
+        "MKL_NUM_THREADS": "",
+        "NUMEXPR_NUM_THREADS": "",
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1"
+      },
+      "torch_num_interop_threads": 1,
+      "torch_version": "2.4.0"
+    },
+    "saddlepoint_derivative_backend": "finite_difference",
+    "saddlepoint_finite_difference_step": 0.005,
+    "saddlepoint_iterations": 20,
+    "saddlepoint_order": 2,
+    "saddlepoint_tolerance": 1e-08,
+    "sample_dataset_sha256": "f84d54ae6574be963fc7879c951f8420db5bacef2fc130f738be927c7a89c36a",
+    "second_order_validation_max_seconds": 30.0,
+    "seed": 20250308,
+    "show_progress": false,
+    "skip_second_order_validation": false,
+    "stationarity_tolerance": 0.0001,
+    "test_fraction": 0.2,
+    "threads": 1,
+    "timing_warmup_iterations": 10,
+    "tolerance": 1e-05,
+    "winding_chunk_size": 64,
+    "wrapped_mode": "skip",
+    "wrapped_winding_radius": 1
+  },
+  "source_sha256": {
+    "PCMMnumpy": "001418c922b86814b89917aec6bada42f8369878d178ffd6795d7cb8bb3dff7c",
+    "PCMMnumpyBaseModel": "19580a48230da354c98562f3a4ca458a790669c91a86ec45fece6ec4182582db",
+    "PCMMtorch": "9c61af269c5a5da3fff7a75f572263f41be9741810e06ad686b2b7920396fd85",
+    "PCMMtorchAdditional": "e45ff92f555a80290d1409fdcd56090b5561fa6cd1b2160d7247210ddfe3f84b",
+    "PCMMtorchBaseModel": "19d93db19e43ab028bd391bddfa943692c8498e9450ace3ba99f565a926dc2b3",
+    "directional_sampler": "8d6b72e7109d3312d03e9a36a4434b8a560f2c268b1709ebd5d532fdce569e95",
+    "mixture_EM_loop": "02072a0498ced7373125f48eda9db73852e0d05e84fab778c5da17ca654e77aa",
+    "mixture_torch_loop": "2fc016f7a0bd55a25f59ab40dd99c4b2f44371c0f3797d5fa56e373ec6416805",
+    "runner": "1127c6b64ad4525bc91da239fa8183a95c4a71424eec52fa65c33fb5affddc45"
+  },
+  "unmeasured_runtime_warmup_seconds": 11.06339945399668,
+  "unmeasured_structural_warmup_count": 47,
+  "unmeasured_structural_warmup_seconds": 12.908888173173182,
+  "unmeasured_structural_warmups": [
+    {
+      "seconds": 1.8537377240136266,
+      "status": "ok",
+      "structure": [
+        "wrapped_normal",
+        4,
+        0,
+        4,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.05860659800237045,
+      "status": "ok",
+      "structure": [
+        "vmf",
+        4,
+        0,
+        1,
+        1,
+        320
+      ]
+    },
+    {
+      "seconds": 0.007648603990674019,
+      "status": "ok",
+      "structure": [
+        "watson",
+        4,
+        0,
+        1,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.1885213670320809,
+      "status": "ok",
+      "structure": [
+        "bingham",
+        4,
+        0,
+        3,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.030124439974315464,
+      "status": "ok",
+      "structure": [
+        "fisher_bingham",
+        4,
+        0,
+        3,
+        1,
+        320
+      ]
+    },
+    {
+      "seconds": 0.029590361984446645,
+      "status": "ok",
+      "structure": [
+        "acg",
+        4,
+        0,
+        1,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.35460364999016747,
+      "status": "ok",
+      "structure": [
+        "matrix_fisher",
+        4,
+        2,
+        2,
+        2,
+        320
+      ]
+    },
+    {
+      "seconds": 0.6453866609954275,
+      "status": "ok",
+      "structure": [
+        "matrix_bingham",
+        4,
+        2,
+        2,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.6331406210083514,
+      "status": "ok",
+      "structure": [
+        "matrix_fisher_bingham",
+        4,
+        2,
+        3,
+        2,
+        320
+      ]
+    },
+    {
+      "seconds": 0.04011145600816235,
+      "status": "ok",
+      "structure": [
+        "macg",
+        4,
+        2,
+        2,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 1.8571701690088958,
+      "status": "ok",
+      "structure": [
+        "wrapped_normal",
+        8,
+        0,
+        8,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.0066876880009658635,
+      "status": "ok",
+      "structure": [
+        "vmf",
+        8,
+        0,
+        1,
+        1,
+        320
+      ]
+    },
+    {
+      "seconds": 0.007075192988850176,
+      "status": "ok",
+      "structure": [
+        "watson",
+        8,
+        0,
+        1,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.042679700010921806,
+      "status": "ok",
+      "structure": [
+        "bingham",
+        8,
+        0,
+        7,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.03325176803627983,
+      "status": "ok",
+      "structure": [
+        "fisher_bingham",
+        8,
+        0,
+        7,
+        1,
+        320
+      ]
+    },
+    {
+      "seconds": 0.006706464046146721,
+      "status": "ok",
+      "structure": [
+        "acg",
+        8,
+        0,
+        1,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.2721241599647328,
+      "status": "ok",
+      "structure": [
+        "matrix_fisher",
+        8,
+        2,
+        2,
+        2,
+        320
+      ]
+    },
+    {
+      "seconds": 0.6120793650043197,
+      "status": "ok",
+      "structure": [
+        "matrix_bingham",
+        8,
+        2,
+        6,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.6441672570072114,
+      "status": "ok",
+      "structure": [
+        "matrix_fisher_bingham",
+        8,
+        2,
+        7,
+        2,
+        320
+      ]
+    },
+    {
+      "seconds": 0.008943649008870125,
+      "status": "ok",
+      "structure": [
+        "macg",
+        8,
+        2,
+        2,
+        0,
+        320
+      ]
+    },
+    {
+      "reason": "Wrapped-normal lattice has 43,046,721 vectors, above --max-winding-vectors. Use --wrapped-mode central only if a local Gaussian approximation is scientifically acceptable.",
+      "seconds": 0.0,
+      "status": "structurally_unavailable",
+      "structure": [
+        "wrapped_normal",
+        16,
+        0,
+        16,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.0059603359550237656,
+      "status": "ok",
+      "structure": [
+        "vmf",
+        16,
+        0,
+        1,
+        1,
+        320
+      ]
+    },
+    {
+      "seconds": 0.006609942007344216,
+      "status": "ok",
+      "structure": [
+        "watson",
+        16,
+        0,
+        1,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.025362290965858847,
+      "status": "ok",
+      "structure": [
+        "bingham",
+        16,
+        0,
+        15,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.02535782800987363,
+      "status": "ok",
+      "structure": [
+        "fisher_bingham",
+        16,
+        0,
+        15,
+        1,
+        320
+      ]
+    },
+    {
+      "seconds": 0.006495213019661605,
+      "status": "ok",
+      "structure": [
+        "acg",
+        16,
+        0,
+        1,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.2757334790076129,
+      "status": "ok",
+      "structure": [
+        "matrix_fisher",
+        16,
+        2,
+        2,
+        2,
+        320
+      ]
+    },
+    {
+      "seconds": 0.6535426510381512,
+      "status": "ok",
+      "structure": [
+        "matrix_bingham",
+        16,
+        2,
+        14,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.659672481007874,
+      "status": "ok",
+      "structure": [
+        "matrix_fisher_bingham",
+        16,
+        2,
+        15,
+        2,
+        320
+      ]
+    },
+    {
+      "seconds": 0.008303194015752524,
+      "status": "ok",
+      "structure": [
+        "macg",
+        16,
+        2,
+        2,
+        0,
+        320
+      ]
+    },
+    {
+      "reason": "Wrapped-normal lattice has 1,853,020,188,851,841 vectors, above --max-winding-vectors. Use --wrapped-mode central only if a local Gaussian approximation is scientifically acceptable.",
+      "seconds": 0.0,
+      "status": "structurally_unavailable",
+      "structure": [
+        "wrapped_normal",
+        32,
+        0,
+        32,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.005628213984891772,
+      "status": "ok",
+      "structure": [
+        "vmf",
+        32,
+        0,
+        1,
+        1,
+        320
+      ]
+    },
+    {
+      "seconds": 0.006830563012044877,
+      "status": "ok",
+      "structure": [
+        "watson",
+        32,
+        0,
+        1,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.05198014999041334,
+      "status": "ok",
+      "structure": [
+        "bingham",
+        32,
+        0,
+        31,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.044635015015956014,
+      "status": "ok",
+      "structure": [
+        "fisher_bingham",
+        32,
+        0,
+        31,
+        1,
+        320
+      ]
+    },
+    {
+      "seconds": 0.006822124007157981,
+      "status": "ok",
+      "structure": [
+        "acg",
+        32,
+        0,
+        1,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.26778416702290997,
+      "status": "ok",
+      "structure": [
+        "matrix_fisher",
+        32,
+        2,
+        2,
+        2,
+        320
+      ]
+    },
+    {
+      "seconds": 0.697070536960382,
+      "status": "ok",
+      "structure": [
+        "matrix_bingham",
+        32,
+        2,
+        30,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.7119399280054495,
+      "status": "ok",
+      "structure": [
+        "matrix_fisher_bingham",
+        32,
+        2,
+        31,
+        2,
+        320
+      ]
+    },
+    {
+      "seconds": 0.009413827967364341,
+      "status": "ok",
+      "structure": [
+        "macg",
+        32,
+        2,
+        2,
+        0,
+        320
+      ]
+    },
+    {
+      "reason": "Wrapped-normal lattice has 3,433,683,820,292,512,484,657,849,089,281 vectors, above --max-winding-vectors. Use --wrapped-mode central only if a local Gaussian approximation is scientifically acceptable.",
+      "seconds": 0.0,
+      "status": "structurally_unavailable",
+      "structure": [
+        "wrapped_normal",
+        64,
+        0,
+        64,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.00611201097490266,
+      "status": "ok",
+      "structure": [
+        "vmf",
+        64,
+        0,
+        1,
+        1,
+        320
+      ]
+    },
+    {
+      "seconds": 0.0064219130435958505,
+      "status": "ok",
+      "structure": [
+        "watson",
+        64,
+        0,
+        1,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.03569160797633231,
+      "status": "ok",
+      "structure": [
+        "bingham",
+        64,
+        0,
+        63,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.03957208403153345,
+      "status": "ok",
+      "structure": [
+        "fisher_bingham",
+        64,
+        0,
+        63,
+        1,
+        320
+      ]
+    },
+    {
+      "seconds": 0.006750347965862602,
+      "status": "ok",
+      "structure": [
+        "acg",
+        64,
+        0,
+        1,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.2675590220023878,
+      "status": "ok",
+      "structure": [
+        "matrix_fisher",
+        64,
+        2,
+        2,
+        2,
+        320
+      ]
+    },
+    {
+      "seconds": 0.8409971470246091,
+      "status": "ok",
+      "structure": [
+        "matrix_bingham",
+        64,
+        2,
+        62,
+        0,
+        320
+      ]
+    },
+    {
+      "seconds": 0.8945793470484205,
+      "status": "ok",
+      "structure": [
+        "matrix_fisher_bingham",
+        64,
+        2,
+        63,
+        2,
+        320
+      ]
+    },
+    {
+      "seconds": 0.00970585603499785,
+      "status": "ok",
+      "structure": [
+        "macg",
+        64,
+        2,
+        2,
+        0,
+        320
+      ]
+    }
+  ]
+}

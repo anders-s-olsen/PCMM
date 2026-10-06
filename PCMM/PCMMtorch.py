@@ -18,13 +18,20 @@ class Watson(PCMMtorchBaseModel):
         complex (bool): whether to use the complex Watson distribution (default: False)
         samples_per_sequence (int): number of samples per sequence to be used by HMM (default: 0, meaning one long sequence)
         params (dict): dictionary containing the parameters of the model, if available (default: None
+        tol (float): convergence tolerance for the Kummer series and the
+            moment-based concentration initializer (default: 1e-10)
     """
-    def __init__(self, p:int, K:int=1, HMM:bool=False, complex:bool=False, samples_per_sequence=0, params:dict=None):
+    def __init__(self, p:int, K:int=1, HMM:bool=False, complex:bool=False,
+                 samples_per_sequence=0, params:dict=None, tol:float=1e-10):
         super().__init__()
+
+        if not math.isfinite(tol) or tol <= 0:
+            raise ValueError('tol should be finite and positive.')
 
         self.p = p
         self.K = K
         self.HMM = HMM
+        self.tol = float(tol)
         if samples_per_sequence is None:
             samples_per_sequence = 0
         self.samples_per_sequence = torch.as_tensor(samples_per_sequence)
@@ -86,7 +93,7 @@ class Watson(PCMMtorchBaseModel):
         candidate_scores = []
         for direction in candidate_mu:
             direction_numpy = direction.detach().cpu().numpy()
-            kappa = estimator.optimize_kappa(X_numpy, direction_numpy, beta, tol=1e-10)
+            kappa = estimator.optimize_kappa(X_numpy, direction_numpy, beta, tol=self.tol)
             kappa_tensor = torch.as_tensor([kappa], dtype=X.real.dtype, device=X.device)
             projection = torch.abs(X @ direction.conj()).square().sum()
             log_constant = self.logSA_sphere.to(dtype=X.real.dtype, device=X.device) - self.kummer_log(kappa_tensor)[0]
@@ -96,16 +103,21 @@ class Watson(PCMMtorchBaseModel):
         self.unpack_params({'mu': candidate_mu[selected:selected + 1], 'kappa': torch.stack(candidate_kappa[selected:selected + 1]),
                             'pi': torch.ones(1, dtype=X.real.dtype, device=X.device)})
 
-    def kummer_log(self,kappa, n=1e7,tol=1e-10):
+    def kummer_log(self, kappa, n=10_000_000, tol=None):
         """ 
         Logarithm of the Kummer function for each kappa value.
         Args:
             kappa (torch.Tensor): A tensor of shape (K,) containing the kappa values.
             n (int): The maximum number of terms to compute in the series.
-            tol (float): The tolerance for convergence.
+            tol (float or None): Series tolerance. If omitted, use the model's
+                ``tol`` setting.
         Returns:
             torch.Tensor: A tensor of shape (K,) containing the logarithm of the Kummer function for each kappa value.
         """
+        if tol is None:
+            tol = self.tol
+        if not math.isfinite(tol) or tol <= 0:
+            raise ValueError('tol should be finite and positive.')
         results = []
         term_counts = []
         for k in kappa:

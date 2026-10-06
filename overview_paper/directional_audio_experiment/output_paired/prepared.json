@@ -1,0 +1,1369 @@
+{
+  "schema_version": 2,
+  "preparation_id": "491a705aa35e4140b2de3063c226297c",
+  "config": {
+    "minilibrimix_root": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix",
+    "mcvampire_root": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/In-Car_McVAMPIRE_V1.0",
+    "output_dir": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/output_paired",
+    "seed": 321,
+    "speaker_ids": null,
+    "display_seat_ids": [
+      1,
+      2,
+      3,
+      5
+    ],
+    "source_positions": [
+      1,
+      2,
+      3
+    ],
+    "mouth_orientation_degrees": 0,
+    "microphone_ids": [
+      1,
+      4,
+      5,
+      7
+    ],
+    "reference_channel": 0,
+    "sample_rate": 8000,
+    "n_fft": 1024,
+    "hop_length": 256,
+    "n_frequencies": 6,
+    "frequency_min_hz": 250,
+    "frequency_max_hz": 3500,
+    "amplitude_threshold_db": -40.0,
+    "amplitude_reference_percentile": 95.0,
+    "absolute_amplitude_floor": 1e-10,
+    "min_channel_relative_amplitude": 1e-05,
+    "min_train_observations": 150,
+    "min_test_observations": 1,
+    "min_frequencies_per_frame": 4,
+    "train_seconds": 45,
+    "test_seconds": 30,
+    "conversation_turn_seconds": [
+      1.8,
+      4.2
+    ],
+    "target_two_speaker_fraction": 0.08,
+    "target_three_speaker_fraction": 0.02,
+    "max_two_speaker_fraction": 0.1,
+    "max_three_speaker_fraction": 0.05,
+    "overlap_target_tolerance": 0.015,
+    "airtime_balance_tolerance": 0.05,
+    "received_power_balance_tolerance_db": 0.05,
+    "driving_noise_files": [
+      "80kph.wav",
+      "90kph.wav",
+      "100kph.wav"
+    ],
+    "driving_noise_snr_db": 10,
+    "speech_on_seconds": [
+      1.8,
+      4.2
+    ],
+    "speech_off_seconds": [
+      0.8,
+      2.2
+    ],
+    "source_gains_db": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "train_utterance_fraction": 0.6,
+    "min_utterances_per_split": 2,
+    "models": [
+      "complex_acg",
+      "uniform_vmvm",
+      "complex_gaussian",
+      "complex_bingham",
+      "complex_watson"
+    ],
+    "component_counts": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "fit_restarts": 3,
+    "fit_tolerance": 1e-05,
+    "fit_max_iterations": 2000,
+    "fit_patience": 25,
+    "fit_learning_rate": 0.1,
+    "fit_threads": 8,
+    "device": "cpu",
+    "alignment_min_overlap": 30,
+    "alignment_iterations": 30,
+    "alignment_initializations": 3,
+    "figure_seconds": 18,
+    "export_audio": true
+  },
+  "speaker_ids": [
+    "6295",
+    "4848",
+    "1462"
+  ],
+  "condition_names": [
+    "no_driving_noise",
+    "car_noise"
+  ],
+  "display_seat_ids": [
+    1,
+    2,
+    3,
+    5
+  ],
+  "source_positions": [
+    1,
+    2,
+    3
+  ],
+  "microphone_ids": [
+    1,
+    4,
+    5,
+    7
+  ],
+  "empty_display_seat_id": 5,
+  "geometry": {
+    "microphones_xyz": [
+      [
+        0.0,
+        0.42,
+        0.95
+      ],
+      [
+        0.0,
+        0.38,
+        0.95
+      ],
+      [
+        0.0,
+        -0.38,
+        0.95
+      ],
+      [
+        0.0,
+        -0.42,
+        0.95
+      ],
+      [
+        -1.07,
+        0.565,
+        0.95
+      ],
+      [
+        -1.1,
+        0.565,
+        0.95
+      ],
+      [
+        -1.07,
+        -0.565,
+        0.95
+      ],
+      [
+        -1.1,
+        -0.565,
+        0.95
+      ],
+      [
+        -1.91,
+        0.565,
+        0.95
+      ],
+      [
+        -1.94,
+        0.565,
+        0.95
+      ],
+      [
+        -1.91,
+        -0.565,
+        0.95
+      ],
+      [
+        -1.94,
+        -0.565,
+        0.95
+      ],
+      [
+        -0.965,
+        0.0,
+        0.95
+      ],
+      [
+        -1.675,
+        0.0,
+        0.95
+      ]
+    ],
+    "seat_centers_xyz": [
+      [
+        -0.29,
+        0.4,
+        0.65
+      ],
+      [
+        -0.27,
+        -0.43,
+        0.65
+      ],
+      [
+        -1.16,
+        0.34,
+        0.65
+      ],
+      [
+        -1.16,
+        -0.01,
+        0.65
+      ],
+      [
+        -1.17,
+        -0.34,
+        0.65
+      ],
+      [
+        -2.06,
+        0.48,
+        0.65
+      ],
+      [
+        -2.04,
+        0.0,
+        0.65
+      ],
+      [
+        -2.03,
+        -0.5,
+        0.65
+      ]
+    ],
+    "note": "Measured mouth-simulator centers; acoustic mouth point is about 7 cm forward. Top views omit height."
+  },
+  "common_training_output_gain": 1.441950507660078,
+  "source_power_balance": {
+    "definition": "Mean squared isolated received waveform over all selected microphones and all samples.",
+    "training_before_equalization": {
+      "powers": [
+        0.00021824752007749867,
+        0.00018171857664955752,
+        0.00012366218687097136
+      ],
+      "power_fractions": [
+        0.41679857050090174,
+        0.3470373590229075,
+        0.2361640704761907
+      ],
+      "relative_db": [
+        1.0875412876180865,
+        0.2920413764598923,
+        -1.379582664077992
+      ],
+      "max_minus_min_db": 2.4671239516960783
+    },
+    "equalization_gains_linear": [
+      0.882313523036176,
+      0.9669364484600524,
+      1.17213904575801
+    ],
+    "equalization_gains_db": [
+      -1.0875412876180872,
+      -0.2920413764598927,
+      1.379582664077992
+    ],
+    "training_after_equalization": {
+      "powers": [
+        0.00035326116540813305,
+        0.0003532611654081335,
+        0.0003532611654081336
+      ],
+      "power_fractions": [
+        0.33333333333333304,
+        0.3333333333333335,
+        0.3333333333333336
+      ],
+      "relative_db": [
+        -4.821637332766438e-15,
+        9.64327466553287e-16,
+        1.928654933106574e-15
+      ],
+      "max_minus_min_db": 6.750292265873012e-15
+    },
+    "test_after_frozen_equalization": {
+      "powers": [
+        0.00042013980720797747,
+        0.0004840486932668663,
+        0.00032845041584755386
+      ],
+      "power_fractions": [
+        0.3408458078392274,
+        0.3926930156570385,
+        0.2664611765037341
+      ],
+      "relative_db": [
+        0.15142931842671212,
+        0.766381520708152,
+        -0.9178108391348637
+      ],
+      "max_minus_min_db": 1.6841923598430157
+    }
+  },
+  "driving_noise": {
+    "files": [
+      "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/In-Car_McVAMPIRE_V1.0/driving_noise/80kph.wav",
+      "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/In-Car_McVAMPIRE_V1.0/driving_noise/90kph.wav",
+      "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/In-Car_McVAMPIRE_V1.0/driving_noise/100kph.wav"
+    ],
+    "segments": [
+      {
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/In-Car_McVAMPIRE_V1.0/driving_noise/80kph.wav",
+        "train_start_seconds": 0.0,
+        "train_end_seconds": 15.0,
+        "test_start_seconds": 20.0,
+        "test_end_seconds": 30.0,
+        "separation_seconds": 5.0
+      },
+      {
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/In-Car_McVAMPIRE_V1.0/driving_noise/90kph.wav",
+        "train_start_seconds": 0.0,
+        "train_end_seconds": 15.0,
+        "test_start_seconds": 20.0,
+        "test_end_seconds": 30.0,
+        "separation_seconds": 5.0
+      },
+      {
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/In-Car_McVAMPIRE_V1.0/driving_noise/100kph.wav",
+        "train_start_seconds": 0.0,
+        "train_end_seconds": 15.0,
+        "test_start_seconds": 20.0,
+        "test_end_seconds": 30.0,
+        "separation_seconds": 5.0
+      }
+    ],
+    "split_policy": "Each speed contributes equally; train uses each file's beginning and test its non-overlapping end.",
+    "target_training_snr_db": 10,
+    "scaling_definition": "Sum of isolated clean-source received powers divided by measured multichannel noise power, averaged over all training samples/channels.",
+    "training_derived_noise_gain": 0.5157739163398968,
+    "realized_training_snr_db": 10.000000000000002,
+    "realized_test_snr_db_with_frozen_gain": 9.999539868675898
+  },
+  "schedule": {
+    "train": {
+      "n_samples": 360000,
+      "n_frames": 1403,
+      "active_speaker_frame_counts": {
+        "1": 1263,
+        "2": 113,
+        "3": 27
+      },
+      "active_speaker_frame_fractions": {
+        "1": 0.9002138275124733,
+        "2": 0.08054169636493229,
+        "3": 0.01924447612259444
+      },
+      "target_frame_fractions": {
+        "2": 0.08,
+        "3": 0.02
+      },
+      "target_fraction_errors": {
+        "2": 0.000541696364932287,
+        "3": -0.0007555238774055589
+      },
+      "source_frame_airtime_counts": [
+        523,
+        522,
+        525
+      ],
+      "source_sample_airtime_counts": [
+        127424,
+        127424,
+        127424
+      ],
+      "single_speaker_frame_counts": [
+        421,
+        421,
+        421
+      ],
+      "frame_airtime_relative_spread": 0.005732484076433121,
+      "sample_airtime_relative_spread": 0.0,
+      "single_speaker_airtime_relative_spread": 0.0,
+      "turns": [
+        {
+          "speaker_index": 0,
+          "start_seconds": 0.0,
+          "end_seconds": 3.0
+        },
+        {
+          "speaker_index": 2,
+          "start_seconds": 3.0,
+          "end_seconds": 6.0
+        },
+        {
+          "speaker_index": 1,
+          "start_seconds": 6.0,
+          "end_seconds": 9.0
+        },
+        {
+          "speaker_index": 0,
+          "start_seconds": 9.0,
+          "end_seconds": 12.0
+        },
+        {
+          "speaker_index": 2,
+          "start_seconds": 12.0,
+          "end_seconds": 15.0
+        },
+        {
+          "speaker_index": 1,
+          "start_seconds": 15.0,
+          "end_seconds": 18.0
+        },
+        {
+          "speaker_index": 0,
+          "start_seconds": 18.0,
+          "end_seconds": 21.0
+        },
+        {
+          "speaker_index": 2,
+          "start_seconds": 21.0,
+          "end_seconds": 24.0
+        },
+        {
+          "speaker_index": 1,
+          "start_seconds": 24.0,
+          "end_seconds": 27.0
+        },
+        {
+          "speaker_index": 0,
+          "start_seconds": 27.0,
+          "end_seconds": 30.0
+        },
+        {
+          "speaker_index": 2,
+          "start_seconds": 30.0,
+          "end_seconds": 33.0
+        },
+        {
+          "speaker_index": 1,
+          "start_seconds": 33.0,
+          "end_seconds": 36.0
+        },
+        {
+          "speaker_index": 2,
+          "start_seconds": 36.0,
+          "end_seconds": 39.0
+        },
+        {
+          "speaker_index": 0,
+          "start_seconds": 39.0,
+          "end_seconds": 42.0
+        },
+        {
+          "speaker_index": 1,
+          "start_seconds": 42.0,
+          "end_seconds": 45.0
+        }
+      ],
+      "overlap_insertions": [
+        {
+          "order": 2,
+          "base_speaker_index": 0,
+          "added_speaker_indices": [
+            1
+          ],
+          "first_frame": 35,
+          "last_frame_exclusive": 55,
+          "start_seconds": 1.216,
+          "end_seconds": 1.76
+        },
+        {
+          "order": 2,
+          "base_speaker_index": 1,
+          "added_speaker_indices": [
+            2
+          ],
+          "first_frame": 223,
+          "last_frame_exclusive": 243,
+          "start_seconds": 7.232,
+          "end_seconds": 7.776
+        },
+        {
+          "order": 2,
+          "base_speaker_index": 2,
+          "added_speaker_indices": [
+            0
+          ],
+          "first_frame": 129,
+          "last_frame_exclusive": 149,
+          "start_seconds": 4.224,
+          "end_seconds": 4.768
+        },
+        {
+          "order": 3,
+          "base_speaker_index": 0,
+          "added_speaker_indices": [
+            1,
+            2
+          ],
+          "first_frame": 322,
+          "last_frame_exclusive": 331,
+          "start_seconds": 10.4,
+          "end_seconds": 10.592
+        },
+        {
+          "order": 3,
+          "base_speaker_index": 1,
+          "added_speaker_indices": [
+            0,
+            2
+          ],
+          "first_frame": 509,
+          "last_frame_exclusive": 518,
+          "start_seconds": 16.384,
+          "end_seconds": 16.576
+        },
+        {
+          "order": 3,
+          "base_speaker_index": 2,
+          "added_speaker_indices": [
+            0,
+            1
+          ],
+          "first_frame": 415,
+          "last_frame_exclusive": 424,
+          "start_seconds": 13.376,
+          "end_seconds": 13.568
+        }
+      ],
+      "activity_definition": "A source is active in an STFT frame iff its scheduled sample support intersects that unpadded analysis window."
+    },
+    "test": {
+      "n_samples": 240000,
+      "n_frames": 934,
+      "active_speaker_frame_counts": {
+        "1": 840,
+        "2": 76,
+        "3": 18
+      },
+      "active_speaker_frame_fractions": {
+        "1": 0.8993576017130621,
+        "2": 0.08137044967880086,
+        "3": 0.019271948608137045
+      },
+      "target_frame_fractions": {
+        "2": 0.08,
+        "3": 0.02
+      },
+      "target_fraction_errors": {
+        "2": 0.0013704496788008586,
+        "3": -0.0007280513918629557
+      },
+      "source_frame_airtime_counts": [
+        351,
+        351,
+        344
+      ],
+      "source_sample_airtime_counts": [
+        84608,
+        84607,
+        84609
+      ],
+      "single_speaker_frame_counts": [
+        280,
+        279,
+        281
+      ],
+      "frame_airtime_relative_spread": 0.020076481835564052,
+      "sample_airtime_relative_spread": 2.3638426626323752e-05,
+      "single_speaker_airtime_relative_spread": 0.007142857142857143,
+      "turns": [
+        {
+          "speaker_index": 2,
+          "start_seconds": 0.0,
+          "end_seconds": 3.333375
+        },
+        {
+          "speaker_index": 1,
+          "start_seconds": 3.333375,
+          "end_seconds": 6.666625
+        },
+        {
+          "speaker_index": 0,
+          "start_seconds": 6.666625,
+          "end_seconds": 10.0
+        },
+        {
+          "speaker_index": 1,
+          "start_seconds": 10.0,
+          "end_seconds": 13.333375
+        },
+        {
+          "speaker_index": 0,
+          "start_seconds": 13.333375,
+          "end_seconds": 16.666625
+        },
+        {
+          "speaker_index": 2,
+          "start_seconds": 16.666625,
+          "end_seconds": 20.0
+        },
+        {
+          "speaker_index": 0,
+          "start_seconds": 20.0,
+          "end_seconds": 23.333375
+        },
+        {
+          "speaker_index": 1,
+          "start_seconds": 23.333375,
+          "end_seconds": 26.666625
+        },
+        {
+          "speaker_index": 2,
+          "start_seconds": 26.666625,
+          "end_seconds": 30.0
+        }
+      ],
+      "overlap_insertions": [
+        {
+          "order": 2,
+          "base_speaker_index": 0,
+          "added_speaker_indices": [
+            1
+          ],
+          "first_frame": 668,
+          "last_frame_exclusive": 683,
+          "start_seconds": 21.472,
+          "end_seconds": 21.856
+        },
+        {
+          "order": 2,
+          "base_speaker_index": 1,
+          "added_speaker_indices": [
+            2
+          ],
+          "first_frame": 147,
+          "last_frame_exclusive": 162,
+          "start_seconds": 4.8,
+          "end_seconds": 5.184
+        },
+        {
+          "order": 2,
+          "base_speaker_index": 2,
+          "added_speaker_indices": [
+            0
+          ],
+          "first_frame": 43,
+          "last_frame_exclusive": 58,
+          "start_seconds": 1.472,
+          "end_seconds": 1.856
+        },
+        {
+          "order": 3,
+          "base_speaker_index": 0,
+          "added_speaker_indices": [
+            1,
+            2
+          ],
+          "first_frame": 256,
+          "last_frame_exclusive": 262,
+          "start_seconds": 8.288,
+          "end_seconds": 8.384
+        },
+        {
+          "order": 3,
+          "base_speaker_index": 1,
+          "added_speaker_indices": [
+            0,
+            2
+          ],
+          "first_frame": 360,
+          "last_frame_exclusive": 366,
+          "start_seconds": 11.616,
+          "end_seconds": 11.712
+        },
+        {
+          "order": 3,
+          "base_speaker_index": 2,
+          "added_speaker_indices": [
+            0,
+            1
+          ],
+          "first_frame": 568,
+          "last_frame_exclusive": 574,
+          "start_seconds": 18.272,
+          "end_seconds": 18.368
+        }
+      ],
+      "activity_definition": "A source is active in an STFT frame iff its scheduled sample support intersects that unpadded analysis window."
+    }
+  },
+  "train_utterances": [
+    [
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-244435-0013",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/7850-286674-0006_6295-244435-0013.wav",
+        "seconds": 3.3
+      },
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-244435-0025",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/6295-244435-0025_8297-275154-0007.wav",
+        "seconds": 4.49
+      },
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-64301-0018",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/6295-64301-0018_3081-166546-0067.wav",
+        "seconds": 7.955
+      },
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-64301-0028",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/6295-64301-0028_5536-43358-0005.wav",
+        "seconds": 10.65
+      },
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-64301-0009",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/6313-76958-0019_6295-64301-0009.wav",
+        "seconds": 3.005
+      },
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-64301-0005",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/251-136532-0017_6295-64301-0005.wav",
+        "seconds": 6.43
+      },
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-244435-0012",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/6295-244435-0012_6345-93306-0004.wav",
+        "seconds": 3.17
+      },
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-244435-0020",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/6295-244435-0020_6241-61943-0026.wav",
+        "seconds": 7.44
+      },
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-244435-0029",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/6295-244435-0029_1919-142785-0053.wav",
+        "seconds": 3.71
+      },
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-244435-0008",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/3536-23268-0027_6295-244435-0008.wav",
+        "seconds": 10.315
+      },
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-244435-0037",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/6345-64257-0009_6295-244435-0037.wav",
+        "seconds": 5.18
+      }
+    ],
+    [
+      {
+        "speaker_id": "4848",
+        "utterance_id": "4848-28247-0009",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/train/s2/5304-55856-0012_4848-28247-0009.wav",
+        "seconds": 13.935
+      },
+      {
+        "speaker_id": "4848",
+        "utterance_id": "4848-29108-0025",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/train/s1/4848-29108-0025_5337-37090-0085.wav",
+        "seconds": 12.97
+      },
+      {
+        "speaker_id": "4848",
+        "utterance_id": "4848-28247-0025",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/train/s1/4848-28247-0025_920-681-0035.wav",
+        "seconds": 13.68
+      },
+      {
+        "speaker_id": "4848",
+        "utterance_id": "4848-29108-0023",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/train/s1/4848-29108-0023_3171-7574-0042.wav",
+        "seconds": 13.72
+      }
+    ],
+    [
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170142-0009",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/1462-170142-0009_5694-64029-0009.wav",
+        "seconds": 3.16
+      },
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170142-0027",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/1462-170142-0027_1272-128104-0011.wav",
+        "seconds": 4.19
+      },
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170145-0003",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/1462-170145-0003_2803-161169-0017.wav",
+        "seconds": 8.01
+      },
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170138-0027",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/84-121550-0020_1462-170138-0027.wav",
+        "seconds": 5.005
+      },
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170138-0019",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/7976-110523-0013_1462-170138-0019.wav",
+        "seconds": 3.555
+      },
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170145-0016",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/652-130737-0013_1462-170145-0016.wav",
+        "seconds": 4.175
+      },
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170142-0018",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/1462-170142-0018_3853-163249-0020.wav",
+        "seconds": 3.265
+      },
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170142-0021",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/3170-137482-0016_1462-170142-0021.wav",
+        "seconds": 4.625
+      },
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170138-0022",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/5895-34629-0033_1462-170138-0022.wav",
+        "seconds": 6.185
+      },
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170138-0024",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/5694-64029-0004_1462-170138-0024.wav",
+        "seconds": 3.355
+      },
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170138-0018",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/1462-170138-0018_1988-24833-0012.wav",
+        "seconds": 3.64
+      }
+    ]
+  ],
+  "test_utterances": [
+    [
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-64301-0020",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/3853-163249-0038_6295-64301-0020.wav",
+        "seconds": 5.94
+      },
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-64301-0003",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/6295-64301-0003_3536-8226-0028.wav",
+        "seconds": 3.265
+      },
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-244435-0033",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/6295-244435-0033_2277-149897-0029.wav",
+        "seconds": 7.645
+      },
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-244435-0004",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/6295-244435-0004_3081-166546-0030.wav",
+        "seconds": 12.315
+      },
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-244435-0005",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/6295-244435-0005_3576-138058-0013.wav",
+        "seconds": 4.4
+      },
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-244435-0010",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/2428-83699-0010_6295-244435-0010.wav",
+        "seconds": 3.12
+      },
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-244435-0034",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/2086-149220-0005_6295-244435-0034.wav",
+        "seconds": 3.42
+      },
+      {
+        "speaker_id": "6295",
+        "utterance_id": "6295-244435-0039",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/3853-163249-0005_6295-244435-0039.wav",
+        "seconds": 9.145
+      }
+    ],
+    [
+      {
+        "speaker_id": "4848",
+        "utterance_id": "4848-29108-0017",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/train/s2/6696-68773-0003_4848-29108-0017.wav",
+        "seconds": 13.96
+      },
+      {
+        "speaker_id": "4848",
+        "utterance_id": "4848-101836-0016",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/train/s2/5319-42637-0001_4848-101836-0016.wav",
+        "seconds": 14.335
+      }
+    ],
+    [
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170138-0006",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/1462-170138-0006_2803-154320-0002.wav",
+        "seconds": 3.53
+      },
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170142-0033",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/2277-149897-0009_1462-170142-0033.wav",
+        "seconds": 3.725
+      },
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170138-0002",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/1462-170138-0002_3576-138058-0015.wav",
+        "seconds": 4.645
+      },
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170142-0028",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/1462-170142-0028_2902-9008-0000.wav",
+        "seconds": 3.005
+      },
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170138-0017",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/3752-4943-0002_1462-170138-0017.wav",
+        "seconds": 6.21
+      },
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170142-0013",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s2/3576-138058-0037_1462-170142-0013.wav",
+        "seconds": 3.9
+      },
+      {
+        "speaker_id": "1462",
+        "utterance_id": "1462-170145-0008",
+        "path": "/dtu-compute/HCP_dFC/2023/hcp_dfc/overview_paper/directional_audio_experiment/MiniLibriMix/val/s1/1462-170145-0008_84-121123-0001.wav",
+        "seconds": 3.15
+      }
+    ]
+  ],
+  "train_events": [
+    [
+      {
+        "start_seconds": 0.0,
+        "end_seconds": 3.0,
+        "utterance_ids": [
+          "6295-244435-0013",
+          "6295-244435-0025"
+        ]
+      },
+      {
+        "start_seconds": 4.224,
+        "end_seconds": 4.768,
+        "utterance_ids": [
+          "6295-244435-0025"
+        ]
+      },
+      {
+        "start_seconds": 9.0,
+        "end_seconds": 12.0,
+        "utterance_ids": [
+          "6295-244435-0025"
+        ]
+      },
+      {
+        "start_seconds": 13.376,
+        "end_seconds": 13.568,
+        "utterance_ids": [
+          "6295-244435-0025"
+        ]
+      },
+      {
+        "start_seconds": 16.384,
+        "end_seconds": 16.576,
+        "utterance_ids": [
+          "6295-244435-0025"
+        ]
+      },
+      {
+        "start_seconds": 18.0,
+        "end_seconds": 21.0,
+        "utterance_ids": [
+          "6295-244435-0025",
+          "6295-64301-0018"
+        ]
+      },
+      {
+        "start_seconds": 27.0,
+        "end_seconds": 30.0,
+        "utterance_ids": [
+          "6295-64301-0018"
+        ]
+      },
+      {
+        "start_seconds": 39.0,
+        "end_seconds": 42.0,
+        "utterance_ids": [
+          "6295-64301-0018",
+          "6295-64301-0028"
+        ]
+      }
+    ],
+    [
+      {
+        "start_seconds": 1.216,
+        "end_seconds": 1.76,
+        "utterance_ids": [
+          "4848-28247-0009"
+        ]
+      },
+      {
+        "start_seconds": 6.0,
+        "end_seconds": 9.0,
+        "utterance_ids": [
+          "4848-28247-0009"
+        ]
+      },
+      {
+        "start_seconds": 10.4,
+        "end_seconds": 10.592,
+        "utterance_ids": [
+          "4848-28247-0009"
+        ]
+      },
+      {
+        "start_seconds": 13.376,
+        "end_seconds": 13.568,
+        "utterance_ids": [
+          "4848-28247-0009"
+        ]
+      },
+      {
+        "start_seconds": 15.0,
+        "end_seconds": 18.0,
+        "utterance_ids": [
+          "4848-28247-0009"
+        ]
+      },
+      {
+        "start_seconds": 24.0,
+        "end_seconds": 27.0,
+        "utterance_ids": [
+          "4848-28247-0009"
+        ]
+      },
+      {
+        "start_seconds": 33.0,
+        "end_seconds": 36.0,
+        "utterance_ids": [
+          "4848-28247-0009"
+        ]
+      },
+      {
+        "start_seconds": 42.0,
+        "end_seconds": 45.0,
+        "utterance_ids": [
+          "4848-28247-0009",
+          "4848-29108-0025"
+        ]
+      }
+    ],
+    [
+      {
+        "start_seconds": 3.0,
+        "end_seconds": 6.0,
+        "utterance_ids": [
+          "1462-170142-0009",
+          "1462-170142-0027"
+        ]
+      },
+      {
+        "start_seconds": 7.232,
+        "end_seconds": 7.776,
+        "utterance_ids": [
+          "1462-170142-0027"
+        ]
+      },
+      {
+        "start_seconds": 10.4,
+        "end_seconds": 10.592,
+        "utterance_ids": [
+          "1462-170142-0027"
+        ]
+      },
+      {
+        "start_seconds": 12.0,
+        "end_seconds": 15.0,
+        "utterance_ids": [
+          "1462-170142-0027"
+        ]
+      },
+      {
+        "start_seconds": 16.384,
+        "end_seconds": 16.576,
+        "utterance_ids": [
+          "1462-170142-0027"
+        ]
+      },
+      {
+        "start_seconds": 21.0,
+        "end_seconds": 24.0,
+        "utterance_ids": [
+          "1462-170142-0027",
+          "1462-170145-0003"
+        ]
+      },
+      {
+        "start_seconds": 30.0,
+        "end_seconds": 33.0,
+        "utterance_ids": [
+          "1462-170145-0003"
+        ]
+      },
+      {
+        "start_seconds": 36.0,
+        "end_seconds": 39.0,
+        "utterance_ids": [
+          "1462-170145-0003",
+          "1462-170138-0027"
+        ]
+      }
+    ]
+  ],
+  "test_events": [
+    [
+      {
+        "start_seconds": 1.472,
+        "end_seconds": 1.856,
+        "utterance_ids": [
+          "6295-64301-0020"
+        ]
+      },
+      {
+        "start_seconds": 6.666625,
+        "end_seconds": 10.0,
+        "utterance_ids": [
+          "6295-64301-0020"
+        ]
+      },
+      {
+        "start_seconds": 11.616,
+        "end_seconds": 11.712,
+        "utterance_ids": [
+          "6295-64301-0020"
+        ]
+      },
+      {
+        "start_seconds": 13.333375,
+        "end_seconds": 16.666625,
+        "utterance_ids": [
+          "6295-64301-0020",
+          "6295-64301-0003"
+        ]
+      },
+      {
+        "start_seconds": 18.272,
+        "end_seconds": 18.368,
+        "utterance_ids": [
+          "6295-64301-0003"
+        ]
+      },
+      {
+        "start_seconds": 20.0,
+        "end_seconds": 23.333375,
+        "utterance_ids": [
+          "6295-64301-0003",
+          "6295-244435-0033"
+        ]
+      }
+    ],
+    [
+      {
+        "start_seconds": 3.333375,
+        "end_seconds": 6.666625,
+        "utterance_ids": [
+          "4848-29108-0017"
+        ]
+      },
+      {
+        "start_seconds": 8.288,
+        "end_seconds": 8.384,
+        "utterance_ids": [
+          "4848-29108-0017"
+        ]
+      },
+      {
+        "start_seconds": 10.0,
+        "end_seconds": 13.333375,
+        "utterance_ids": [
+          "4848-29108-0017"
+        ]
+      },
+      {
+        "start_seconds": 18.272,
+        "end_seconds": 18.368,
+        "utterance_ids": [
+          "4848-29108-0017"
+        ]
+      },
+      {
+        "start_seconds": 21.472,
+        "end_seconds": 21.856,
+        "utterance_ids": [
+          "4848-29108-0017"
+        ]
+      },
+      {
+        "start_seconds": 23.333375,
+        "end_seconds": 26.666625,
+        "utterance_ids": [
+          "4848-29108-0017"
+        ]
+      }
+    ],
+    [
+      {
+        "start_seconds": 0.0,
+        "end_seconds": 3.333375,
+        "utterance_ids": [
+          "1462-170138-0006",
+          "1462-170142-0033"
+        ]
+      },
+      {
+        "start_seconds": 4.8,
+        "end_seconds": 5.184,
+        "utterance_ids": [
+          "1462-170142-0033"
+        ]
+      },
+      {
+        "start_seconds": 8.288,
+        "end_seconds": 8.384,
+        "utterance_ids": [
+          "1462-170142-0033"
+        ]
+      },
+      {
+        "start_seconds": 11.616,
+        "end_seconds": 11.712,
+        "utterance_ids": [
+          "1462-170142-0033"
+        ]
+      },
+      {
+        "start_seconds": 16.666625,
+        "end_seconds": 20.0,
+        "utterance_ids": [
+          "1462-170142-0033",
+          "1462-170138-0002"
+        ]
+      },
+      {
+        "start_seconds": 26.666625,
+        "end_seconds": 30.0,
+        "utterance_ids": [
+          "1462-170138-0002"
+        ]
+      }
+    ]
+  ],
+  "train_used_utterance_ids": [
+    [
+      "6295-244435-0013",
+      "6295-244435-0025",
+      "6295-64301-0018",
+      "6295-64301-0028"
+    ],
+    [
+      "4848-28247-0009",
+      "4848-29108-0025"
+    ],
+    [
+      "1462-170138-0027",
+      "1462-170142-0009",
+      "1462-170142-0027",
+      "1462-170145-0003"
+    ]
+  ],
+  "test_used_utterance_ids": [
+    [
+      "6295-244435-0033",
+      "6295-64301-0003",
+      "6295-64301-0020"
+    ],
+    [
+      "4848-29108-0017"
+    ],
+    [
+      "1462-170138-0002",
+      "1462-170138-0006",
+      "1462-170142-0033"
+    ]
+  ],
+  "truth_power_definition": "Mean isolated clean-source STFT power over selected microphones; identical across paired conditions.",
+  "validity_definition": "No amplitude gate. All train and test STFT frames are valid because the joint schedule is continuously speech-active.",
+  "observations_train": [
+    1403,
+    1403,
+    1403,
+    1403,
+    1403,
+    1403
+  ],
+  "observations_test": [
+    934,
+    934,
+    934,
+    934,
+    934,
+    934
+  ],
+  "frequencies_hz": [
+    250.0,
+    898.4375,
+    1546.875,
+    2203.125,
+    2851.5625,
+    3500.0
+  ],
+  "prepared_files": {
+    "no_driving_noise": {
+      "train": "train_no_driving_noise.npz",
+      "test": "test_no_driving_noise.npz"
+    },
+    "car_noise": {
+      "train": "train_car_noise.npz",
+      "test": "test_car_noise.npz"
+    }
+  },
+  "scope": "Paired clean/car-noise conditions from one fixed three-speaker/four-seat measured configuration; custom utterance-disjoint split, not the official MiniLibriMix benchmark split."
+}

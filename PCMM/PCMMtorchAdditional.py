@@ -1,11 +1,11 @@
 """Additional real-valued PyTorch distributions for PCMM.
 
+The von Mises--Fisher normalizer is evaluated from modified Bessel functions.
 The vector Fisher--Bingham normalizer is evaluated by the one-dimensional
-continuous-Euler quadrature of Chen and Tanaka (2020).  Matrix Fisher models
-on V_2(R^p) use an exact one-dimensional Gauss--Jacobi/Bessel reduction by
-default.  The other matrix models use a saddlepoint approximation calibrated
-so that the uniform distribution has log normalizer zero.  Consequently,
-matrix log densities are relative to normalized Haar measure.
+continuous-Euler quadrature of Chen and Tanaka (2020).  Matrix models use a
+saddlepoint approximation calibrated so that the uniform distribution has
+log normalizer zero.  Consequently, matrix log densities are relative to
+normalized Haar measure.
 
 Parameterizations
 -----------------
@@ -24,123 +24,80 @@ MatrixFisherBingham
 from __future__ import annotations
 
 import math
-from functools import lru_cache
 from typing import Optional
 
 import numpy as np
 import torch
 import torch.nn as nn
-from scipy.special import betaln, gammaln, hyp0f1, ive, logsumexp, roots_jacobi
+from scipy.special import gammaln, ive
 
 from PCMM.PCMMtorchBaseModel import PCMMtorchBaseModel
 
 
-@lru_cache(maxsize=None)
-def _matrix_fisher_q2_quadrature(p: int, quadrature_points: int) -> tuple[np.ndarray, np.ndarray]:
-    """Return radial nodes and normalized log weights for exact q=2 integration.
-
-    If t is one coordinate of a uniform point on S^(p-1), its unnormalized
-    density is (1-t^2)^((p-3)/2). Gauss--Jacobi quadrature therefore evaluates
-    the remaining one-dimensional expectation directly. Arrays are immutable
-    so callers cannot corrupt the process-wide cache.
-    """
-    if p < 3:
-        raise ValueError('The q=2 Matrix Fisher normalizer requires p >= 3.')
-    if quadrature_points < 8:
-        raise ValueError('exact_quadrature_points should be at least 8.')
-    alpha = (p - 3.0) / 2.0
-    nodes, weights = roots_jacobi(quadrature_points, alpha, alpha)
-    radial_nodes = np.sqrt(np.maximum(1.0 - nodes * nodes, 0.0))
-    log_measure = betaln(0.5, alpha + 1.0)
-    log_weights = np.log(weights) - log_measure
-    radial_nodes.setflags(write=False)
-    log_weights.setflags(write=False)
-    return radial_nodes, log_weights
-
-
-def _log_vmf_uniform_mgf_and_score(ambient_dimension: int, concentration: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Stable log E[exp(k*x_1)] and its derivative for a uniform sphere.
-
-    scipy.special.ive removes the exponentially growing part of the modified
-    Bessel function. Exact zeros are handled analytically, which is also
-    required for a well-defined uniform Matrix Fisher score.
-    """
-    concentration = np.asarray(concentration, dtype=np.float64)
-    if np.any(concentration < 0) or np.any(~np.isfinite(concentration)):
-        raise ValueError('Matrix Fisher singular values should be finite and non-negative.')
-    order = ambient_dimension / 2.0 - 1.0
-    log_mgf = np.zeros_like(concentration)
-    score = np.zeros_like(concentration)
-
-    # For small arguments and large Bessel order, ive can underflow even
-    # though the normalized moment generating function is close to one.
-    # The equivalent 0F1 representation is stable in that regime.
-    small = (concentration > 0.0) & (concentration <= 50.0)
-    if np.any(small):
-        argument = np.square(concentration[small]) / 4.0
-        shape = ambient_dimension / 2.0
-        mgf = hyp0f1(shape, argument)
-        next_mgf = hyp0f1(shape + 1.0, argument)
-        if np.any(~np.isfinite(mgf)) or np.any(~np.isfinite(next_mgf)) or np.any(mgf <= 0.0):
-            raise RuntimeError('Hypergeometric evaluation failed in the exact Matrix Fisher normalizer.')
-        log_mgf[small] = np.log(mgf)
-        score[small] = (concentration[small] / ambient_dimension * next_mgf / mgf)
-
-    large = concentration > 50.0
-    if np.any(large):
-        large_concentration = concentration[large]
-        scaled_bessel = ive(order, large_concentration)
-        scaled_bessel_next = ive(order + 1.0, large_concentration)
-        if np.any(~np.isfinite(scaled_bessel)) or np.any(~np.isfinite(scaled_bessel_next)) or np.any(scaled_bessel <= 0.0):
-            raise RuntimeError('Scaled Bessel evaluation failed in the exact Matrix Fisher normalizer.')
-        log_mgf[large] = (
-            gammaln(ambient_dimension / 2.0)
-            + order * (math.log(2.0) - np.log(large_concentration))
-            + np.log(scaled_bessel)
-            + large_concentration
+def _require_vmf_cpu(device: torch.device) -> None:
+    """Reject GPU evaluation before SciPy receives a tensor."""
+    if torch.device(device).type != 'cpu':
+        raise RuntimeError(
+            'VonMisesFisher uses SciPy modified-Bessel functions for its '
+            'normalizer and therefore supports CPU tensors only. Move the '
+            'vMF model and data to the CPU.'
         )
-        score[large] = scaled_bessel_next / scaled_bessel
-    return log_mgf, score
 
 
-class _MatrixFisherQ2ExactLogNormalizer(torch.autograd.Function):
-    """Exact normalized-Haar q=2 log normalizer with an analytic first score.
-
-    For singular values ``s1, s2``, the reduction is
-
-    ``Z = E[A_{p-1}(s1*R) A_{p-1}(s2*R)]``,
-
-    where ``R=sqrt(1-T^2)``, ``T`` has density proportional to
-    ``(1-T^2)^((p-3)/2)``, and ``A_m`` is the uniform-sphere vMF moment
-    generating function.  Gauss--Jacobi handles the expectation; the saved
-    Bessel ratios are its analytic derivatives with respect to ``s1, s2``.
-    """
+class _VonMisesFisherBesselLogNormalizer(torch.autograd.Function):
+    """Surface-measure vMF log normalizer and analytic Bessel-ratio score."""
 
     @staticmethod
-    def forward(ctx, singular_values: torch.Tensor, p: int, quadrature_points: int) -> torch.Tensor:
-        if singular_values.ndim != 2 or singular_values.shape[1] != 2:
-            raise ValueError('Expected Matrix Fisher singular values with shape (K, 2).')
-        radial_nodes, log_weights = _matrix_fisher_q2_quadrature(int(p), int(quadrature_points))
-        values = singular_values.detach().double().cpu().numpy()
-        concentrations = values[:, :, None] * radial_nodes[None, None, :]
-        log_mgf, bessel_score = _log_vmf_uniform_mgf_and_score(int(p) - 1, concentrations)
-        log_integrands = log_weights[None, :] + log_mgf.sum(axis=1)
-        log_normalizers = logsumexp(log_integrands, axis=1)
-        posterior_weights = np.exp(log_integrands - log_normalizers[:, None])
-        singular_scores = np.sum(posterior_weights[:, None, :] * radial_nodes[None, None, :] * bessel_score, axis=2)
-        uniform_components = np.all(values == 0.0, axis=1)
-        log_normalizers[uniform_components] = 0.0
-        singular_scores[uniform_components] = 0.0
-        if np.any(~np.isfinite(log_normalizers)) or np.any(~np.isfinite(singular_scores)):
-            raise RuntimeError('Exact Matrix Fisher quadrature returned a non-finite result.')
-        score_tensor = torch.as_tensor(singular_scores, dtype=singular_values.dtype, device=singular_values.device)
+    def forward(ctx, concentration: torch.Tensor, p: int) -> torch.Tensor:
+        _require_vmf_cpu(concentration.device)
+        values = concentration.detach().double().numpy()
+        if np.any(values < 0.0) or np.any(~np.isfinite(values)):
+            raise ValueError('vMF concentrations should be finite and non-negative.')
+
+        order = p / 2.0 - 1.0
+        log_surface_area = math.log(2.0) + (p / 2.0) * math.log(math.pi) - gammaln(p / 2.0)
+        log_normalizers = np.full_like(values, log_surface_area)
+        scores = np.zeros_like(values)
+
+        # The Bessel formula has a removable singularity at zero.  Its local
+        # expansion prevents log(0) and loss of precision without changing
+        # the definition of the normalizer.
+        small = (values > 0.0) & (values < 1e-3)
+        if np.any(small):
+            kappa = values[small]
+            log_normalizers[small] += (
+                kappa**2 / (2.0 * p)
+                - kappa**4 / (4.0 * p**2 * (p + 2.0))
+            )
+            scores[small] = kappa / p - kappa**3 / (p**2 * (p + 2.0))
+
+        regular = values >= 1e-3
+        if np.any(regular):
+            kappa = values[regular]
+            scaled = ive(order, kappa)
+            scaled_next = ive(order + 1.0, kappa)
+            if (
+                np.any(~np.isfinite(scaled))
+                or np.any(~np.isfinite(scaled_next))
+                or np.any(scaled <= 0.0)
+            ):
+                raise RuntimeError('SciPy scaled-Bessel evaluation failed for the vMF normalizer.')
+            log_normalizers[regular] = (
+                (p / 2.0) * math.log(2.0 * math.pi)
+                + np.log(scaled)
+                + kappa
+                - order * np.log(kappa)
+            )
+            scores[regular] = scaled_next / scaled
+
+        score_tensor = torch.as_tensor(scores, dtype=concentration.dtype, device=concentration.device)
         ctx.save_for_backward(score_tensor)
-        return torch.as_tensor(log_normalizers, dtype=singular_values.dtype, device=singular_values.device)
+        return torch.as_tensor(log_normalizers, dtype=concentration.dtype, device=concentration.device)
 
     @staticmethod
     def backward(ctx, output_gradient: torch.Tensor):
-        (singular_scores,) = ctx.saved_tensors
-        return output_gradient[:, None] * singular_scores, None, None
+        (scores,) = ctx.saved_tensors
+        return output_gradient * scores, None
 
 
 def _inverse_softplus(value: torch.Tensor) -> torch.Tensor:
@@ -354,13 +311,13 @@ class _SphereFisherBinghamQuadrature:
         return torch.stack(results)
 
 
-class VonMisesFisher(_SphereFisherBinghamQuadrature, PCMMtorchBaseModel):
+class VonMisesFisher(PCMMtorchBaseModel):
     """Real von Mises--Fisher distribution on S^(p-1)."""
 
-    normalizer_kind = 'continuous_euler_quadrature'
+    normalizer_kind = 'scaled_modified_bessel_function_cpu'
 
-    def __init__(self, p: int, K: int = 1, HMM: bool = False, samples_per_sequence=0, params: Optional[dict] = None,
-        integration_points: int = 400, omega_d: float = 0.5, omega_u: float = 2.0) -> None:
+    def __init__(self, p: int, K: int = 1, HMM: bool = False, samples_per_sequence=0,
+                 params: Optional[dict] = None) -> None:
         super().__init__()
         if p < 2:
             raise ValueError('VonMisesFisher requires p >= 2.')
@@ -368,7 +325,6 @@ class VonMisesFisher(_SphereFisherBinghamQuadrature, PCMMtorchBaseModel):
         self.samples_per_sequence = torch.as_tensor(0 if samples_per_sequence is None else samples_per_sequence)
         self.distribution = 'VonMisesFisher'
         self.flag_normalized_input_data = False
-        self._configure_sphere_quadrature(integration_points, omega_d, omega_u)
         if params is not None:
             self.unpack_params(params)
 
@@ -399,11 +355,11 @@ class VonMisesFisher(_SphereFisherBinghamQuadrature, PCMMtorchBaseModel):
         self.unpack_params({'mu': mu, 'kappa': raw_kappa, 'pi': _mixture_probabilities(labels, self.K, X.dtype)})
 
     def log_norm_constant(self) -> torch.Tensor:
-        mu = nn.functional.normalize(self.mu, dim=1)
         kappa = nn.functional.softplus(self.kappa)
-        return self._sphere_log_normalizer(kappa[:, None] * mu, M=None)
+        return _VonMisesFisherBesselLogNormalizer.apply(kappa, self.p)
 
     def log_pdf(self, X: torch.Tensor, recompute_statics: bool = False) -> torch.Tensor:
+        _require_vmf_cpu(X.device)
         _validate_sphere_data(X, self.p, 'VonMisesFisher')
         mu = nn.functional.normalize(self.mu, dim=1)
         kappa = nn.functional.softplus(self.kappa)
@@ -504,11 +460,12 @@ def _matrix_quadratic_factor(rows: torch.Tensor, rank: int) -> torch.Tensor:
 
 
 class _MatrixFisherBinghamSaddlepoint:
-    """Uniform-calibrated saddlepoint normalizer on V_2(R^p).
+    """Uniform-calibrated saddlepoint normalizer on a Stiefel manifold.
 
-    Second-order corrections use a scalable five-point theta-grid backend in
-    float64 by default.  ``saddlepoint_derivative_backend='autodiff'`` retains
-    the nested-autodiff reference implementation.
+    The pure Matrix Fisher branch supports arbitrary q. The low-rank
+    quadratic branches retain their structured q=2 Gaussian calculation.
+    For q=2, second-order corrections use a five-point theta-grid backend in
+    float64 by default; higher q uses nested automatic differentiation.
     """
 
     normalizer_kind = 'second_order_saddlepoint_relative_to_normalized_haar'
@@ -519,8 +476,10 @@ class _MatrixFisherBinghamSaddlepoint:
 
     def _configure_matrix_saddlepoint(self, saddlepoint_iterations: int, saddlepoint_tolerance: float, saddlepoint_order: int = 2,
         saddlepoint_derivative_backend: str = 'finite_difference', saddlepoint_finite_difference_step: float = 5e-3) -> None:
-        if self.q != 2:
-            raise NotImplementedError('The structured saddlepoint normalizer currently supports q=2 only.')
+        if self.q != 2 and self.distribution != 'MatrixFisher':
+            raise NotImplementedError(
+                'The quadratic matrix saddlepoint normalizer currently supports q=2 only.'
+            )
         if saddlepoint_iterations < 1 or saddlepoint_tolerance <= 0:
             raise ValueError('Saddlepoint iterations and tolerance should be positive.')
         if saddlepoint_order not in {1, 2}:
@@ -544,31 +503,61 @@ class _MatrixFisherBinghamSaddlepoint:
         self.last_saddlepoint_residuals: tuple[float, ...] = ()
         self.last_saddlepoint_finite_difference_steps: tuple[float, ...] = ()
 
+    @property
+    def _saddle_dimension(self) -> int:
+        return self.q * (self.q + 1) // 2
+
+    def _constraint_matrix(self, theta: torch.Tensor) -> torch.Tensor:
+        """Map diagonal and upper-triangular multipliers to a symmetric matrix."""
+        if theta.numel() != self._saddle_dimension:
+            raise ValueError(f'Expected {self._saddle_dimension} saddlepoint multipliers.')
+        matrix = torch.diag(theta[:self.q])
+        index = self.q
+        for row in range(self.q):
+            for column in range(row + 1, self.q):
+                basis = theta.new_zeros((self.q, self.q))
+                basis[row, column] = 0.5
+                basis[column, row] = 0.5
+                matrix = matrix + theta[index] * basis
+                index += 1
+        return matrix
+
     def _matrix_gaussian_terms(self, theta: torch.Tensor, M: Optional[torch.Tensor], F: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         contour = self.p / 2.0
+        if M is None:
+            constraint = self._constraint_matrix(theta)
+            column_precision = 2.0 * (
+                contour * torch.eye(self.q, dtype=theta.dtype, device=theta.device)
+                - constraint
+            )
+            sign, logabsdet = torch.linalg.slogdet(column_precision)
+            if sign.detach() <= 0:
+                raise RuntimeError('Saddlepoint determinant lost positive definiteness.')
+            solved = torch.linalg.solve(column_precision, F.mT).mT
+            log_determinant = self.p * logabsdet
+            quadratic = torch.sum(F * solved)
+            return log_determinant, quadratic
+
+        # The low-rank quadratic calculation below is the q=2 structured
+        # branch. Pure Matrix Fisher models take the dimension-general branch
+        # above and do not enter this code.
         a = 2.0 * (contour - theta[0])
         d = 2.0 * (contour - theta[1])
         b = -theta[2]
         determinant_zero = a * d - b.square()
 
-        if M is None:
-            PF = torch.zeros_like(F)
-            log_determinant = self.p * torch.log(determinant_zero)
-            Y = torch.stack((d * F[:, 0] - b * F[:, 1], -b * F[:, 0] + a * F[:, 1]), dim=1)
-            solved = Y / determinant_zero
-        else:
-            gram = M.mT @ M
-            identity = torch.eye(gram.shape[0], dtype=M.dtype, device=M.device)
-            H = 2.0 * (a + d) * identity + 4.0 * gram
-            middle = identity + H @ gram / determinant_zero
-            sign, logabsdet = torch.linalg.slogdet(middle)
-            if sign <= 0:
-                raise RuntimeError('Saddlepoint determinant lost positive definiteness.')
-            log_determinant = self.p * torch.log(determinant_zero) + logabsdet
-            PF = M @ (M.mT @ F)
-            Y = torch.stack((d * F[:, 0] + 2.0 * PF[:, 0] - b * F[:, 1], -b * F[:, 0] + a * F[:, 1] + 2.0 * PF[:, 1]), dim=1)
-            right = H @ (M.mT @ Y) / determinant_zero
-            solved = Y / determinant_zero - M @ torch.linalg.solve(middle, right) / determinant_zero
+        gram = M.mT @ M
+        identity = torch.eye(gram.shape[0], dtype=M.dtype, device=M.device)
+        H = 2.0 * (a + d) * identity + 4.0 * gram
+        middle = identity + H @ gram / determinant_zero
+        sign, logabsdet = torch.linalg.slogdet(middle)
+        if sign <= 0:
+            raise RuntimeError('Saddlepoint determinant lost positive definiteness.')
+        log_determinant = self.p * torch.log(determinant_zero) + logabsdet
+        PF = M @ (M.mT @ F)
+        Y = torch.stack((d * F[:, 0] + 2.0 * PF[:, 0] - b * F[:, 1], -b * F[:, 0] + a * F[:, 1] + 2.0 * PF[:, 1]), dim=1)
+        right = H @ (M.mT @ Y) / determinant_zero
+        solved = Y / determinant_zero - M @ torch.linalg.solve(middle, right) / determinant_zero
         quadratic = torch.sum(F * solved)
         return log_determinant, quadratic
 
@@ -624,13 +613,13 @@ class _MatrixFisherBinghamSaddlepoint:
             theta, create_graph=True, vectorize=True)
         # Fourth-difference roundoff grows with the O(p) cumulant baseline;
         # sqrt(p/4) balances that effect against the O(h^2) stencil error.
-        # Large linear natural parameters add further cancellation, handled by
-        # a mild dimension-normalized square-root factor.  Both scales are
-        # detached: the local numerical step is held fixed during backward.
+        # The step depends only on the fixed ambient dimension. Keeping it
+        # independent of fitted parameters makes the value approximation and
+        # its automatic derivative describe the same fixed numerical rule.
         dimension_scale = math.sqrt(self.p / 4.0)
-        linear_scale = torch.sqrt(1.0 + torch.linalg.vector_norm(F.detach()) / float(self.p))
-        linear_scale = torch.clamp(linear_scale, max=4.0)
-        step = (theta.new_tensor(self.saddlepoint_finite_difference_step) * dimension_scale * linear_scale)
+        step = theta.new_tensor(
+            self.saddlepoint_finite_difference_step * dimension_scale
+        )
         # The Gaussian-domain feasible set is convex, so feasibility at all
         # eight cube corners implies feasibility of the complete 5^3 grid.
         # Halving only changes a detached numerical step, not the model graph.
@@ -695,7 +684,11 @@ class _MatrixFisherBinghamSaddlepoint:
         # amplification is not reliable at float32 precision.  Falling back
         # to the reference preserves the historical behavior for float32
         # callers, while the computational experiment runs in float64.
-        if self.saddlepoint_derivative_backend == 'finite_difference' and theta.dtype == torch.float64:
+        if (
+            self.saddlepoint_derivative_backend == 'finite_difference'
+            and theta.dtype == torch.float64
+            and theta.numel() == 3
+        ):
             return self._finite_difference_cumulant_derivatives(theta, M, F)
         return self._autodiff_cumulant_derivatives(theta, M, F)
 
@@ -716,25 +709,44 @@ class _MatrixFisherBinghamSaddlepoint:
         cached = self._saddle_reference_correction
         if cached is not None:
             return cached.to(dtype=reference.dtype, device=reference.device)
-        # At M=F=theta=0, K(theta) is
-        # -p/2 log(((p-2 theta_1)(p-2 theta_2)-theta_3^2)).
-        # Substitution of its derivatives in the Kume--Preston--Wood
-        # contraction gives the exact normalized-Haar reference correction.
-        correction = reference.new_tensor(1.0 - 13.0 / (12.0 * self.p))
+        if self.q == 2:
+            # Substitution of the uniform q=2 cumulant derivatives in the
+            # Kume--Preston--Wood contraction gives this closed form.
+            correction = reference.new_tensor(1.0 - 13.0 / (12.0 * self.p))
+        else:
+            # Evaluate the same published contraction at the uniform
+            # reference. This is done once per model and detached because it
+            # is a dimension-dependent calibration constant.
+            theta = reference.new_zeros(self._saddle_dimension, requires_grad=True)
+            F_zero = reference.new_zeros((self.p, self.q))
+            hessian, third, fourth = self._autodiff_cumulant_derivatives(theta, None, F_zero)
+            correction = self._second_order_correction(
+                torch.linalg.inv(hessian), third, fourth
+            ).detach()
         if not torch.isfinite(correction) or correction <= 0:
             raise RuntimeError('The uniform second-order saddlepoint correction was non-positive.')
         self._saddle_reference_correction = correction
         return correction
 
     def _saddle_objective(self, theta: torch.Tensor, M: Optional[torch.Tensor], F: torch.Tensor) -> torch.Tensor:
-        return self._matrix_cumulant(theta, M, F) - theta[0] - theta[1]
+        return self._matrix_cumulant(theta, M, F) - theta[:self.q].sum()
 
     def _saddle_feasible(self, theta: torch.Tensor) -> bool:
+        if theta.numel() != self._saddle_dimension or not torch.isfinite(theta).all():
+            return False
+        if self.q != 2:
+            contour = self.p / 2.0
+            constraint = self._constraint_matrix(theta)
+            column_precision = 2.0 * (
+                contour * torch.eye(self.q, dtype=theta.dtype, device=theta.device)
+                - constraint
+            )
+            return bool(torch.linalg.cholesky_ex(column_precision).info == 0)
         contour = self.p / 2.0
         a = 2.0 * (contour - theta[0])
         d = 2.0 * (contour - theta[1])
         determinant = a * d - theta[2].square()
-        return bool(torch.isfinite(theta).all() and a > 1e-10 and d > 1e-10 and determinant > 1e-10)
+        return bool(a > 1e-10 and d > 1e-10 and determinant > 1e-10)
 
     def _solve_saddle(self, M: Optional[torch.Tensor], F: torch.Tensor, initial: torch.Tensor) -> torch.Tensor:
         M_fixed = None if M is None else M.detach()
@@ -758,7 +770,7 @@ class _MatrixFisherBinghamSaddlepoint:
                 }
                 return theta.detach()
             hessian = torch.autograd.functional.hessian(lambda value: self._saddle_objective(value, M_fixed, F_fixed), theta)
-            ridge = 1e-8 * torch.eye(3, dtype=theta.dtype, device=theta.device)
+            ridge = 1e-8 * torch.eye(theta.numel(), dtype=theta.dtype, device=theta.device)
             step = torch.linalg.solve(hessian + ridge, gradient.detach())
             accepted = False
             scale = 1.0
@@ -836,8 +848,8 @@ class _MatrixFisherBinghamSaddlepoint:
         return result if outer_grad_enabled else result.detach()
 
     def _matrix_log_normalizer_with_grad(self, M: Optional[torch.Tensor], F: torch.Tensor) -> torch.Tensor:
-        if self._saddle_cache is None or self._saddle_cache.shape != (self.K, 3):
-            cache = F.new_zeros((self.K, 3))
+        if self._saddle_cache is None or self._saddle_cache.shape != (self.K, self._saddle_dimension):
+            cache = F.new_zeros((self.K, self._saddle_dimension))
         else:
             cache = self._saddle_cache.to(dtype=F.dtype, device=F.device)
 
@@ -857,9 +869,14 @@ class _MatrixFisherBinghamSaddlepoint:
             sign, log_hessian_determinant = torch.linalg.slogdet(hessian)
             if sign <= 0:
                 raise RuntimeError('Saddlepoint Hessian was not positive definite.')
-            core = cumulant - theta[0] - theta[1] - 0.5 * log_hessian_determinant
-            reference_log_hessian = 2.0 * math.log(2.0 / self.p) + math.log(1.0 / self.p)
-            reference_core = -0.5 * reference_log_hessian - self.p * math.log(self.p)
+            core = cumulant - theta[:self.q].sum() - 0.5 * log_hessian_determinant
+            off_diagonal_constraints = self.q * (self.q - 1) // 2
+            reference_log_hessian = (
+                self.q * math.log(2.0 / self.p)
+                + off_diagonal_constraints * math.log(1.0 / self.p)
+            )
+            reference_cumulant = -0.5 * self.p * self.q * math.log(self.p)
+            reference_core = reference_cumulant - 0.5 * reference_log_hessian
             if self.saddlepoint_order == 2:
                 correction = self._second_order_correction(torch.linalg.inv(hessian), third, fourth)
                 if not torch.isfinite(correction).detach() or correction.detach() <= 0:
@@ -881,36 +898,28 @@ class _MatrixFisherBinghamSaddlepoint:
 
 
 class MatrixFisher(_MatrixFisherBinghamSaddlepoint, PCMMtorchBaseModel):
-    """Rank-structured matrix Fisher (matrix Langevin) model on V_2(R^p).
+    """Rank-structured matrix Fisher model on V_q(R^p).
 
-    The default normalizer is exact for q=2. Set normalizer_method to
-    'saddlepoint' to reproduce the first- or second-order approximation.
+    Its normalizer uses the same uniform-calibrated saddlepoint construction
+    as the other matrix models; there is no q=2-only exact shortcut.
     """
 
     def __init__(self, p: int, q: int, linear_rank: int, K: int = 1, HMM: bool = False, samples_per_sequence=0,
         params: Optional[dict] = None, saddlepoint_iterations: int = 20, saddlepoint_tolerance: float = 1e-8, saddlepoint_order: int = 2,
-        normalizer_method: str = 'exact', exact_quadrature_points: int = 128, direct_linear_parameterization: bool = False,
-        saddlepoint_derivative_backend: str = 'finite_difference', saddlepoint_finite_difference_step: float = 5e-3) -> None:
+        direct_linear_parameterization: bool = False, saddlepoint_derivative_backend: str = 'finite_difference',
+        saddlepoint_finite_difference_step: float = 5e-3) -> None:
         super().__init__()
         if p <= q or linear_rank < 1 or linear_rank > q:
             raise ValueError('MatrixFisher requires p > q and 1 <= linear_rank <= q.')
-        if normalizer_method not in {'exact', 'saddlepoint'}:
-            raise ValueError("normalizer_method should be 'exact' or 'saddlepoint'.")
-        if not isinstance(exact_quadrature_points, int) or exact_quadrature_points < 8:
-            raise ValueError('exact_quadrature_points should be an integer >= 8.')
         if direct_linear_parameterization and linear_rank != q:
             raise ValueError('Direct Matrix Fisher parameterization requires linear_rank == q.')
         self.p, self.q, self.s, self.K, self.HMM = p, q, linear_rank, K, HMM
-        self.normalizer_method = normalizer_method
-        self.exact_quadrature_points = exact_quadrature_points
         self.direct_linear_parameterization = bool(direct_linear_parameterization)
         self.samples_per_sequence = torch.as_tensor(0 if samples_per_sequence is None else samples_per_sequence)
         self.distribution = 'MatrixFisher'
         self.flag_normalized_input_data = False
         self._configure_matrix_saddlepoint(saddlepoint_iterations, saddlepoint_tolerance, saddlepoint_order,
                                            saddlepoint_derivative_backend, saddlepoint_finite_difference_step)
-        if self.normalizer_method == 'exact':
-            self.normalizer_kind = ('exact_gauss_jacobi_bessel_relative_to_normalized_haar')
         if params is not None:
             self.unpack_params(params)
 
@@ -947,9 +956,6 @@ class MatrixFisher(_MatrixFisherBinghamSaddlepoint, PCMMtorchBaseModel):
 
     def log_norm_constant(self) -> torch.Tensor:
         F = self.concentration_matrix()
-        if self.normalizer_method == 'exact':
-            singular_values = torch.linalg.svdvals(F)
-            return _MatrixFisherQ2ExactLogNormalizer.apply(singular_values, self.p, self.exact_quadrature_points)
         return self._matrix_log_normalizer(M=None, F=F)
 
     def log_pdf(self, X: torch.Tensor, recompute_statics: bool = False) -> torch.Tensor:

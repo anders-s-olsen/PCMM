@@ -1,0 +1,163 @@
+rank,noise,dataset,model,NMI
+3,0.1,fixed,VMVM (ordinary torus),1.0
+3,0.1,fixed,"VMVM (ordinary torus, uniform marginals)",1.0
+3,0.1,fixed,Wrapped normal (ordinary torus),1.0
+3,0.1,fixed,Wrapped normal (quotient torus),1.0
+3,0.1,fixed,Complex Bingham,1.0
+3,0.1,fixed,Complex ACG,1.0
+3,0.1,fixed,Real ACG,1.0
+3,0.1,fixed,MACG,1.0
+3,0.1,fixed,Singular Wishart,1.0
+3,0.1,fixed,Torus K-means (ordinary torus),1.0
+3,0.1,fixed,Torus K-means (quotient torus),1.0
+3,0.1,fixed,Complex diametrical K-means,1.0
+3,0.1,fixed,Complex projective hyperplane K-means,1.0
+3,0.1,fixed,Diametrical K-means,1.0
+3,0.1,fixed,Grassmann K-means,1.0
+3,0.1,fixed,Weighted Grassmann K-means,1.0
+3,0.1,fixed,Least-squares K-means,0.7349703683460567
+3,0.1,fixed,Complex Watson,
+3,0.8728981633974483,fixed,VMVM (ordinary torus),1.0
+3,0.8728981633974483,fixed,"VMVM (ordinary torus, uniform marginals)",1.0
+3,0.8728981633974483,fixed,Wrapped normal (ordinary torus),1.0
+3,0.8728981633974483,fixed,Wrapped normal (quotient torus),1.0
+3,0.8728981633974483,fixed,Complex Bingham,1.0
+3,0.8728981633974483,fixed,Complex Watson,1.0
+3,0.8728981633974483,fixed,Complex ACG,1.0
+3,0.8728981633974483,fixed,Real ACG,1.0
+3,0.8728981633974483,fixed,MACG,1.0
+3,0.8728981633974483,fixed,Singular Wishart,1.0
+3,0.8728981633974483,fixed,Torus K-means (ordinary torus),1.0
+3,0.8728981633974483,fixed,Torus K-means (quotient torus),1.0
+3,0.8728981633974483,fixed,Complex diametrical K-means,1.0
+3,0.8728981633974483,fixed,Complex projective hyperplane K-means,1.0
+3,0.8728981633974483,fixed,Diametrical K-means,1.0
+3,0.8728981633974483,fixed,Grassmann K-means,1.0
+3,0.8728981633974483,fixed,Weighted Grassmann K-means,1.0
+3,0.8728981633974483,fixed,Least-squares K-means,0.5240954559759339
+3,1.6457963267948967,fixed,VMVM (ordinary torus),1.0
+3,1.6457963267948967,fixed,"VMVM (ordinary torus, uniform marginals)",1.0
+3,1.6457963267948967,fixed,Wrapped normal (ordinary torus),1.0
+3,1.6457963267948967,fixed,Wrapped normal (quotient torus),1.0
+3,1.6457963267948967,fixed,Complex Bingham,1.0
+3,1.6457963267948967,fixed,Complex Watson,1.0
+3,1.6457963267948967,fixed,Complex ACG,1.0
+3,1.6457963267948967,fixed,Real ACG,1.0
+3,1.6457963267948967,fixed,MACG,1.0
+3,1.6457963267948967,fixed,Singular Wishart,1.0
+3,1.6457963267948967,fixed,Torus K-means (ordinary torus),1.0
+3,1.6457963267948967,fixed,Torus K-means (quotient torus),1.0
+3,1.6457963267948967,fixed,Complex diametrical K-means,1.0
+3,1.6457963267948967,fixed,Complex projective hyperplane K-means,1.0
+3,1.6457963267948967,fixed,Grassmann K-means,1.0
+3,1.6457963267948967,fixed,Weighted Grassmann K-means,1.0
+3,1.6457963267948967,fixed,Diametrical K-means,0.9530566686527568
+3,1.6457963267948967,fixed,Least-squares K-means,0.5646362022686741
+3,2.4186944901923453,fixed,VMVM (ordinary torus),1.0
+3,2.4186944901923453,fixed,Wrapped normal (quotient torus),1.0
+3,2.4186944901923453,fixed,Wrapped normal (ordinary torus),1.0
+3,2.4186944901923453,fixed,Complex Bingham,0.981182940453905
+3,2.4186944901923453,fixed,Complex ACG,0.9595659056988849
+3,2.4186944901923453,fixed,Torus K-means (ordinary torus),0.9364008762935543
+3,2.4186944901923453,fixed,Singular Wishart,0.9348460981156732
+3,2.4186944901923453,fixed,MACG,0.9203806920366691
+3,2.4186944901923453,fixed,Weighted Grassmann K-means,0.8870693102258571
+3,2.4186944901923453,fixed,Complex projective hyperplane K-means,0.8711048512262933
+3,2.4186944901923453,fixed,Torus K-means (quotient torus),0.8711048512262933
+3,2.4186944901923453,fixed,Complex diametrical K-means,0.8711048512262933
+3,2.4186944901923453,fixed,Complex Watson,0.8595095069746223
+3,2.4186944901923453,fixed,"VMVM (ordinary torus, uniform marginals)",0.8565971485488701
+3,2.4186944901923453,fixed,Grassmann K-means,0.8565971485488699
+3,2.4186944901923453,fixed,Real ACG,0.8486348977167498
+3,2.4186944901923453,fixed,Diametrical K-means,0.8240967586089891
+3,2.4186944901923453,fixed,Least-squares K-means,0.4839507444994813
+3,3.1915926535897934,fixed,Wrapped normal (ordinary torus),0.9194940373179579
+3,3.1915926535897934,fixed,Wrapped normal (quotient torus),0.8642486670956319
+3,3.1915926535897934,fixed,Complex Bingham,0.8507829015501908
+3,3.1915926535897934,fixed,Complex ACG,0.8180402102826406
+3,3.1915926535897934,fixed,VMVM (ordinary torus),0.749935037632508
+3,3.1915926535897934,fixed,Torus K-means (ordinary torus),0.6872080625268632
+3,3.1915926535897934,fixed,MACG,0.6809536277683625
+3,3.1915926535897934,fixed,Singular Wishart,0.6501314527855107
+3,3.1915926535897934,fixed,Complex projective hyperplane K-means,0.5158904973109331
+3,3.1915926535897934,fixed,Complex diametrical K-means,0.5158904973109331
+3,3.1915926535897934,fixed,Torus K-means (quotient torus),0.511561383061078
+3,3.1915926535897934,fixed,Complex Watson,0.5100237103658736
+3,3.1915926535897934,fixed,"VMVM (ordinary torus, uniform marginals)",0.5072657771124675
+3,3.1915926535897934,fixed,Diametrical K-means,0.48448512139918376
+3,3.1915926535897934,fixed,Weighted Grassmann K-means,0.4705895131263467
+3,3.1915926535897934,fixed,Real ACG,0.45661363255734483
+3,3.1915926535897934,fixed,Grassmann K-means,0.4307421361447278
+3,3.1915926535897934,fixed,Least-squares K-means,0.10087152636094036
+3,3.9644908169872415,fixed,Wrapped normal (ordinary torus),0.5349069400493747
+3,3.9644908169872415,fixed,Wrapped normal (quotient torus),0.3852295189769088
+3,3.9644908169872415,fixed,Complex Bingham,0.34905565031280494
+3,3.9644908169872415,fixed,Complex ACG,0.3306493941350777
+3,3.9644908169872415,fixed,Torus K-means (ordinary torus),0.18261412153856638
+3,3.9644908169872415,fixed,MACG,0.1524099326655824
+3,3.9644908169872415,fixed,VMVM (ordinary torus),0.13733411854848063
+3,3.9644908169872415,fixed,Real ACG,0.11507904638838284
+3,3.9644908169872415,fixed,Weighted Grassmann K-means,0.07092409930241592
+3,3.9644908169872415,fixed,Grassmann K-means,0.06872922708909013
+3,3.9644908169872415,fixed,Diametrical K-means,0.06277976385108074
+3,3.9644908169872415,fixed,Complex Watson,0.05786616299213072
+3,3.9644908169872415,fixed,Torus K-means (quotient torus),0.04721955802770317
+3,3.9644908169872415,fixed,Complex projective hyperplane K-means,0.045061513466971084
+3,3.9644908169872415,fixed,Complex diametrical K-means,0.036664658053543284
+3,3.9644908169872415,fixed,"VMVM (ordinary torus, uniform marginals)",0.027420529062576488
+3,3.9644908169872415,fixed,Singular Wishart,0.02592061604817152
+3,3.9644908169872415,fixed,Least-squares K-means,0.008084287360811921
+3,4.73738898038469,fixed,Complex Watson,0.008982982401637522
+3,4.73738898038469,fixed,Complex Bingham,0.004775329166897687
+3,4.73738898038469,fixed,Weighted Grassmann K-means,0.0024391549851190313
+3,4.73738898038469,fixed,Wrapped normal (ordinary torus),0.0018102850354916108
+3,4.73738898038469,fixed,VMVM (ordinary torus),0.0014002307803901086
+3,4.73738898038469,fixed,Singular Wishart,0.001312151430262143
+3,4.73738898038469,fixed,Torus K-means (ordinary torus),0.0009352518126548961
+3,4.73738898038469,fixed,Torus K-means (quotient torus),0.000835061611955748
+3,4.73738898038469,fixed,Diametrical K-means,0.0008341520472346811
+3,4.73738898038469,fixed,Complex projective hyperplane K-means,0.0002896234725597983
+3,4.73738898038469,fixed,Wrapped normal (quotient torus),0.00027736792557430816
+3,4.73738898038469,fixed,MACG,0.00020311515997759071
+3,4.73738898038469,fixed,Real ACG,0.00018467686625559765
+3,4.73738898038469,fixed,Complex diametrical K-means,0.00014223103961560584
+3,4.73738898038469,fixed,Grassmann K-means,4.621602894637271e-05
+3,4.73738898038469,fixed,"VMVM (ordinary torus, uniform marginals)",4.308544320255201e-05
+3,4.73738898038469,fixed,Complex ACG,1.2416265448024773e-05
+3,4.73738898038469,fixed,Least-squares K-means,3.0331903764109468e-06
+3,5.510287143782138,fixed,Real ACG,0.0028281842497356034
+3,5.510287143782138,fixed,MACG,0.00231481010456738
+3,5.510287143782138,fixed,Complex Watson,0.002194721734488245
+3,5.510287143782138,fixed,VMVM (ordinary torus),0.0015041194257036316
+3,5.510287143782138,fixed,Grassmann K-means,0.0012748382943545558
+3,5.510287143782138,fixed,Diametrical K-means,0.0010418823247064853
+3,5.510287143782138,fixed,Least-squares K-means,0.0009930109739233952
+3,5.510287143782138,fixed,Wrapped normal (ordinary torus),0.0009355779887050743
+3,5.510287143782138,fixed,Wrapped normal (quotient torus),0.00034984773872032176
+3,5.510287143782138,fixed,"VMVM (ordinary torus, uniform marginals)",0.00033693890378612494
+3,5.510287143782138,fixed,Singular Wishart,0.0003105497547847202
+3,5.510287143782138,fixed,Complex diametrical K-means,0.0002885645309827219
+3,5.510287143782138,fixed,Complex ACG,0.0001905799181022236
+3,5.510287143782138,fixed,Complex Bingham,5.1493080656216044e-05
+3,5.510287143782138,fixed,Torus K-means (ordinary torus),4.617075455442075e-05
+3,5.510287143782138,fixed,Weighted Grassmann K-means,2.5969938683868158e-05
+3,5.510287143782138,fixed,Complex projective hyperplane K-means,2.8866645271365756e-06
+3,5.510287143782138,fixed,Torus K-means (quotient torus),6.407777516154057e-16
+3,6.283185307179586,fixed,Wrapped normal (quotient torus),0.003922635786581562
+3,6.283185307179586,fixed,Singular Wishart,0.0038120317900583096
+3,6.283185307179586,fixed,VMVM (ordinary torus),0.002792540177976601
+3,6.283185307179586,fixed,"VMVM (ordinary torus, uniform marginals)",0.002621404350239079
+3,6.283185307179586,fixed,MACG,0.0017325691967707726
+3,6.283185307179586,fixed,Least-squares K-means,0.0015766411110009972
+3,6.283185307179586,fixed,Complex ACG,0.0012430146859060893
+3,6.283185307179586,fixed,Complex Bingham,0.0008620186506510725
+3,6.283185307179586,fixed,Diametrical K-means,0.0008342611072975205
+3,6.283185307179586,fixed,Torus K-means (quotient torus),0.0004881349915583688
+3,6.283185307179586,fixed,Weighted Grassmann K-means,0.00041707020451224814
+3,6.283185307179586,fixed,Real ACG,0.00023394441523792028
+3,6.283185307179586,fixed,Wrapped normal (ordinary torus),0.00014325705294405036
+3,6.283185307179586,fixed,Grassmann K-means,7.21551979019878e-05
+3,6.283185307179586,fixed,Complex Watson,5.546118442399366e-05
+3,6.283185307179586,fixed,Torus K-means (ordinary torus),4.6175781372989367e-05
+3,6.283185307179586,fixed,Complex projective hyperplane K-means,4.617075455442075e-05
+3,6.283185307179586,fixed,Complex diametrical K-means,4.616673376179932e-05
